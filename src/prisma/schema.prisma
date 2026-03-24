@@ -1,0 +1,190 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  manager
+  staff
+}
+
+enum TaskStatus {
+  not_started
+  in_progress
+  blocked
+  stalled
+  done
+}
+
+enum TaskPriority {
+  high
+  medium
+  low
+}
+
+enum EffortEstimate {
+  small
+  medium
+  large
+}
+
+enum ActivityType {
+  comment
+  status_change
+  progress_update
+  priority_change
+  assignment_change
+  due_date_change
+  effort_change
+  blocker_added
+  blocker_resolved
+  title_change
+  description_change
+}
+
+enum NotificationType {
+  task_assigned
+  due_date_approaching
+  comment_added
+  badge_earned
+  streak_milestone
+  blocker_resolved
+}
+
+model User {
+  id            String    @id @default(uuid())
+  name          String    @unique
+  role          UserRole  @default(staff)
+  avatarColor   String    @map("avatar_color")
+  soundEnabled  Boolean   @default(true) @map("sound_enabled")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  isActive      Boolean   @default(true) @map("is_active")
+
+  createdTasks    Task[]          @relation("CreatedTasks")
+  assignedTasks   Task[]          @relation("AssignedTasks")
+  activities      TaskActivity[]
+  notifications   Notification[]
+  pointsLedger    PointsLedger[]
+  userAwards      UserAward[]
+  streaks         Streak[]
+
+  @@map("users")
+}
+
+model Task {
+  id              String        @id @default(uuid())
+  title           String
+  description     String?
+  status          TaskStatus    @default(not_started)
+  priority        TaskPriority  @default(medium)
+  percentComplete Int           @default(0) @map("percent_complete")
+  effortEstimate  EffortEstimate @default(medium) @map("effort_estimate")
+  dueDate         DateTime?     @map("due_date")
+  blockerReason   String?       @map("blocker_reason")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  completedAt     DateTime?     @map("completed_at")
+  archivedAt      DateTime?     @map("archived_at")
+  createdById     String        @map("created_by")
+  assignedToId    String?       @map("assigned_to")
+  backlogPosition Int?          @map("backlog_position")
+
+  createdBy       User          @relation("CreatedTasks", fields: [createdById], references: [id])
+  assignedTo      User?         @relation("AssignedTasks", fields: [assignedToId], references: [id])
+  activities      TaskActivity[]
+  notifications   Notification[]
+  pointsLedger    PointsLedger[]
+
+  @@map("tasks")
+}
+
+model TaskActivity {
+  id        String       @id @default(uuid())
+  taskId    String       @map("task_id")
+  userId    String       @map("user_id")
+  timestamp DateTime     @default(now())
+  type      ActivityType
+  content   String?
+  oldValue  String?      @map("old_value")
+  newValue  String?      @map("new_value")
+
+  task      Task         @relation(fields: [taskId], references: [id])
+  user      User         @relation(fields: [userId], references: [id])
+
+  @@map("task_activities")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String           @map("user_id")
+  type      NotificationType
+  title     String
+  message   String
+  taskId    String?          @map("task_id")
+  isRead    Boolean          @default(false) @map("is_read")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user      User             @relation(fields: [userId], references: [id])
+  task      Task?            @relation(fields: [taskId], references: [id])
+
+  @@map("notifications")
+}
+
+model PointsLedger {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  taskId     String?  @map("task_id")
+  actionType String   @map("action_type")
+  points     Int
+  timestamp  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id])
+  task       Task?    @relation(fields: [taskId], references: [id])
+
+  @@map("points_ledger")
+}
+
+model Award {
+  id            String   @id @default(uuid())
+  name          String   @unique
+  description   String
+  icon          String
+  criteriaType  String   @map("criteria_type")
+  criteriaValue Json     @map("criteria_value")
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  userAwards    UserAward[]
+
+  @@map("awards")
+}
+
+model UserAward {
+  id       String   @id @default(uuid())
+  userId   String   @map("user_id")
+  awardId  String   @map("award_id")
+  earnedAt DateTime @default(now()) @map("earned_at")
+
+  user     User     @relation(fields: [userId], references: [id])
+  award    Award    @relation(fields: [awardId], references: [id])
+
+  @@unique([userId, awardId])
+  @@map("user_awards")
+}
+
+model Streak {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  streakType   String   @map("streak_type")
+  currentCount Int      @default(0) @map("current_count")
+  longestCount Int      @default(0) @map("longest_count")
+  lastActivity DateTime @map("last_activity")
+
+  user         User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, streakType])
+  @@map("streaks")
+}
