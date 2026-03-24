@@ -10,6 +10,7 @@ interface ProgressSliderProps {
   onUpdate?: (value: number) => void;
   className?: string;
   disabled?: boolean;
+  compact?: boolean;
 }
 
 export function ProgressSlider({
@@ -18,6 +19,7 @@ export function ProgressSlider({
   onUpdate,
   className,
   disabled,
+  compact,
 }: ProgressSliderProps) {
   const [value, setValue] = useState(initialValue);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -62,9 +64,11 @@ export function ProgressSlider({
           aria-label="Task progress"
         />
       </div>
-      <span className="text-sm font-medium tabular-nums w-10 text-right text-muted-foreground">
-        {value}%
-      </span>
+      {!compact && (
+        <span className="text-sm font-medium tabular-nums w-10 text-right text-muted-foreground">
+          {value}%
+        </span>
+      )}
     </div>
   );
 }

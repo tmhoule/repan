@@ -3,11 +3,14 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import useSWR from "swr";
-import { Plus, ClipboardList } from "lucide-react";
+import { Plus, ClipboardList, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TaskCard } from "@/components/tasks/task-card";
 import { TaskFilters, TaskFiltersState } from "@/components/tasks/task-filters";
 import { PointsSummary } from "@/components/gamification/points-summary";
+import { BacklogSummary } from "@/components/backlog/backlog-summary";
+import { BacklogList } from "@/components/backlog/backlog-list";
+import { Separator } from "@/components/ui/separator";
 
 type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "done";
 type TaskPriority = "high" | "medium" | "low";
@@ -119,6 +122,49 @@ export default function MyTasksPage() {
             <TaskCard key={task.id} task={task} onUpdate={() => mutate()} />
           ))}
         </div>
+      )}
+
+      {/* Backlog section */}
+      <Separator className="my-4" />
+      <BacklogSection />
+    </div>
+  );
+}
+
+function BacklogSection() {
+  const { data, isLoading } = useSWR<{
+    tasks: any[];
+    health: { totalItems: number; totalEffort: number; estimatedWeeks: number | null; trend: string };
+    weeklyThroughput: number;
+  }>("/api/backlog");
+
+  const backlogTasks = data?.tasks ?? [];
+  const health = data?.health;
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="text-xl font-bold tracking-tight">Backlog</h2>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Unclaimed tasks available to pick up
+        </p>
+      </div>
+
+      {health && <BacklogSummary health={health} weeklyThroughput={data?.weeklyThroughput ?? 0} />}
+
+      {isLoading ? (
+        <div className="space-y-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="h-16 rounded-xl bg-muted/50 animate-pulse" />
+          ))}
+        </div>
+      ) : backlogTasks.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border py-12 text-center">
+          <Package className="size-10 text-muted-foreground/40" />
+          <p className="text-sm text-muted-foreground">Backlog is empty</p>
+        </div>
+      ) : (
+        <BacklogList tasks={backlogTasks} onMutate={() => {}} />
       )}
     </div>
   );

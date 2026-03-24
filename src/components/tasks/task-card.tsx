@@ -6,7 +6,6 @@ import { useSWRConfig } from "swr";
 import {
   CheckCircle,
   ChevronDown,
-  SlidersHorizontal,
   AlertTriangle,
   Clock,
 } from "lucide-react";
@@ -87,7 +86,6 @@ function formatDueDate(dateStr: string | null): {
 
 export function TaskCard({ task, onUpdate }: TaskCardProps) {
   const { mutate } = useSWRConfig();
-  const [showSlider, setShowSlider] = useState(false);
   const [showPointsPopup, setShowPointsPopup] = useState(false);
   const [currentTask, setCurrentTask] = useState(task);
   const { celebrationRef, triggerCelebration } = useCelebration();
@@ -195,33 +193,28 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
           </div>
         )}
 
-        {/* Progress bar */}
+        {/* Interactive progress slider (doubles as the progress bar) */}
         <div className="space-y-1">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>Progress</span>
             <span className="tabular-nums">{currentTask.percentComplete}%</span>
           </div>
-          <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-            <div
-              className={cn(
-                "h-full rounded-full transition-all duration-300",
-                isDone ? "bg-green-500" : "bg-primary"
-              )}
-              style={{ width: `${currentTask.percentComplete}%` }}
+          {isDone ? (
+            <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+              <div className="h-full rounded-full bg-green-500 w-full" />
+            </div>
+          ) : (
+            <ProgressSlider
+              taskId={currentTask.id}
+              initialValue={currentTask.percentComplete}
+              onUpdate={(v) =>
+                setCurrentTask((t) => ({ ...t, percentComplete: v }))
+              }
+              className="!gap-0"
+              compact
             />
-          </div>
+          )}
         </div>
-
-        {/* Inline slider */}
-        {showSlider && !isDone && (
-          <ProgressSlider
-            taskId={currentTask.id}
-            initialValue={currentTask.percentComplete}
-            onUpdate={(v) =>
-              setCurrentTask((t) => ({ ...t, percentComplete: v }))
-            }
-          />
-        )}
 
         {/* Blocker reason */}
         {currentTask.status === "blocked" && currentTask.blockerReason && (
@@ -242,16 +235,6 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
             >
               <CheckCircle className="size-3.5" />
               Done
-            </Button>
-
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-7 gap-1.5 text-xs"
-              onClick={() => setShowSlider((v) => !v)}
-            >
-              <SlidersHorizontal className="size-3.5" />
-              Progress
             </Button>
 
             <DropdownMenu>
