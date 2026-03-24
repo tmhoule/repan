@@ -55,7 +55,40 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   try {
     await requireManager();
     const { id } = await params;
-    return NextResponse.json(await prisma.user.update({ where: { id }, data: { isActive: false } }));
+
+    // Move all open (non-done) assigned tasks back to backlog
+    const openTasks = await prisma.task.findMany({
+      where: { assignedToId: id, status: { not: "done" }, archivedAt: null },
+      select: { id: true },
+    });
+
+    if (openTasks.length > 0) {
+      // Find the max backlog position to append after
+      const maxPos = await prisma.task.aggregate({
+        where: { assignedToId: null, archivedAt: null },
+        _max: { backlogPosition: true },
+      });
+      let nextPos = (maxPos._max.backlogPosition ?? 0) + 1;
+
+      for (const task of openTasks) {
+        await prisma.task.update({
+          where: { id: task.id },
+          data: { assignedToId: null, backlogPosition: nextPos++ },
+        });
+      }
+    }
+
+    // Delete related records then the user
+    await prisma.$transaction([
+      prisma.pointsLedger.deleteMany({ where: { userId: id } }),
+      prisma.userAward.deleteMany({ where: { userId: id } }),
+      prisma.streak.deleteMany({ where: { userId: id } }),
+      prisma.notification.deleteMany({ where: { userId: id } }),
+      prisma.taskActivity.deleteMany({ where: { userId: id } }),
+      prisma.user.delete({ where: { id } }),
+    ]);
+
+    return NextResponse.json({ success: true, tasksMovedToBacklog: openTasks.length });
   } catch (error) {
     return handleApiError(error);
   }

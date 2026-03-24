@@ -98,19 +98,19 @@ export function UserForm({ open, onClose, onSave, initialData }: UserFormProps) 
     }
   };
 
-  const handleDeactivate = async () => {
+  const handleDelete = async () => {
     if (!initialData?.id) return;
+    if (!confirm(`Delete ${initialData.name}? Their open tasks will be moved to the backlog.`)) return;
     setDeactivating(true);
     try {
-      await fetch(`/api/users/${initialData.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isActive: false }),
+      const res = await fetch(`/api/users/${initialData.id}`, {
+        method: "DELETE",
       });
+      if (!res.ok) throw new Error("Failed to delete");
       onSave();
       onClose();
     } catch {
-      setError("Failed to deactivate user.");
+      setError("Failed to delete user.");
     } finally {
       setDeactivating(false);
     }
@@ -181,16 +181,16 @@ export function UserForm({ open, onClose, onSave, initialData }: UserFormProps) 
           )}
 
           <DialogFooter showCloseButton={false}>
-            {isEdit && initialData?.isActive && (
+            {isEdit && (
               <Button
                 type="button"
                 variant="destructive"
                 size="sm"
-                onClick={handleDeactivate}
+                onClick={handleDelete}
                 disabled={deactivating || submitting}
                 className="mr-auto"
               >
-                {deactivating ? "Deactivating..." : "Deactivate"}
+                {deactivating ? "Deleting..." : "Delete User"}
               </Button>
             )}
             <Button
