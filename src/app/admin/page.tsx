@@ -266,7 +266,7 @@ export default function AdminPage() {
                 </p>
                 <Button size="sm" onClick={openCreateUser}>
                   <UserPlus className="size-3.5" />
-                  Create User
+                  Add User
                 </Button>
               </div>
 
