@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
         where: { teamId },
         include: {
           user: {
-            select: { id: true, name: true, role: true, avatarColor: true, isActive: true, createdAt: true },
+            select: { id: true, name: true, role: true, avatarColor: true, isActive: true, isSuperAdmin: true, createdAt: true },
           },
         },
         orderBy: { user: { name: "asc" } },
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
 
     const users = await prisma.user.findMany({
       where,
-      select: { id: true, name: true, role: true, avatarColor: true, isActive: true, createdAt: true },
+      select: { id: true, name: true, role: true, avatarColor: true, isActive: true, isSuperAdmin: true, createdAt: true },
       orderBy: { name: "asc" },
     });
     return NextResponse.json(users);
@@ -49,11 +49,17 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    await requireManager();
+    const currentUser = await requireManager();
     const activeTeamId = await getActiveTeam();
-    const { name, role, avatarColor, teamIds } = await request.json();
+    const { name, role, avatarColor, teamIds, isSuperAdmin } = await request.json();
     const user = await prisma.user.create({
-      data: { name, role: role || "staff", avatarColor },
+      data: {
+        name,
+        role: role || "staff",
+        avatarColor,
+        // Only super admins can create other super admins
+        ...(isSuperAdmin && currentUser.isSuperAdmin ? { isSuperAdmin: true } : {}),
+      },
     });
 
     // Add user to specified teams, or fall back to active team

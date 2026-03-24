@@ -39,6 +39,7 @@ interface UserFormData {
   role: "manager" | "staff";
   avatarColor: string;
   isActive?: boolean;
+  isSuperAdmin?: boolean;
 }
 
 interface Team {
@@ -51,13 +52,15 @@ interface UserFormProps {
   onClose: () => void;
   onSave: () => void;
   initialData?: UserFormData | null;
+  currentUserIsSuperAdmin?: boolean;
 }
 
-export function UserForm({ open, onClose, onSave, initialData }: UserFormProps) {
+export function UserForm({ open, onClose, onSave, initialData, currentUserIsSuperAdmin }: UserFormProps) {
   const isEdit = !!initialData?.id;
 
   const [name, setName] = useState(initialData?.name ?? "");
   const [role, setRole] = useState<"manager" | "staff">(initialData?.role ?? "staff");
+  const [isSuperAdmin, setIsSuperAdmin] = useState(initialData?.isSuperAdmin ?? false);
   const [avatarColor, setAvatarColor] = useState(initialData?.avatarColor ?? AVATAR_COLORS[0].value);
   const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
@@ -85,6 +88,7 @@ export function UserForm({ open, onClose, onSave, initialData }: UserFormProps) 
   useEffect(() => {
     setName(initialData?.name ?? "");
     setRole(initialData?.role ?? "staff");
+    setIsSuperAdmin(initialData?.isSuperAdmin ?? false);
     setAvatarColor(initialData?.avatarColor ?? AVATAR_COLORS[0].value);
     if (!isEdit) setSelectedTeamIds(new Set());
     setError(null);
@@ -117,6 +121,7 @@ export function UserForm({ open, onClose, onSave, initialData }: UserFormProps) 
           role,
           avatarColor,
           teamIds: Array.from(selectedTeamIds),
+          ...(currentUserIsSuperAdmin ? { isSuperAdmin } : {}),
         }),
       });
       if (!res.ok) {
@@ -191,6 +196,20 @@ export function UserForm({ open, onClose, onSave, initialData }: UserFormProps) 
               </SelectContent>
             </Select>
           </div>
+
+          {/* Super Admin (only visible to super admins) */}
+          {currentUserIsSuperAdmin && (
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isSuperAdmin}
+                onChange={(e) => setIsSuperAdmin(e.target.checked)}
+                className="size-4 rounded border-input accent-primary"
+              />
+              <span className="text-sm">Super Admin</span>
+              <span className="text-xs text-muted-foreground">— can create teams and manage all teams</span>
+            </label>
+          )}
 
           {/* Avatar Color */}
           <div className="space-y-1.5">

@@ -34,6 +34,7 @@ interface UserRow {
   role: "manager" | "staff";
   avatarColor: string;
   isActive: boolean;
+  isSuperAdmin: boolean;
   createdAt: string;
 }
 
@@ -256,7 +257,7 @@ export default function AdminPage() {
           <TabsList>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="badges">Badges</TabsTrigger>
-            {isManager && <TabsTrigger value="teams">Teams</TabsTrigger>}
+            {isSuperAdmin && <TabsTrigger value="teams">Teams</TabsTrigger>}
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
@@ -669,6 +670,7 @@ export default function AdminPage() {
         onClose={() => setUserFormOpen(false)}
         onSave={() => mutateUsers()}
         initialData={editingUser}
+        currentUserIsSuperAdmin={isSuperAdmin}
       />
 
       {/* Badge form dialog */}

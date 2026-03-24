@@ -34,17 +34,19 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await requireManager();
+    const currentUser = await requireManager();
     const { id } = await params;
     const body = await request.json();
     // Whitelist allowed fields to prevent mass-assignment
-    const { name, role, avatarColor, soundEnabled, isActive } = body;
+    const { name, role, avatarColor, soundEnabled, isActive, isSuperAdmin } = body;
     const data: Record<string, unknown> = {};
     if (name !== undefined) data.name = name;
     if (role !== undefined) data.role = role;
     if (avatarColor !== undefined) data.avatarColor = avatarColor;
     if (soundEnabled !== undefined) data.soundEnabled = soundEnabled;
     if (isActive !== undefined) data.isActive = isActive;
+    // Only super admins can grant/revoke super admin status
+    if (isSuperAdmin !== undefined && currentUser.isSuperAdmin) data.isSuperAdmin = isSuperAdmin;
     return NextResponse.json(await prisma.user.update({ where: { id }, data }));
   } catch (error) {
     return handleApiError(error);
