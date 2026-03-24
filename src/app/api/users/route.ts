@@ -48,10 +48,19 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     await requireManager();
+    const teamId = await getActiveTeam();
     const { name, role, avatarColor } = await request.json();
     const user = await prisma.user.create({
       data: { name, role: role || "staff", avatarColor },
     });
+
+    // Auto-add user to the current team if one is active
+    if (teamId) {
+      await prisma.teamMembership.create({
+        data: { userId: user.id, teamId, role: "member" },
+      });
+    }
+
     return NextResponse.json(user, { status: 201 });
   } catch (error) {
     return handleApiError(error);
