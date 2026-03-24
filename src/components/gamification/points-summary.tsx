@@ -39,13 +39,23 @@ export function PointsSummary({ className }: PointsSummaryProps) {
     <div
       className={cn(
         "flex flex-wrap items-center gap-3 rounded-xl bg-card px-4 py-3 ring-1 ring-foreground/10 text-sm",
+        "border-t-2 border-amber-500/30",
         className
       )}
     >
       {/* Total Points */}
-      <div className="flex items-center gap-1.5 font-semibold text-amber-600 dark:text-amber-400">
+      <div className="flex items-center gap-1.5 font-semibold">
         <Star className="size-4 fill-amber-500 text-amber-500" />
-        <span className="tabular-nums">{totalPoints.toLocaleString()}</span>
+        <span
+          className="tabular-nums"
+          style={{
+            background: "linear-gradient(135deg, #F59E0B, #FBBF24, #FDE68A)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+          }}
+        >
+          {totalPoints.toLocaleString()}
+        </span>
         <span className="text-muted-foreground font-normal">pts</span>
       </div>
 

@@ -49,9 +49,9 @@ export function AtRiskList({ tasks }: AtRiskListProps) {
   const sorted = [...tasks].sort((a, b) => severityScore(b) - severityScore(a));
 
   return (
-    <Card className="bg-zinc-900 border-zinc-800 h-full">
+    <Card className="bg-card border-border h-full">
       <CardHeader>
-        <CardTitle className="text-sm font-semibold text-zinc-100 tracking-wide uppercase flex items-center gap-2">
+        <CardTitle className="text-sm font-semibold text-foreground tracking-wide uppercase flex items-center gap-2">
           At-Risk Tasks
           {tasks.length > 0 && (
             <span className="inline-flex items-center justify-center h-4 min-w-4 rounded-full bg-red-500/20 text-red-400 text-xs font-bold px-1">
@@ -66,7 +66,7 @@ export function AtRiskList({ tasks }: AtRiskListProps) {
             <div className="h-8 w-8 rounded-full bg-green-500/10 flex items-center justify-center">
               <span className="text-green-400 text-base">✓</span>
             </div>
-            <p className="text-sm text-zinc-500">No at-risk tasks</p>
+            <p className="text-sm text-muted-foreground">No at-risk tasks</p>
           </div>
         ) : (
           <ul className="space-y-2">
@@ -75,14 +75,14 @@ export function AtRiskList({ tasks }: AtRiskListProps) {
               return (
                 <li
                   key={task.id}
-                  className="flex items-start gap-2.5 rounded-lg border border-zinc-800 bg-zinc-800/40 px-3 py-2.5 hover:bg-zinc-800/70 transition-colors"
+                  className="flex items-start gap-2.5 rounded-lg border border-border bg-accent/30 px-3 py-2.5 hover:bg-accent/60 transition-colors"
                 >
                   <RiskIcon task={task} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2 flex-wrap">
                       <Link
                         href={`/tasks/${task.id}`}
-                        className="text-sm font-medium text-zinc-100 hover:text-white hover:underline truncate max-w-xs"
+                        className="text-sm font-medium text-foreground hover:text-foreground hover:underline truncate max-w-xs"
                       >
                         {task.title}
                       </Link>
@@ -90,7 +90,7 @@ export function AtRiskList({ tasks }: AtRiskListProps) {
                     </div>
                     <div className="flex items-center gap-2 mt-1 flex-wrap">
                       {task.assignedTo && (
-                        <span className="text-xs text-zinc-500">
+                        <span className="text-xs text-muted-foreground">
                           {task.assignedTo.name}
                         </span>
                       )}

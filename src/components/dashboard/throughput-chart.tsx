@@ -38,9 +38,9 @@ const CustomTooltip = ({
   return (
     <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-md text-xs">
       <p className="text-muted-foreground mb-1">Week of {label}</p>
-      <p className="font-semibold text-zinc-100">
+      <p className="font-semibold text-foreground">
         {payload[0].value}{" "}
-        <span className="font-normal text-zinc-400">pts completed</span>
+        <span className="font-normal text-muted-foreground">pts completed</span>
       </p>
     </div>
   );
@@ -55,9 +55,9 @@ export function ThroughputChart({ data }: ThroughputChartProps) {
   const maxPoints = Math.max(...data.map((d) => d.points), 1);
 
   return (
-    <Card className="bg-zinc-900 border-zinc-800 h-full">
+    <Card className="bg-card border-border h-full">
       <CardHeader>
-        <CardTitle className="text-sm font-semibold text-zinc-100 tracking-wide uppercase">
+        <CardTitle className="text-sm font-semibold text-foreground tracking-wide uppercase">
           Weekly Throughput
         </CardTitle>
       </CardHeader>

@@ -63,37 +63,43 @@ export function Header() {
 
         {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-1 flex-1">
-          {staffNavLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground ${
-                pathname === link.href ||
-                pathname.startsWith(link.href + "/")
-                  ? "bg-accent text-accent-foreground"
-                  : "text-muted-foreground"
-              }`}
-            >
-              {link.label}
-            </Link>
-          ))}
+          {staffNavLinks.map((link) => {
+            const isActive =
+              pathname === link.href || pathname.startsWith(link.href + "/");
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground ${
+                  isActive
+                    ? "bg-accent text-accent-foreground shadow-[inset_0_-2px_0_#8B5CF6]"
+                    : "text-muted-foreground"
+                }`}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
           {isManager && (
             <>
               <div className="mx-2 h-4 w-px bg-border" />
-              {managerNavLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground ${
-                    pathname === link.href ||
-                    pathname.startsWith(link.href + "/")
-                      ? "bg-accent text-accent-foreground"
-                      : "text-muted-foreground"
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              ))}
+              {managerNavLinks.map((link) => {
+                const isActive =
+                  pathname === link.href || pathname.startsWith(link.href + "/");
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground ${
+                      isActive
+                        ? "bg-accent text-accent-foreground shadow-[inset_0_-2px_0_#8B5CF6]"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                );
+              })}
             </>
           )}
         </nav>

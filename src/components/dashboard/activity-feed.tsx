@@ -47,24 +47,24 @@ export function ActivityFeed({ entries }: ActivityFeedProps) {
   const hasMore = visible < entries.length;
 
   return (
-    <Card className="bg-zinc-900 border-zinc-800">
+    <Card className="bg-card border-border">
       <CardHeader>
-        <CardTitle className="text-sm font-semibold text-zinc-100 tracking-wide uppercase">
+        <CardTitle className="text-sm font-semibold text-foreground tracking-wide uppercase">
           Recent Activity
         </CardTitle>
       </CardHeader>
       <CardContent className="pb-3">
         {entries.length === 0 ? (
-          <div className="py-8 text-center text-sm text-zinc-500">
+          <div className="py-8 text-center text-sm text-muted-foreground">
             No recent activity
           </div>
         ) : (
           <>
-            <div className="max-h-72 overflow-y-auto pr-1 space-y-0.5 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-zinc-700">
+            <div className="max-h-72 overflow-y-auto pr-1 space-y-0.5 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border">
               {shown.map((entry) => (
                 <div
                   key={entry.id}
-                  className="flex items-start gap-2.5 rounded-lg px-2 py-2 hover:bg-zinc-800/50 transition-colors"
+                  className="flex items-start gap-2.5 rounded-lg px-2 py-2 hover:bg-accent/50 transition-colors"
                 >
                   {/* Avatar dot */}
                   <span
@@ -76,17 +76,17 @@ export function ActivityFeed({ entries }: ActivityFeedProps) {
                   </span>
 
                   <div className="flex-1 min-w-0 text-sm leading-snug">
-                    <span className="font-medium text-zinc-200">{entry.user.name}</span>
-                    <span className="text-zinc-500"> {formatAction(entry.type || entry.action || "")} </span>
+                    <span className="font-medium text-foreground">{entry.user.name}</span>
+                    <span className="text-muted-foreground"> {formatAction(entry.type || entry.action || "")} </span>
                     <Link
                       href={`/tasks/${entry.task.id}`}
-                      className="font-medium text-indigo-400 hover:text-indigo-300 hover:underline break-words"
+                      className="font-medium text-primary hover:text-primary/80 hover:underline break-words"
                     >
                       {entry.task.title}
                     </Link>
                   </div>
 
-                  <span className="shrink-0 text-xs text-zinc-600 mt-0.5 whitespace-nowrap">
+                  <span className="shrink-0 text-xs text-muted-foreground mt-0.5 whitespace-nowrap">
                     {relativeTime(entry.timestamp)}
                   </span>
                 </div>
@@ -98,7 +98,7 @@ export function ActivityFeed({ entries }: ActivityFeedProps) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-xs text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
+                  className="text-xs text-muted-foreground hover:text-foreground hover:bg-accent"
                   onClick={() => setVisible((v) => v + PAGE_SIZE)}
                 >
                   Load more ({entries.length - visible} remaining)

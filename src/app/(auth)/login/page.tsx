@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 
 type User = {
@@ -20,7 +19,6 @@ function getInitials(name: string) {
 }
 
 export default function LoginPage() {
-  const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [loggingIn, setLoggingIn] = useState<string | null>(null);
@@ -42,22 +40,17 @@ export default function LoginPage() {
   }, []);
 
   const handleLogin = async (userId: string) => {
-    console.log("handleLogin called for:", userId);
     setLoggingIn(userId);
     try {
-      console.log("Sending fetch to /api/auth/login...");
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
         body: JSON.stringify({ userId }),
       });
-      console.log("Fetch response:", res.status, res.ok);
       if (res.ok) {
-        console.log("Login success, redirecting...");
         window.location.href = "/tasks";
       } else {
-        console.error("Login failed:", res.status);
         setLoggingIn(null);
       }
     } catch {
@@ -66,19 +59,28 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 py-12">
+    <div
+      className="min-h-screen flex flex-col items-center justify-center bg-background px-4 py-12"
+      style={{
+        background:
+          "radial-gradient(ellipse at 50% 30%, rgba(139,92,246,0.06) 0%, transparent 70%)",
+      }}
+    >
       <div className="w-full max-w-2xl">
         {/* Header */}
         <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold tracking-tight text-foreground mb-2">
+          <h1
+            className="text-5xl font-extrabold tracking-tight mb-2"
+            style={{
+              background: "linear-gradient(135deg, #8B5CF6, #06B6D4)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}
+          >
             Repan
           </h1>
-          <p className="text-muted-foreground text-lg">
-            Gamified team task tracker
-          </p>
-          <p className="text-muted-foreground text-sm mt-3">
-            Select your profile to continue
-          </p>
+          <p className="text-muted-foreground text-lg">Team Task Tracker</p>
+          <p className="text-muted-foreground text-sm mt-3">Choose your player</p>
         </div>
 
         {/* User grid */}
@@ -87,9 +89,9 @@ export default function LoginPage() {
             {Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={i}
-                className="flex flex-col items-center gap-3 p-6 rounded-xl border bg-card animate-pulse"
+                className="flex flex-col items-center gap-3 p-8 rounded-xl border bg-card animate-pulse"
               >
-                <div className="h-16 w-16 rounded-full bg-muted" />
+                <div className="h-20 w-20 rounded-full bg-muted" />
                 <div className="h-4 w-24 rounded bg-muted" />
                 <div className="h-5 w-16 rounded-full bg-muted" />
               </div>
@@ -109,14 +111,38 @@ export default function LoginPage() {
                   key={user.id}
                   onClick={() => handleLogin(user.id)}
                   disabled={isDisabled || isLoading}
-                  className={`flex flex-col items-center gap-3 p-6 rounded-xl border bg-card text-card-foreground shadow-sm transition-all duration-150
+                  className={`flex flex-col items-center gap-3 p-8 rounded-xl border bg-card text-card-foreground shadow-sm transition-all duration-200
                     ${isLoading ? "opacity-80 scale-95" : ""}
-                    ${isDisabled ? "opacity-40 cursor-not-allowed" : "hover:border-primary hover:shadow-md hover:-translate-y-0.5 cursor-pointer active:scale-95"}
+                    ${isDisabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer active:scale-95"}
                   `}
+                  style={
+                    !isDisabled && !isLoading
+                      ? {
+                          // hover handled via onMouseEnter/Leave below
+                        }
+                      : undefined
+                  }
+                  onMouseEnter={(e) => {
+                    if (!isDisabled && !isLoading) {
+                      const el = e.currentTarget;
+                      const color = user.avatarColor ?? "#8B5CF6";
+                      el.style.borderColor = color + "80";
+                      el.style.boxShadow = `0 0 0 1px ${color}40, 0 4px 20px ${color}30`;
+                      el.style.transform = "translateY(-1px)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isDisabled && !isLoading) {
+                      const el = e.currentTarget;
+                      el.style.borderColor = "";
+                      el.style.boxShadow = "";
+                      el.style.transform = "";
+                    }
+                  }}
                 >
                   {/* Avatar */}
                   <div
-                    className="h-16 w-16 rounded-full flex items-center justify-center text-white text-xl font-bold shadow-sm"
+                    className="h-20 w-20 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-sm"
                     style={{ backgroundColor: user.avatarColor ?? "#6b7280" }}
                   >
                     {isLoading ? (

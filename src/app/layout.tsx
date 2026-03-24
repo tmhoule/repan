@@ -1,24 +1,26 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Outfit, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { UserProvider } from "@/components/user-context";
 import { Header } from "@/components/layout/header";
 import { getSession } from "@/lib/session";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const outfit = Outfit({
+  variable: "--font-heading",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const plusJakarta = Plus_Jakarta_Sans({
+  variable: "--font-sans",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
   title: "Repan",
-  description: "Gamified team task tracker",
+  description: "Team Task Tracker",
 };
 
 export default async function RootLayout({
@@ -39,7 +41,8 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${outfit.variable} ${plusJakarta.variable} dark h-full antialiased`}
+      suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
         <Providers>

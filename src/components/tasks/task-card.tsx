@@ -43,6 +43,14 @@ interface Task {
 
 const EFFORT_POINTS: Record<string, number> = { small: 10, medium: 25, large: 50 };
 
+const STATUS_BORDER_COLORS: Record<TaskStatus, string> = {
+  not_started: "#8B90A0",
+  in_progress: "#3B82F6",
+  blocked: "#EF4444",
+  stalled: "#F97316",
+  done: "#10B981",
+};
+
 interface TaskCardProps {
   task: Task;
   onUpdate?: () => void;
@@ -127,9 +135,31 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
   const dueDateInfo = formatDueDate(currentTask.dueDate);
   const isDone = currentTask.status === "done";
 
+  const statusBorderColor = STATUS_BORDER_COLORS[currentTask.status];
+
   return (
     <Card
-      className={cn("relative transition-opacity", isDone && "opacity-60")}
+      className={cn(
+        "relative transition-all duration-200 overflow-hidden pl-0",
+        isDone && "opacity-60"
+      )}
+      style={{
+        borderLeft: `3px solid ${statusBorderColor}`,
+      }}
+      onMouseEnter={(e) => {
+        const el = e.currentTarget;
+        el.style.borderColor = `rgba(139,92,246,0.3)`;
+        el.style.borderLeftColor = statusBorderColor;
+        el.style.boxShadow = "0 4px 16px rgba(139,92,246,0.15)";
+        el.style.transform = "translateY(-1px)";
+      }}
+      onMouseLeave={(e) => {
+        const el = e.currentTarget;
+        el.style.borderColor = "";
+        el.style.borderLeftColor = statusBorderColor;
+        el.style.boxShadow = "";
+        el.style.transform = "";
+      }}
     >
       <CelebrationBurst ref={celebrationRef} />
       <PointsPopup points={EFFORT_POINTS[currentTask.effortEstimate] ?? 25} show={showPointsPopup} />

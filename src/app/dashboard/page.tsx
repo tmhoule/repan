@@ -46,7 +46,7 @@ interface DashboardData {
 function SkeletonCard({ className = "" }: { className?: string }) {
   return (
     <div
-      className={`rounded-xl border border-zinc-800 bg-zinc-900 animate-pulse ${className}`}
+      className={`rounded-xl border border-border bg-card animate-pulse ${className}`}
     />
   );
 }
@@ -73,14 +73,14 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 px-4 py-6">
+    <div className="min-h-screen bg-background px-4 py-6">
       <div className="mx-auto max-w-7xl space-y-6">
         {/* Page header */}
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-100">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
             Dashboard
           </h1>
-          <p className="text-sm text-zinc-500 mt-0.5">
+          <p className="text-sm text-muted-foreground mt-0.5">
             Team overview &amp; health metrics
           </p>
         </div>

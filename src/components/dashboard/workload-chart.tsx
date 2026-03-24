@@ -63,15 +63,15 @@ export function WorkloadChart({ data }: WorkloadChartProps) {
   }));
 
   return (
-    <Card className="bg-zinc-900 border-zinc-800 h-full">
+    <Card className="bg-card border-border h-full">
       <CardHeader>
-        <CardTitle className="text-sm font-semibold text-zinc-100 tracking-wide uppercase">
+        <CardTitle className="text-sm font-semibold text-foreground tracking-wide uppercase">
           Team Workload
         </CardTitle>
       </CardHeader>
       <CardContent className="pb-2">
         {data.length === 0 ? (
-          <div className="flex h-48 items-center justify-center text-sm text-zinc-500">
+          <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
             No active tasks
           </div>
         ) : (
