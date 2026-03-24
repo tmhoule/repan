@@ -104,7 +104,7 @@ function CriteriaFields({
             onValueChange={(v) => onChange({ ...value, streakType: v })}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select streak type" />
+              <SelectValue>{STREAK_TYPES.find((s) => s.value === value.streakType)?.label ?? "Select streak type"}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               {STREAK_TYPES.map((s) => (
@@ -318,7 +318,7 @@ export function BadgeForm({ open, onClose, onSave, initialData }: BadgeFormProps
               }}
             >
               <SelectTrigger className="w-full">
-                <SelectValue />
+                <SelectValue>{CRITERIA_TYPES.find((c) => c.value === criteriaType)?.label ?? "Select type"}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {CRITERIA_TYPES.map((c) => (

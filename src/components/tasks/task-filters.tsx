@@ -92,7 +92,7 @@ export function TaskFilters({ filters, onChange, className }: TaskFiltersProps) 
         }
       >
         <SelectTrigger className="h-8 w-auto min-w-[110px]">
-          <SelectValue placeholder="Priority" />
+          <SelectValue>{filters.priority ? (PRIORITY_OPTIONS.find((o) => o.value === filters.priority)?.label ?? "Priority") : "All Priorities"}</SelectValue>
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All Priorities</SelectItem>

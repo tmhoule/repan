@@ -144,7 +144,7 @@ export function UserForm({ open, onClose, onSave, initialData }: UserFormProps) 
               onValueChange={(v) => setRole(v as "manager" | "staff")}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select role" />
+                <SelectValue>{role === "manager" ? "Manager" : "Staff"}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="staff">Staff</SelectItem>
