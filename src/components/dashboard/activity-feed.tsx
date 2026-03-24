@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 
 interface ActivityEntry {
   id: string;
-  action: string;
+  type?: string;
+  action?: string;
   timestamp: string;
   user: { name: string; avatarColor: string };
   task: { id: string; title: string };
@@ -76,7 +77,7 @@ export function ActivityFeed({ entries }: ActivityFeedProps) {
 
                   <div className="flex-1 min-w-0 text-sm leading-snug">
                     <span className="font-medium text-zinc-200">{entry.user.name}</span>
-                    <span className="text-zinc-500"> {formatAction(entry.action)} </span>
+                    <span className="text-zinc-500"> {formatAction(entry.type || entry.action || "")} </span>
                     <Link
                       href={`/tasks/${entry.task.id}`}
                       className="font-medium text-indigo-400 hover:text-indigo-300 hover:underline break-words"

@@ -1,6 +1,6 @@
 "use client";
 import { SWRConfig } from "swr";
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { Toaster } from "sonner";
 
 const fetcher = (url: string) =>
@@ -9,11 +9,19 @@ const fetcher = (url: string) =>
     return res.json();
   });
 
+// Render Toaster only after mount to avoid hydration mismatch in Safari
+function ClientToaster() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+  return <Toaster />;
+}
+
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <SWRConfig value={{ fetcher, revalidateOnFocus: true }}>
       {children}
-      <Toaster />
+      <ClientToaster />
     </SWRConfig>
   );
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { clearSession } from "@/lib/session";
 
 export async function POST() {
-  await clearSession();
-  return NextResponse.json({ success: true });
+  const response = NextResponse.json({ success: true });
+  response.cookies.delete("repan_session");
+  return response;
 }

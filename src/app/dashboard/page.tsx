@@ -36,7 +36,7 @@ interface DashboardData {
   weeklyThroughput: Array<{ week: string; points: number }>;
   recentActivity: Array<{
     id: string;
-    action: string;
+    type: string;
     timestamp: string;
     user: { name: string; avatarColor: string };
     task: { id: string; title: string };

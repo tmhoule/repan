@@ -26,26 +26,39 @@ export default function LoginPage() {
   const [loggingIn, setLoggingIn] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/users")
-      .then((res) => res.json())
+    fetch("/api/users", { cache: "no-store" })
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
       .then((data) => {
         setUsers(Array.isArray(data) ? data : []);
       })
-      .catch(() => setUsers([]))
+      .catch((err) => {
+        console.error("Failed to fetch users:", err);
+        setUsers([]);
+      })
       .finally(() => setLoading(false));
   }, []);
 
   const handleLogin = async (userId: string) => {
+    console.log("handleLogin called for:", userId);
     setLoggingIn(userId);
     try {
+      console.log("Sending fetch to /api/auth/login...");
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
         body: JSON.stringify({ userId }),
       });
+      console.log("Fetch response:", res.status, res.ok);
       if (res.ok) {
-        router.push("/tasks");
-        router.refresh();
+        console.log("Login success, redirecting...");
+        window.location.href = "/tasks";
+      } else {
+        console.error("Login failed:", res.status);
+        setLoggingIn(null);
       }
     } catch {
       setLoggingIn(null);

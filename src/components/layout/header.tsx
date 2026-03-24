@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -122,17 +123,19 @@ export function Header() {
                 </span>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52">
-                <DropdownMenuLabel className="flex flex-col gap-1">
-                  <span>{user.name}</span>
-                  <Badge
-                    variant={isManager ? "default" : "secondary"}
-                    className="w-fit text-xs"
-                  >
-                    {user.role}
-                  </Badge>
-                </DropdownMenuLabel>
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel className="flex flex-col gap-1">
+                    <span>{user.name}</span>
+                    <Badge
+                      variant={isManager ? "default" : "secondary"}
+                      className="w-fit text-xs"
+                    >
+                      {user.role}
+                    </Badge>
+                  </DropdownMenuLabel>
+                </DropdownMenuGroup>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={async () => { await logout(); router.push("/login"); }}>
+                <DropdownMenuItem onClick={async () => { await logout(); }}>
                   <User className="mr-2 h-4 w-4" />
                   Switch User
                 </DropdownMenuItem>
