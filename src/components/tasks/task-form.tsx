@@ -50,6 +50,26 @@ interface TaskFormProps {
 
 const UNASSIGNED_VALUE = "__unassigned__";
 
+const STATUS_LABELS: Record<string, string> = {
+  not_started: "Not Started",
+  in_progress: "In Progress",
+  blocked: "Blocked",
+  stalled: "Stalled",
+  done: "Done",
+};
+
+const PRIORITY_LABELS: Record<string, string> = {
+  high: "High",
+  medium: "Medium",
+  low: "Low",
+};
+
+const EFFORT_LABELS: Record<string, string> = {
+  small: "Small",
+  medium: "Medium",
+  large: "Large",
+};
+
 export function TaskForm({ mode, initialData, onSubmit }: TaskFormProps) {
   const router = useRouter();
   const { user } = useUser();
@@ -200,7 +220,7 @@ export function TaskForm({ mode, initialData, onSubmit }: TaskFormProps) {
           <Label htmlFor="task-priority">Priority</Label>
           <Select value={priority} onValueChange={(v) => setPriority(v as TaskPriority)}>
             <SelectTrigger id="task-priority">
-              <SelectValue />
+              <SelectValue>{PRIORITY_LABELS[priority]}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="high">High</SelectItem>
@@ -217,7 +237,7 @@ export function TaskForm({ mode, initialData, onSubmit }: TaskFormProps) {
             onValueChange={(v) => setEffortEstimate(v as EffortEstimate)}
           >
             <SelectTrigger id="task-effort">
-              <SelectValue />
+              <SelectValue>{EFFORT_LABELS[effortEstimate]}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="small">Small</SelectItem>
@@ -246,7 +266,7 @@ export function TaskForm({ mode, initialData, onSubmit }: TaskFormProps) {
           <Label htmlFor="task-status">Status</Label>
           <Select value={status} onValueChange={(v) => setStatus(v as TaskStatus)}>
             <SelectTrigger id="task-status">
-              <SelectValue />
+              <SelectValue>{STATUS_LABELS[status]}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="not_started">Not Started</SelectItem>
