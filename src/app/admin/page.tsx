@@ -147,6 +147,7 @@ export default function AdminPage() {
           <TabsList>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="badges">Badges</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
           {/* ── Users Tab ── */}
@@ -251,6 +252,19 @@ export default function AdminPage() {
                   </Table>
                 )}
               </div>
+            </div>
+          </TabsContent>
+
+          {/* ── Settings Tab ── */}
+          <TabsContent value="settings" className="mt-4">
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
+              <h2 className="text-sm font-semibold text-zinc-200 mb-1">
+                System Settings
+              </h2>
+              <p className="text-sm text-zinc-500">
+                System settings coming soon. Future options: app name, default
+                effort estimates, point values.
+              </p>
             </div>
           </TabsContent>
 
