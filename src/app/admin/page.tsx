@@ -259,7 +259,7 @@ export default function AdminPage() {
           <TabsList>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="badges">Badges</TabsTrigger>
-            {isSuperAdmin && <TabsTrigger value="teams">Teams</TabsTrigger>}
+            {isManager && <TabsTrigger value="teams">Teams</TabsTrigger>}
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
