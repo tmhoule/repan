@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { Button } from "@/components/ui/button";
@@ -89,12 +89,56 @@ export function TaskForm({ mode, initialData, onSubmit }: TaskFormProps) {
   const [blockerReason, setBlockerReason] = useState(initialData?.blockerReason ?? "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const autoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isInitialMount = useRef(true);
 
   const { data: usersData } = useSWR<User[]>(isManager ? "/api/users" : null);
   const users = usersData ?? [];
 
   // Sync status changes for blockerReason visibility
   const showBlockerReason = mode === "edit" && status === "blocked";
+
+  // Auto-save for edit mode: debounce PATCH on any field change
+  const autoSave = useCallback(async () => {
+    if (mode !== "edit" || !initialData?.id || !title.trim()) return;
+    setSaveStatus("saving");
+    try {
+      const res = await fetch(`/api/tasks/${initialData.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: title.trim(),
+          description: description.trim(),
+          priority,
+          effortEstimate,
+          dueDate: dueDate || null,
+          status,
+          assignedToId,
+          ...(status === "blocked" ? { blockerReason: blockerReason.trim() } : {}),
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to save");
+      setSaveStatus("saved");
+      setTimeout(() => setSaveStatus("idle"), 2000);
+    } catch {
+      setErrors({ form: "Auto-save failed. Try again." });
+      setSaveStatus("idle");
+    }
+  }, [mode, initialData?.id, title, description, priority, effortEstimate, dueDate, status, assignedToId, blockerReason]);
+
+  // Trigger auto-save on field changes (edit mode only)
+  useEffect(() => {
+    if (mode !== "edit" || !initialData?.id) return;
+    // Skip auto-save on initial mount / data sync
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    if (autoSaveRef.current) clearTimeout(autoSaveRef.current);
+    autoSaveRef.current = setTimeout(autoSave, 800);
+    return () => { if (autoSaveRef.current) clearTimeout(autoSaveRef.current); };
+  }, [title, description, priority, effortEstimate, dueDate, status, assignedToId, blockerReason, mode, initialData?.id, autoSave]);
 
   // Sync initial data if it changes (e.g. after fetch)
   useEffect(() => {
@@ -177,7 +221,7 @@ export function TaskForm({ mode, initialData, onSubmit }: TaskFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form onSubmit={handleSubmit} onKeyDown={(e) => { if (mode === "edit" && e.key === "Enter" && !(e.target instanceof HTMLTextAreaElement)) e.preventDefault(); }} className="space-y-5">
       {errors.form && (
         <p className="text-sm text-destructive bg-destructive/10 rounded-md px-3 py-2">
           {errors.form}
@@ -319,17 +363,18 @@ export function TaskForm({ mode, initialData, onSubmit }: TaskFormProps) {
         </div>
       )}
 
-      {/* Submit */}
+      {/* Submit (create mode) or auto-save indicator (edit mode) */}
       <div className="flex items-center gap-3 pt-1">
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting
-            ? mode === "create"
-              ? "Creating…"
-              : "Saving…"
-            : mode === "create"
-            ? "Create Task"
-            : "Save Changes"}
-        </Button>
+        {mode === "create" ? (
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Creating…" : "Create Task"}
+          </Button>
+        ) : (
+          <span className="text-xs text-muted-foreground">
+            {saveStatus === "saving" && "Saving…"}
+            {saveStatus === "saved" && "✓ Saved"}
+          </span>
+        )}
       </div>
     </form>
   );
