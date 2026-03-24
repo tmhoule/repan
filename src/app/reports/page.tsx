@@ -42,10 +42,10 @@ export default function ReportsPage() {
   const isManager = user?.role === "manager";
 
   useEffect(() => {
-    if (user && !isManager) {
-      router.replace("/tasks");
+    if (user === null) {
+      router.replace("/login");
     }
-  }, [user, isManager, router]);
+  }, [user, router]);
 
   const { data: weeklyData, isLoading: weeklyLoading } = useSWR<ReportData>(
     user ? "/api/reports?period=weekly" : null
@@ -54,7 +54,7 @@ export default function ReportsPage() {
     user ? "/api/reports?period=monthly" : null
   );
 
-  if (!user || !isManager) return null;
+  if (!user) return null;
 
   const handlePrint = () => {
     window.print();

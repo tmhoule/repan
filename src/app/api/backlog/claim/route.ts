@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { requireSession } from "@/lib/session";
+import { requireSession, handleApiError } from "@/lib/session";
 import { awardAction } from "@/lib/gamification";
 
 export async function POST(request: NextRequest) {
+  try {
   const user = await requireSession();
   const { taskId } = await request.json();
 
@@ -31,4 +32,7 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json(updatedTask);
+  } catch (error) {
+    return handleApiError(error);
+  }
 }

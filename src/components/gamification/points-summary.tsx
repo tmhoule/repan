@@ -33,7 +33,7 @@ export function PointsSummary({ className }: PointsSummaryProps) {
   const streaks = userData?.streaks ?? [];
 
   const dailyStreak = streaks.find((s) => s.streakType === "daily_checkin");
-  const momentumStreak = streaks.find((s) => s.streakType === "momentum");
+  const momentumStreak = streaks.find((s) => s.streakType === "weekly_momentum");
 
   return (
     <div

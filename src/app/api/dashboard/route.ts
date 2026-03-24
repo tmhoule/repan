@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { requireManager } from "@/lib/session";
+import { requireManager, handleApiError } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { getWeeklyThroughput, getBacklogHealth } from "@/lib/forecasting";
 
 export async function GET() {
+  try {
   await requireManager();
   const oneWeekAgo = new Date(Date.now() - 7 * 86400000);
   const now = new Date();
@@ -37,4 +38,7 @@ export async function GET() {
   }
 
   return NextResponse.json({ workload, atRisk, backlogHealth: health, weeklyThroughput: weeklyData, recentActivity });
+  } catch (error) {
+    return handleApiError(error);
+  }
 }

@@ -148,7 +148,7 @@ export default function TeamMemberDetailPage({
   const streaks = user?.streaks ?? [];
 
   const dailyStreak = streaks.find((s) => s.streakType === "daily_checkin");
-  const momentumStreak = streaks.find((s) => s.streakType === "momentum");
+  const momentumStreak = streaks.find((s) => s.streakType === "weekly_momentum");
 
   const activeTasks = tasks.filter((t) => t.status !== "done");
   const doneTasks = tasks.filter((t) => t.status === "done");

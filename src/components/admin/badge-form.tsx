@@ -54,7 +54,7 @@ const CRITERIA_TYPES: { value: CriteriaType; label: string }[] = [
 
 const STREAK_TYPES = [
   { value: "daily_checkin", label: "Daily Check-in" },
-  { value: "momentum", label: "Momentum" },
+  { value: "weekly_momentum", label: "Momentum" },
   { value: "weekly_goal", label: "Weekly Goal" },
 ];
 
@@ -148,9 +148,9 @@ function CriteriaFields({
             type="number"
             min={1}
             placeholder="e.g. 5"
-            value={(value.days as number) ?? ""}
+            value={(value.count as number) ?? ""}
             onChange={(e) =>
-              onChange({ ...value, days: parseInt(e.target.value, 10) || "" })
+              onChange({ ...value, count: parseInt(e.target.value, 10) || "" })
             }
           />
         </div>
@@ -193,9 +193,9 @@ function CriteriaFields({
           type="number"
           min={1}
           placeholder="e.g. 100"
-          value={(value.points as number) ?? ""}
+          value={(value.count as number) ?? ""}
           onChange={(e) =>
-            onChange({ ...value, points: parseInt(e.target.value, 10) || "" })
+            onChange({ ...value, count: parseInt(e.target.value, 10) || "" })
           }
         />
       </div>

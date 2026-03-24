@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { requireSession } from "@/lib/session";
+import { requireSession, handleApiError } from "@/lib/session";
 import { calculateBacklogForecast, getWeeklyThroughput, getBacklogHealth } from "@/lib/forecasting";
 
 export async function GET() {
+  try {
   await requireSession();
 
   const [backlogTasks, completedTasks] = await Promise.all([
@@ -36,4 +37,7 @@ export async function GET() {
   }));
 
   return NextResponse.json({ tasks: tasksWithForecasts, health, weeklyThroughput });
+  } catch (error) {
+    return handleApiError(error);
+  }
 }

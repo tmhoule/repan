@@ -54,11 +54,11 @@ function criteriaLabel(type: string, value: Record<string, unknown>): string {
     case "streak_milestone":
       return `${value.count ?? "?"}-day ${value.streakType ?? "streak"}`;
     case "consecutive_action":
-      return `${value.days ?? "?"} consecutive days of ${value.action ?? "?"}`;
+      return `${value.count ?? value.days ?? "?"} consecutive days of ${value.action ?? "?"}`;
     case "single_day_count":
       return `${value.count ?? "?"} × ${value.action ?? "?"} in one day`;
     case "total_points":
-      return `${value.points ?? "?"} total points`;
+      return `${value.count ?? value.points ?? "?"} total points`;
     default:
       return type;
   }

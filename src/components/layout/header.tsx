@@ -132,7 +132,7 @@ export function Header() {
                   </Badge>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => router.push("/login")}>
+                <DropdownMenuItem onClick={async () => { await logout(); router.push("/login"); }}>
                   <User className="mr-2 h-4 w-4" />
                   Switch User
                 </DropdownMenuItem>

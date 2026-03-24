@@ -12,18 +12,18 @@ const AVATAR_COLORS = ["#EF4444", "#F59E0B", "#10B981", "#3B82F6", "#8B5CF6", "#
 
 const STARTER_BADGES = [
   { name: "First Blood", description: "Complete your first task", icon: "sword", criteriaType: "count_action", criteriaValue: { action: "complete_task", count: 1 } },
-  { name: "Backlog Buster", description: "Pick up and complete 5 backlog items", icon: "broom", criteriaType: "count_action", criteriaValue: { action: "complete_backlog_item", count: 5 } },
+  { name: "Backlog Buster", description: "Pick up and complete 5 backlog items", icon: "broom", criteriaType: "count_action", criteriaValue: { action: "claim_backlog", count: 5 } },
   { name: "Unblocker", description: "Resolve 3 blockers", icon: "key", criteriaType: "count_action", criteriaValue: { action: "resolve_blocker", count: 3 } },
   { name: "Streak Master", description: "10-day daily check-in streak", icon: "fire", criteriaType: "streak_milestone", criteriaValue: { streak_type: "daily_checkin", count: 10 } },
-  { name: "Deadline Crusher", description: "5 tasks completed on time in a row", icon: "clock", criteriaType: "consecutive_action", criteriaValue: { action: "complete_on_time", count: 5 } },
+  { name: "Deadline Crusher", description: "5 tasks completed on time in a row", icon: "clock", criteriaType: "count_action", criteriaValue: { action: "complete_on_time", count: 5 } },
   { name: "Centurion", description: "Reach 100 total points", icon: "shield", criteriaType: "total_points", criteriaValue: { count: 100 } },
   { name: "Commentator", description: "Leave 20 comments", icon: "speech-bubble", criteriaType: "count_action", criteriaValue: { action: "comment", count: 20 } },
-  { name: "Heavy Lifter", description: "Complete 3 Large-effort tasks", icon: "weight", criteriaType: "count_action", criteriaValue: { action: "complete_large_task", count: 3 } },
-  { name: "Early Bird", description: "Complete 3 tasks before their due date", icon: "sunrise", criteriaType: "count_action", criteriaValue: { action: "complete_early", count: 3 } },
+  { name: "Heavy Lifter", description: "Complete 10 tasks in total", icon: "weight", criteriaType: "count_action", criteriaValue: { action: "complete_task", count: 10 } },
+  { name: "Early Bird", description: "Complete 3 tasks on time", icon: "sunrise", criteriaType: "count_action", criteriaValue: { action: "complete_on_time", count: 3 } },
   { name: "Team Player", description: "Pick up 10 backlog items", icon: "handshake", criteriaType: "count_action", criteriaValue: { action: "claim_backlog", count: 10 } },
   { name: "Consistency King", description: "4-week momentum streak", icon: "crown", criteriaType: "streak_milestone", criteriaValue: { streak_type: "weekly_momentum", count: 4 } },
   { name: "Prolific", description: "Complete 25 total tasks", icon: "star", criteriaType: "count_action", criteriaValue: { action: "complete_task", count: 25 } },
-  { name: "Detail Oriented", description: "Update progress on a task 10+ times", icon: "magnifying-glass", criteriaType: "count_action", criteriaValue: { action: "progress_update_single_task", count: 10 } },
+  { name: "Detail Oriented", description: "Make 10 progress updates across all tasks", icon: "magnifying-glass", criteriaType: "count_action", criteriaValue: { action: "progress_update", count: 10 } },
   { name: "Rapid Fire", description: "Complete 3 tasks in one day", icon: "lightning", criteriaType: "single_day_count", criteriaValue: { action: "complete_task", count: 3 } },
   { name: "Marathon Runner", description: "30-day daily check-in streak", icon: "medal", criteriaType: "streak_milestone", criteriaValue: { streak_type: "daily_checkin", count: 30 } },
 ];

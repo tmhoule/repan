@@ -86,7 +86,7 @@ function TeamMemberCard({
   const recentBadges = getRecentBadges(userAwards);
 
   const dailyStreak = streaks.find((s) => s.streakType === "daily_checkin");
-  const momentumStreak = streaks.find((s) => s.streakType === "momentum");
+  const momentumStreak = streaks.find((s) => s.streakType === "weekly_momentum");
   const bestStreak =
     dailyStreak && momentumStreak
       ? dailyStreak.currentCount >= momentumStreak.currentCount

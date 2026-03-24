@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 import { prisma } from "./db";
 
 const SESSION_COOKIE = "repan_session";
@@ -34,4 +35,15 @@ export async function requireManager() {
   const user = await requireSession();
   if (user.role !== "manager") throw new Error("Forbidden");
   return user;
+}
+
+export function handleApiError(error: unknown): NextResponse {
+  if (error instanceof Error) {
+    if (error.message === "Unauthorized")
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (error.message === "Forbidden")
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  console.error(error);
+  return NextResponse.json({ error: "Internal server error" }, { status: 500 });
 }

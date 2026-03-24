@@ -33,12 +33,15 @@ interface Task {
   title: string;
   status: TaskStatus;
   priority: TaskPriority;
+  effortEstimate: "small" | "medium" | "large";
   percentComplete: number;
   dueDate: string | null;
   blockerReason?: string | null;
   createdBy: { id: string; name: string; avatarColor: string };
   assignedTo?: { id: string; name: string; avatarColor: string } | null;
 }
+
+const EFFORT_POINTS: Record<string, number> = { small: 10, medium: 25, large: 50 };
 
 interface TaskCardProps {
   task: Task;
@@ -129,7 +132,7 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
       className={cn("relative transition-opacity", isDone && "opacity-60")}
     >
       <CelebrationBurst ref={celebrationRef} />
-      <PointsPopup points={10} show={showPointsPopup} />
+      <PointsPopup points={EFFORT_POINTS[currentTask.effortEstimate] ?? 25} show={showPointsPopup} />
 
       <CardHeader className="pb-2">
         <div className="flex items-start gap-2 min-w-0">

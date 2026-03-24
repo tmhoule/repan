@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { requireSession } from "@/lib/session";
+import { requireSession, handleApiError } from "@/lib/session";
 import { canViewFullReports } from "@/lib/permissions";
 
 export async function GET(request: NextRequest) {
+  try {
   const user = await requireSession();
   const period = request.nextUrl.searchParams.get("period") || "weekly";
   const daysBack = period === "monthly" ? 30 : 7;
@@ -49,4 +50,7 @@ export async function GET(request: NextRequest) {
   }
 
   return NextResponse.json({ summary, perPerson, weeklyThroughput });
+  } catch (error) {
+    return handleApiError(error);
+  }
 }

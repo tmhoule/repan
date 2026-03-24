@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { requireSession } from "@/lib/session";
+import { requireSession, handleApiError } from "@/lib/session";
 import { createNotification } from "@/lib/notifications";
 import { awardAction } from "@/lib/gamification";
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
   const user = await requireSession();
   const { id } = await params;
   const { content } = await request.json();
@@ -28,4 +29,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   return NextResponse.json(activity, { status: 201 });
+  } catch (error) {
+    return handleApiError(error);
+  }
 }

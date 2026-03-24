@@ -87,7 +87,7 @@ function formatDate(dateStr: string): string {
 function formatStreakType(type: string): string {
   const labels: Record<string, string> = {
     daily_checkin: "Daily Check-in",
-    momentum: "Momentum",
+    weekly_momentum: "Momentum",
   };
   return (
     labels[type] ??
