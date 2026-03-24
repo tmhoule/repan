@@ -1,15 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
-// GET: Check if setup is needed (no super admin exists)
+// GET: Check if setup is needed AND return public team/user list for login
 export async function GET() {
   const superAdmin = await prisma.user.findFirst({ where: { isSuperAdmin: true } });
-  return NextResponse.json({ needsSetup: !superAdmin });
+
+  if (!superAdmin) {
+    return NextResponse.json({ needsSetup: true, teams: [] });
+  }
+
+  // Return teams with their members for the login page
+  const teams = await prisma.team.findMany({
+    include: {
+      memberships: {
+        where: { user: { isActive: true } },
+        include: { user: { select: { id: true, name: true, avatarColor: true } } },
+        orderBy: { user: { name: "asc" } },
+      },
+    },
+    orderBy: { name: "asc" },
+  });
+
+  return NextResponse.json({
+    needsSetup: false,
+    teams: teams.map((t) => ({
+      id: t.id,
+      name: t.name,
+      members: t.memberships.map((m) => m.user),
+    })),
+  });
 }
 
 // POST: Create the first super admin + default team (only works if no super admin exists)
 export async function POST(request: NextRequest) {
-  // Check no super admin exists
   const existing = await prisma.user.findFirst({ where: { isSuperAdmin: true } });
   if (existing) {
     return NextResponse.json({ error: "Super admin already exists" }, { status: 409 });
@@ -20,26 +43,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Name is required" }, { status: 400 });
   }
 
-  // Create user as super admin
   const user = await prisma.user.create({
-    data: {
-      name: name.trim(),
-      role: "manager",
-      isSuperAdmin: true,
-      avatarColor: "#8B5CF6",
-    },
+    data: { name: name.trim(), role: "manager", isSuperAdmin: true, avatarColor: "#8B5CF6" },
   });
 
-  // Create a default team and add the user as manager
-  const team = await prisma.team.create({
-    data: { name: "Default Team" },
-  });
+  const team = await prisma.team.create({ data: { name: "Default Team" } });
 
   await prisma.teamMembership.create({
     data: { userId: user.id, teamId: team.id, role: "manager" },
   });
 
-  // Seed the starter badges if none exist
   const badgeCount = await prisma.award.count();
   if (badgeCount === 0) {
     const badges = [
@@ -59,9 +72,7 @@ export async function POST(request: NextRequest) {
       { name: "Rapid Fire", description: "Complete 3 tasks in one day", icon: "lightning", criteriaType: "single_day_count", criteriaValue: { action: "complete_task", count: 3 } },
       { name: "Marathon Runner", description: "30-day daily check-in streak", icon: "medal", criteriaType: "streak_milestone", criteriaValue: { streak_type: "daily_checkin", count: 30 } },
     ];
-    for (const badge of badges) {
-      await prisma.award.create({ data: badge });
-    }
+    for (const badge of badges) { await prisma.award.create({ data: badge }); }
   }
 
   return NextResponse.json({ user, team }, { status: 201 });
