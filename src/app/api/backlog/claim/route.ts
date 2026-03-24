@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/session";
+import { awardAction } from "@/lib/gamification";
 
 export async function POST(request: NextRequest) {
   const user = await requireSession();
@@ -22,6 +23,12 @@ export async function POST(request: NextRequest) {
   await prisma.taskActivity.create({
     data: { taskId, userId: user.id, type: "assignment_change", oldValue: null, newValue: user.id, content: `${user.name} claimed this task from the backlog` },
   });
+
+  try {
+    await awardAction(user.id, { action: "claim_backlog" }, taskId);
+  } catch (_) {
+    // Gamification errors must not break the main operation
+  }
 
   return NextResponse.json(updatedTask);
 }

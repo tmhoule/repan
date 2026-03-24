@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/session";
 import { canEditTask, canDeleteTask } from "@/lib/permissions";
 import { createNotification } from "@/lib/notifications";
+import { awardAction, updateOnTimeStreak } from "@/lib/gamification";
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   await requireSession();
@@ -84,6 +85,31 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }),
     activities.length > 0 ? prisma.taskActivity.createMany({ data: activities }) : Promise.resolve(),
   ]);
+
+  try {
+    // When status changes to "done"
+    if (body.status === "done" && task.status !== "done") {
+      await awardAction(user.id, { action: "complete_task", effortEstimate: updatedTask.effortEstimate as any }, id);
+      // On-time check
+      if (updatedTask.dueDate) {
+        const completedOnTime = new Date() <= updatedTask.dueDate;
+        if (completedOnTime) await awardAction(user.id, { action: "complete_on_time" }, id);
+        await updateOnTimeStreak(user.id, completedOnTime);
+      }
+    }
+
+    // When percentComplete changes
+    if (body.percentComplete !== undefined && body.percentComplete !== task.percentComplete) {
+      await awardAction(user.id, { action: "progress_update" }, id);
+    }
+
+    // When blocker resolved
+    if (task.status === "blocked" && body.status && body.status !== "blocked") {
+      await awardAction(user.id, { action: "resolve_blocker" }, id);
+    }
+  } catch (_) {
+    // Gamification errors must not break the main operation
+  }
 
   return NextResponse.json(updatedTask);
 }
