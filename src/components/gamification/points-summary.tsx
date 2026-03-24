@@ -22,11 +22,13 @@ export function PointsSummary({ className }: PointsSummaryProps) {
   const { user } = useUser();
 
   const { data: pointsData } = useSWR<{ totalPoints: number }>(
-    user ? `/api/points?userId=${user.id}` : null
+    user ? `/api/points?userId=${user.id}` : null,
+    { refreshInterval: 5000 }
   );
 
   const { data: userData } = useSWR<{ streaks: Streak[] }>(
-    user ? `/api/users/${user.id}` : null
+    user ? `/api/users/${user.id}` : null,
+    { refreshInterval: 5000 }
   );
 
   const totalPoints = pointsData?.totalPoints ?? 0;

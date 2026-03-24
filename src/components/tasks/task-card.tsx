@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, KeyboardEvent } from "react";
 import Link from "next/link";
 import { useSWRConfig } from "swr";
+import { useUser } from "@/components/user-context";
 import {
   CheckCircle,
   ChevronDown,
@@ -87,6 +88,7 @@ function formatDueDate(dateStr: string | null): {
 
 export function TaskCard({ task, onUpdate }: TaskCardProps) {
   const { mutate } = useSWRConfig();
+  const { user } = useUser();
   const [showPointsPopup, setShowPointsPopup] = useState(false);
   const [currentTask, setCurrentTask] = useState(task);
   const [liveProgress, setLiveProgress] = useState(task.percentComplete);
@@ -116,6 +118,11 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
       triggerCelebration();
       setShowPointsPopup(true);
       setTimeout(() => setShowPointsPopup(false), 1200);
+      // Revalidate points and user data so the summary bar updates
+      if (user) {
+        mutate(`/api/points?userId=${user.id}`);
+        mutate(`/api/users/${user.id}`);
+      }
     } catch (error) {
       console.error("Failed to mark task done:", error);
     }
