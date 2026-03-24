@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 interface ProgressSliderProps {
   taskId: string;
   initialValue: number;
+  onChange?: (value: number) => void;
   onUpdate?: (value: number) => void;
   className?: string;
   disabled?: boolean;
@@ -16,6 +17,7 @@ interface ProgressSliderProps {
 export function ProgressSlider({
   taskId,
   initialValue,
+  onChange,
   onUpdate,
   className,
   disabled,
@@ -33,6 +35,7 @@ export function ProgressSlider({
     (newValues: number | readonly number[]) => {
       const newValue = Array.isArray(newValues) ? (newValues as readonly number[])[0] : (newValues as number);
       setValue(newValue);
+      onChange?.(newValue);
 
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(async () => {

@@ -89,6 +89,7 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
   const { mutate } = useSWRConfig();
   const [showPointsPopup, setShowPointsPopup] = useState(false);
   const [currentTask, setCurrentTask] = useState(task);
+  const [liveProgress, setLiveProgress] = useState(task.percentComplete);
   const { celebrationRef, triggerCelebration } = useCelebration();
 
   const patchTask = useCallback(
@@ -198,7 +199,7 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
         <div className="space-y-1">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>Progress</span>
-            <span className="tabular-nums">{currentTask.percentComplete}%</span>
+            <span className="tabular-nums">{liveProgress}%</span>
           </div>
           {isDone ? (
             <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
@@ -208,9 +209,11 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
             <ProgressSlider
               taskId={currentTask.id}
               initialValue={currentTask.percentComplete}
-              onUpdate={(v) =>
-                setCurrentTask((t) => ({ ...t, percentComplete: v }))
-              }
+              onChange={(v) => setLiveProgress(v)}
+              onUpdate={(v) => {
+                setLiveProgress(v);
+                setCurrentTask((t) => ({ ...t, percentComplete: v }));
+              }}
               className="!gap-0"
               compact
             />
