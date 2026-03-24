@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, KeyboardEvent } from "react";
 import Link from "next/link";
 import { useSWRConfig } from "swr";
 import {
@@ -8,6 +8,7 @@ import {
   ChevronDown,
   AlertTriangle,
   Clock,
+  Send,
 } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -224,52 +225,117 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
           </div>
         )}
 
-        {/* Quick actions */}
+        {/* Quick actions + inline comment */}
         {!isDone && (
-          <div className="flex items-center gap-2 pt-1">
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-7 gap-1.5 text-xs text-green-700 border-green-200 hover:bg-green-50 hover:border-green-300 dark:text-green-400 dark:border-green-800 dark:hover:bg-green-950"
-              onClick={handleMarkDone}
-            >
-              <CheckCircle className="size-3.5" />
-              Done
-            </Button>
+          <div className="space-y-2 pt-1">
+            <div className="flex items-center gap-2">
+              {/* Flag (left) */}
+              <DropdownMenu>
+                <DropdownMenuTrigger className="inline-flex h-7 items-center gap-1 rounded-lg border border-input bg-transparent px-2 text-xs hover:bg-muted transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
+                  Flag
+                  <ChevronDown className="size-3" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" side="bottom">
+                  <DropdownMenuItem
+                    onClick={() => handleStatusChange("blocked")}
+                    className="text-red-600 dark:text-red-400"
+                  >
+                    Mark Blocked
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => handleStatusChange("stalled")}
+                    className="text-orange-600 dark:text-orange-400"
+                  >
+                    Mark Stalled
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => handleStatusChange("in_progress")}
+                  >
+                    Mark In Progress
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => handleStatusChange("not_started")}
+                  >
+                    Reset to Not Started
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger className="ml-auto inline-flex h-7 items-center gap-1 rounded-lg border border-input bg-transparent px-2 text-xs hover:bg-muted transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
-                Flag
-                <ChevronDown className="size-3" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" side="bottom">
-                <DropdownMenuItem
-                  onClick={() => handleStatusChange("blocked")}
-                  className="text-red-600 dark:text-red-400"
-                >
-                  Mark Blocked
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => handleStatusChange("stalled")}
-                  className="text-orange-600 dark:text-orange-400"
-                >
-                  Mark Stalled
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => handleStatusChange("in_progress")}
-                >
-                  Mark In Progress
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => handleStatusChange("not_started")}
-                >
-                  Reset to Not Started
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              {/* Inline comment (middle, expands) */}
+              <InlineComment taskId={currentTask.id} onSubmit={onUpdate} />
+
+              {/* Done (right) */}
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 gap-1.5 text-xs shrink-0 text-green-700 border-green-200 hover:bg-green-50 hover:border-green-300 dark:text-green-400 dark:border-green-800 dark:hover:bg-green-950"
+                onClick={handleMarkDone}
+              >
+                <CheckCircle className="size-3.5" />
+                Done
+              </Button>
+            </div>
           </div>
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function InlineComment({ taskId, onSubmit }: { taskId: string; onSubmit?: () => void }) {
+  const [value, setValue] = useState("");
+  const [sending, setSending] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleSend = useCallback(async () => {
+    const text = value.trim();
+    if (!text || sending) return;
+    setSending(true);
+    try {
+      const res = await fetch(`/api/tasks/${taskId}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: text }),
+      });
+      if (res.ok) {
+        setValue("");
+        onSubmit?.();
+      }
+    } catch {
+      // ignore
+    } finally {
+      setSending(false);
+    }
+  }, [taskId, value, sending, onSubmit]);
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  return (
+    <div className="flex-1 flex items-center gap-1 h-7 rounded-lg border border-input bg-transparent px-2 focus-within:ring-2 focus-within:ring-ring/50 focus-within:border-ring transition-all">
+      <input
+        ref={inputRef}
+        type="text"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder="Comment... (⌘↵)"
+        className="flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground/50 min-w-0"
+        disabled={sending}
+      />
+      {value.trim() && (
+        <button
+          onClick={handleSend}
+          disabled={sending}
+          className="text-primary hover:text-primary/80 transition-colors shrink-0"
+        >
+          <Send className="size-3" />
+        </button>
+      )}
+    </div>
   );
 }
