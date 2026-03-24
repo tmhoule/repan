@@ -49,6 +49,9 @@ export default async function RootLayout({
           <UserProvider initialUser={initialUser}>
             {initialUser && <Header />}
             <main className="flex-1">{children}</main>
+            <footer className="py-3 text-center text-[10px] text-muted-foreground/40">
+              v0.1.0
+            </footer>
           </UserProvider>
         </Providers>
       </body>
