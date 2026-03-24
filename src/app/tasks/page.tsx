@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import useSWR from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import { Plus, ClipboardList, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TaskCard } from "@/components/tasks/task-card";
@@ -132,6 +132,7 @@ export default function MyTasksPage() {
 }
 
 function BacklogSection() {
+  const { mutate: mutateGlobal } = useSWRConfig();
   const { data, isLoading } = useSWR<{
     tasks: any[];
     health: { totalItems: number; totalEffort: number; estimatedWeeks: number | null; trend: string };
@@ -164,7 +165,7 @@ function BacklogSection() {
           <p className="text-sm text-muted-foreground">Backlog is empty</p>
         </div>
       ) : (
-        <BacklogList tasks={backlogTasks} onMutate={() => {}} />
+        <BacklogList tasks={backlogTasks} onMutate={() => { mutateGlobal("/api/backlog"); mutateGlobal("/api/tasks"); }} />
       )}
     </div>
   );

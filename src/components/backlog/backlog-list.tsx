@@ -79,9 +79,10 @@ interface SortableItemProps {
   isManager: boolean;
   onClaim: (taskId: string) => void;
   claimingId: string | null;
+  claimedId: string | null;
 }
 
-function SortableItem({ task, isManager, onClaim, claimingId }: SortableItemProps) {
+function SortableItem({ task, isManager, onClaim, claimingId, claimedId }: SortableItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: task.id });
 
@@ -92,13 +93,25 @@ function SortableItem({ task, isManager, onClaim, claimingId }: SortableItemProp
 
   const effort = effortConfig[task.effortEstimate] ?? effortConfig.medium;
   const isClaiming = claimingId === task.id;
+  const isClaimed = claimedId === task.id;
 
   return (
     <div
       ref={setNodeRef}
-      style={style}
+      style={{
+        ...style,
+        ...(isClaimed
+          ? {
+              transform: "translateY(-80px) scale(0.95)",
+              opacity: 0,
+              transition: "all 500ms cubic-bezier(0.4, 0, 0.2, 1)",
+              background: "rgba(139, 92, 246, 0.15)",
+              borderColor: "rgba(139, 92, 246, 0.4)",
+            }
+          : {}),
+      }}
       className={cn(
-        "group flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 transition-shadow",
+        "group flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 transition-all duration-200",
         isDragging
           ? "shadow-lg ring-2 ring-primary/20 z-50 opacity-90"
           : "hover:shadow-sm hover:border-border/80"
@@ -173,6 +186,7 @@ export function BacklogList({ tasks: initialTasks, onMutate }: BacklogListProps)
 
   const [tasks, setTasks] = useState<BacklogTask[]>(initialTasks);
   const [claimingId, setClaimingId] = useState<string | null>(null);
+  const [claimedId, setClaimedId] = useState<string | null>(null);
 
   // Keep local task state in sync when prop changes (SWR refresh)
   // but only if we're not mid-drag
@@ -240,11 +254,17 @@ export function BacklogList({ tasks: initialTasks, onMutate }: BacklogListProps)
           const data = await res.json().catch(() => ({}));
           throw new Error(data.error ?? "Failed to claim task");
         }
-        toast.success("Task claimed! Check My Tasks.");
-        onMutate();
+        // Animate the claimed task out before removing it
+        setClaimedId(taskId);
+        setTimeout(() => {
+          setTasks((prev) => prev.filter((t) => t.id !== taskId));
+          setClaimedId(null);
+          setClaimingId(null);
+          toast.success("Task claimed! It's now in your task list above.");
+          onMutate();
+        }, 500);
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Failed to claim task");
-      } finally {
         setClaimingId(null);
       }
     },
@@ -276,6 +296,7 @@ export function BacklogList({ tasks: initialTasks, onMutate }: BacklogListProps)
               task={task}
               isManager={isManager}
               onClaim={handleClaim}
+              claimedId={claimedId}
               claimingId={claimingId}
             />
           ))}
