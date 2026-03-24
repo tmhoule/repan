@@ -349,7 +349,9 @@ export function TaskForm({ mode, initialData, onSubmit }: TaskFormProps) {
             }
           >
             <SelectTrigger id="task-assignee">
-              <SelectValue placeholder="Unassigned" />
+              <SelectValue>
+                {assignedToId ? (users.find((u) => u.id === assignedToId)?.name ?? "Loading...") : "Unassigned"}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={UNASSIGNED_VALUE}>Unassigned</SelectItem>
