@@ -69,8 +69,8 @@ export function UserForm({ open, onClose, onSave, initialData }: UserFormProps) 
     setError(null);
   }, [initialData, open]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (!name.trim()) {
       setError("Name is required.");
       return;
@@ -202,7 +202,7 @@ export function UserForm({ open, onClose, onSave, initialData }: UserFormProps) 
             >
               Cancel
             </Button>
-            <Button type="submit" size="sm" disabled={submitting}>
+            <Button type="button" size="sm" disabled={submitting} onClick={handleSubmit}>
               {submitting ? "Saving..." : isEdit ? "Save Changes" : "Create User"}
             </Button>
           </DialogFooter>
