@@ -135,7 +135,7 @@ function BacklogSection() {
   const { mutate: mutateGlobal } = useSWRConfig();
   const { data, isLoading } = useSWR<{
     tasks: any[];
-    health: { totalItems: number; totalEffort: number; estimatedWeeks: number | null; trend: string };
+    health: { totalItems: number; totalEffort: number; estimatedWeeks: number | null; trend: "growing" | "shrinking" | "stable" };
     weeklyThroughput: number;
   }>("/api/backlog");
 

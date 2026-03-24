@@ -14,11 +14,8 @@ export function PointsPopup({ points, show }: PointsPopupProps) {
         <motion.div
           key={`points-popup-${Date.now()}`}
           initial={{ opacity: 1, y: 0, scale: 0.5 }}
-          animate={[
-            { opacity: 1, y: 0, scale: 1.2, transition: { duration: 0.2, ease: "easeOut" } },
-            { opacity: 1, y: 0, scale: 1.0, transition: { duration: 0.1, ease: "easeIn" } },
-            { opacity: 0, y: -60, scale: 1.0, transition: { duration: 0.8, ease: "easeOut" } },
-          ]}
+          animate={{ opacity: 0, y: -60, scale: 1.1 }}
+          transition={{ duration: 1, ease: "easeOut" }}
           exit={{ opacity: 0 }}
           className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 select-none"
         >
