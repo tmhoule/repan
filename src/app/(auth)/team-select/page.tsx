@@ -1,66 +1,53 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Badge } from "@/components/ui/badge";
+import { useRouter } from "next/navigation";
+import { Users } from "lucide-react";
 
-type User = {
+type Team = {
   id: string;
   name: string;
   role: string;
-  avatarColor: string;
+  memberCount?: number;
 };
 
-function getInitials(name: string) {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-}
-
-export default function LoginPage() {
-  const [users, setUsers] = useState<User[]>([]);
+export default function TeamSelectPage() {
+  const router = useRouter();
+  const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loggingIn, setLoggingIn] = useState<string | null>(null);
+  const [selecting, setSelecting] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/users", { cache: "no-store" })
+    fetch("/api/teams", { cache: "no-store" })
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
       })
       .then((data) => {
-        setUsers(Array.isArray(data) ? data : []);
+        setTeams(Array.isArray(data) ? data : []);
       })
       .catch((err) => {
-        console.error("Failed to fetch users:", err);
-        setUsers([]);
+        console.error("Failed to fetch teams:", err);
+        setTeams([]);
       })
       .finally(() => setLoading(false));
   }, []);
 
-  const handleLogin = async (userId: string) => {
-    setLoggingIn(userId);
+  const handleSelectTeam = async (teamId: string) => {
+    setSelecting(teamId);
     try {
-      const res = await fetch("/api/auth/login", {
+      const res = await fetch("/api/teams/select", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify({ teamId }),
       });
       if (res.ok) {
-        const data = await res.json();
-        const teams: { id: string }[] = data.teams ?? [];
-        if (teams.length > 1) {
-          window.location.href = "/team-select";
-        } else {
-          window.location.href = "/tasks";
-        }
+        window.location.href = "/tasks";
       } else {
-        setLoggingIn(null);
+        setSelecting(null);
       }
     } catch {
-      setLoggingIn(null);
+      setSelecting(null);
     }
   };
 
@@ -86,13 +73,13 @@ export default function LoginPage() {
             Repan
           </h1>
           <p className="text-muted-foreground text-lg">Team Task Tracker</p>
-          <p className="text-muted-foreground text-sm mt-3">Choose your player</p>
+          <p className="text-muted-foreground text-sm mt-3">Select your team</p>
         </div>
 
-        {/* User grid */}
+        {/* Team grid */}
         {loading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {Array.from({ length: 6 }).map((_, i) => (
+            {Array.from({ length: 3 }).map((_, i) => (
               <div
                 key={i}
                 className="flex flex-col items-center gap-3 p-8 rounded-xl border bg-card animate-pulse"
@@ -103,37 +90,29 @@ export default function LoginPage() {
               </div>
             ))}
           </div>
-        ) : users.length === 0 ? (
+        ) : teams.length === 0 ? (
           <div className="text-center text-muted-foreground py-12">
-            <p>No users found. Please seed the database.</p>
+            <p>No teams found. Please contact your administrator.</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {users.map((user) => {
-              const isLoading = loggingIn === user.id;
-              const isDisabled = loggingIn !== null && !isLoading;
+            {teams.map((team) => {
+              const isLoading = selecting === team.id;
+              const isDisabled = selecting !== null && !isLoading;
               return (
                 <button
-                  key={user.id}
-                  onClick={() => handleLogin(user.id)}
+                  key={team.id}
+                  onClick={() => handleSelectTeam(team.id)}
                   disabled={isDisabled || isLoading}
                   className={`flex flex-col items-center gap-3 p-8 rounded-xl border bg-card text-card-foreground shadow-sm transition-all duration-200
                     ${isLoading ? "opacity-80 scale-95" : ""}
                     ${isDisabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer active:scale-95"}
                   `}
-                  style={
-                    !isDisabled && !isLoading
-                      ? {
-                          // hover handled via onMouseEnter/Leave below
-                        }
-                      : undefined
-                  }
                   onMouseEnter={(e) => {
                     if (!isDisabled && !isLoading) {
                       const el = e.currentTarget;
-                      const color = user.avatarColor ?? "#8B5CF6";
-                      el.style.borderColor = color + "80";
-                      el.style.boxShadow = `0 0 0 1px ${color}40, 0 4px 20px ${color}30`;
+                      el.style.borderColor = "#8B5CF680";
+                      el.style.boxShadow = `0 0 0 1px #8B5CF640, 0 4px 20px #8B5CF630`;
                       el.style.transform = "translateY(-1px)";
                     }
                   }}
@@ -146,10 +125,10 @@ export default function LoginPage() {
                     }
                   }}
                 >
-                  {/* Avatar */}
+                  {/* Team icon */}
                   <div
-                    className="h-20 w-20 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-sm"
-                    style={{ backgroundColor: user.avatarColor ?? "#6b7280" }}
+                    className="h-20 w-20 rounded-full flex items-center justify-center text-white shadow-sm"
+                    style={{ backgroundColor: "#8B5CF6" }}
                   >
                     {isLoading ? (
                       <svg
@@ -173,22 +152,21 @@ export default function LoginPage() {
                         />
                       </svg>
                     ) : (
-                      getInitials(user.name)
+                      <Users className="h-8 w-8" />
                     )}
                   </div>
 
-                  {/* Name */}
+                  {/* Team name */}
                   <span className="font-semibold text-sm text-center leading-tight">
-                    {user.name}
+                    {team.name}
                   </span>
 
-                  {/* Role badge */}
-                  <Badge
-                    variant={user.role === "manager" ? "default" : "secondary"}
-                    className="text-xs capitalize"
-                  >
-                    {user.role}
-                  </Badge>
+                  {/* Member count */}
+                  {team.memberCount !== undefined && (
+                    <span className="text-xs text-muted-foreground">
+                      {team.memberCount} {team.memberCount === 1 ? "member" : "members"}
+                    </span>
+                  )}
                 </button>
               );
             })}

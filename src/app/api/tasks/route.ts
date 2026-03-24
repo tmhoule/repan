@@ -1,19 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { requireSession, handleApiError } from "@/lib/session";
+import { requireSession, handleApiError, requireTeam } from "@/lib/session";
 import { sortByUrgency } from "@/lib/urgency";
 import { createNotification } from "@/lib/notifications";
 
 export async function GET(request: NextRequest) {
   try {
     const user = await requireSession();
+    const teamId = await requireTeam();
     const searchParams = request.nextUrl.searchParams;
     const status = searchParams.getAll("status");
     const priority = searchParams.get("priority");
     const search = searchParams.get("search");
     const assignedTo = searchParams.get("assignedTo") || user.id;
 
-    const where: any = { archivedAt: null, assignedToId: assignedTo };
+    const where: any = { archivedAt: null, assignedToId: assignedTo, teamId };
     if (status.length > 0) where.status = { in: status };
     if (priority) where.priority = priority;
     if (search) {
@@ -44,6 +45,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const user = await requireSession();
+    const teamId = await requireTeam();
     const body = await request.json();
 
     let assignedToId = body.assignedToId !== undefined ? body.assignedToId : null;
@@ -64,6 +66,7 @@ export async function POST(request: NextRequest) {
         createdById: user.id,
         assignedToId,
         backlogPosition: assignedToId ? null : body.backlogPosition,
+        teamId,
       },
       include: {
         createdBy: { select: { id: true, name: true, avatarColor: true } },

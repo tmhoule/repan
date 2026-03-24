@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
-import { UserPlus, PlusCircle, Pencil, Archive, ArchiveRestore } from "lucide-react";
+import { UserPlus, PlusCircle, Pencil, Archive, ArchiveRestore, Users, Trash2, Plus } from "lucide-react";
 import { useUser } from "@/components/user-context";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { UserForm } from "@/components/admin/user-form";
 import { BadgeForm } from "@/components/admin/badge-form";
 
@@ -37,6 +45,21 @@ interface AwardRow {
   criteriaValue: Record<string, unknown>;
   isActive: boolean;
   createdAt: string;
+}
+
+interface TeamRow {
+  id: string;
+  name: string;
+  memberCount: number;
+  createdAt: string;
+}
+
+interface TeamMember {
+  id: string;
+  userId: string;
+  teamId: string;
+  role: "manager" | "member";
+  user: { id: string; name: string; avatarColor: string; role: string; isActive: boolean };
 }
 
 function formatDate(iso: string) {
@@ -68,6 +91,7 @@ export default function AdminPage() {
   const { user } = useUser();
   const router = useRouter();
   const isManager = user?.role === "manager";
+  const isSuperAdmin = user?.isSuperAdmin === true;
 
   useEffect(() => {
     if (user && !isManager) {
@@ -98,6 +122,33 @@ export default function AdminPage() {
 
   const [badgeFormOpen, setBadgeFormOpen] = useState(false);
   const [editingBadge, setEditingBadge] = useState<AwardRow | null>(null);
+
+  // Teams state
+  const {
+    data: teams,
+    isLoading: teamsLoading,
+    mutate: mutateTeams,
+  } = useSWR<TeamRow[]>(
+    isManager ? "/api/teams" : null
+  );
+
+  const [createTeamOpen, setCreateTeamOpen] = useState(false);
+  const [newTeamName, setNewTeamName] = useState("");
+  const [creatingTeam, setCreatingTeam] = useState(false);
+
+  const [managingTeam, setManagingTeam] = useState<TeamRow | null>(null);
+  const {
+    data: teamMembers,
+    isLoading: teamMembersLoading,
+    mutate: mutateTeamMembers,
+  } = useSWR<TeamMember[]>(
+    managingTeam ? `/api/teams/${managingTeam.id}/members` : null
+  );
+
+  const [addMemberOpen, setAddMemberOpen] = useState(false);
+  const [addMemberUserId, setAddMemberUserId] = useState("");
+  const [addMemberRole, setAddMemberRole] = useState<"manager" | "member">("member");
+  const [addingMember, setAddingMember] = useState(false);
 
   if (!user || !isManager) return null;
 
@@ -130,6 +181,58 @@ export default function AdminPage() {
     mutateAwards();
   };
 
+  const handleCreateTeam = async () => {
+    if (!newTeamName.trim()) return;
+    setCreatingTeam(true);
+    try {
+      await fetch("/api/teams", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newTeamName.trim() }),
+      });
+      setNewTeamName("");
+      setCreateTeamOpen(false);
+      mutateTeams();
+    } finally {
+      setCreatingTeam(false);
+    }
+  };
+
+  const handleRemoveMember = async (userId: string) => {
+    if (!managingTeam) return;
+    await fetch(`/api/teams/${managingTeam.id}/members`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId }),
+    });
+    mutateTeamMembers();
+    mutateTeams();
+  };
+
+  const handleAddMember = async () => {
+    if (!managingTeam || !addMemberUserId) return;
+    setAddingMember(true);
+    try {
+      await fetch(`/api/teams/${managingTeam.id}/members`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: addMemberUserId, role: addMemberRole }),
+      });
+      setAddMemberUserId("");
+      setAddMemberRole("member");
+      setAddMemberOpen(false);
+      mutateTeamMembers();
+      mutateTeams();
+    } finally {
+      setAddingMember(false);
+    }
+  };
+
+  // Users not in the team (for add member dialog)
+  const nonMembers = (users ?? []).filter(
+    (u) => u.isActive && !(teamMembers ?? []).some((m) => m.userId === u.id)
+  );
+
   return (
     <div className="min-h-screen bg-zinc-950 px-4 py-6">
       <div className="mx-auto max-w-5xl space-y-6">
@@ -139,7 +242,7 @@ export default function AdminPage() {
             Admin Panel
           </h1>
           <p className="text-sm text-zinc-500 mt-0.5">
-            Manage users and badge definitions
+            Manage users, teams and badge definitions
           </p>
         </div>
 
@@ -147,6 +250,7 @@ export default function AdminPage() {
           <TabsList>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="badges">Badges</TabsTrigger>
+            {isManager && <TabsTrigger value="teams">Teams</TabsTrigger>}
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
@@ -392,6 +496,167 @@ export default function AdminPage() {
               </div>
             </div>
           </TabsContent>
+
+          {/* ── Teams Tab ── */}
+          <TabsContent value="teams" className="mt-4">
+            {managingTeam ? (
+              // Team member management view
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setManagingTeam(null)}
+                    className="text-zinc-400"
+                  >
+                    ← Back to Teams
+                  </Button>
+                  <h2 className="text-sm font-semibold text-zinc-200">
+                    {managingTeam.name}
+                  </h2>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-zinc-400">
+                    {teamMembersLoading
+                      ? "Loading..."
+                      : `${(teamMembers ?? []).length} member${(teamMembers ?? []).length !== 1 ? "s" : ""}`}
+                  </p>
+                  <Button size="sm" onClick={() => setAddMemberOpen(true)}>
+                    <Plus className="size-3.5" />
+                    Add Member
+                  </Button>
+                </div>
+
+                <div className="rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden">
+                  {teamMembersLoading ? (
+                    <div className="space-y-px p-1">
+                      {Array.from({ length: 3 }).map((_, i) => (
+                        <div key={i} className="h-11 rounded-lg bg-zinc-800/50 animate-pulse" />
+                      ))}
+                    </div>
+                  ) : (teamMembers ?? []).length === 0 ? (
+                    <p className="text-sm text-zinc-500 text-center py-12">No members yet.</p>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-zinc-800 hover:bg-transparent">
+                          <TableHead className="text-zinc-400 pl-4">Member</TableHead>
+                          <TableHead className="text-zinc-400">Team Role</TableHead>
+                          <TableHead className="text-zinc-400 text-right pr-4">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {(teamMembers ?? []).map((m) => (
+                          <TableRow key={m.id} className="border-zinc-800 hover:bg-zinc-800/40">
+                            <TableCell className="pl-4">
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className="size-6 rounded-full shrink-0"
+                                  style={{ backgroundColor: m.user.avatarColor }}
+                                />
+                                <span className="text-sm text-zinc-200 font-medium">{m.user.name}</span>
+                                {m.userId === user?.id && (
+                                  <Badge variant="secondary" className="text-xs">You</Badge>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={m.role === "manager" ? "default" : "secondary"}
+                                className="text-xs"
+                              >
+                                {m.role}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right pr-4">
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                onClick={() => handleRemoveMember(m.userId)}
+                                aria-label={`Remove ${m.user.name}`}
+                                title="Remove from team"
+                              >
+                                <Trash2 className="size-3.5 text-red-400" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </div>
+              </div>
+            ) : (
+              // Teams list view
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-zinc-400">
+                    {teamsLoading
+                      ? "Loading..."
+                      : `${(teams ?? []).length} team${(teams ?? []).length !== 1 ? "s" : ""}`}
+                  </p>
+                  {isSuperAdmin && (
+                    <Button size="sm" onClick={() => setCreateTeamOpen(true)}>
+                      <Plus className="size-3.5" />
+                      Create Team
+                    </Button>
+                  )}
+                </div>
+
+                <div className="rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden">
+                  {teamsLoading ? (
+                    <div className="space-y-px p-1">
+                      {Array.from({ length: 3 }).map((_, i) => (
+                        <div key={i} className="h-11 rounded-lg bg-zinc-800/50 animate-pulse" />
+                      ))}
+                    </div>
+                  ) : (teams ?? []).length === 0 ? (
+                    <p className="text-sm text-zinc-500 text-center py-12">No teams found.</p>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-zinc-800 hover:bg-transparent">
+                          <TableHead className="text-zinc-400 pl-4">Team</TableHead>
+                          <TableHead className="text-zinc-400">Members</TableHead>
+                          <TableHead className="text-zinc-400">Created</TableHead>
+                          <TableHead className="text-zinc-400 text-right pr-4">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {(teams ?? []).map((t) => (
+                          <TableRow key={t.id} className="border-zinc-800 hover:bg-zinc-800/40">
+                            <TableCell className="pl-4">
+                              <div className="flex items-center gap-2">
+                                <Users className="size-4 text-zinc-400" />
+                                <span className="text-sm text-zinc-200 font-medium">{t.name}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-zinc-400 text-sm">
+                              {t.memberCount}
+                            </TableCell>
+                            <TableCell className="text-zinc-400 text-xs">
+                              {formatDate(t.createdAt)}
+                            </TableCell>
+                            <TableCell className="text-right pr-4">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setManagingTeam(t)}
+                                className="text-xs"
+                              >
+                                Manage
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </div>
+              </div>
+            )}
+          </TabsContent>
         </Tabs>
       </div>
 
@@ -427,6 +692,70 @@ export default function AdminPage() {
             : null
         }
       />
+
+      {/* Create team dialog */}
+      <Dialog open={createTeamOpen} onOpenChange={setCreateTeamOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Team</DialogTitle>
+          </DialogHeader>
+          <div className="py-2">
+            <Input
+              placeholder="Team name"
+              value={newTeamName}
+              onChange={(e) => setNewTeamName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleCreateTeam(); }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setCreateTeamOpen(false)}>Cancel</Button>
+            <Button onClick={handleCreateTeam} disabled={creatingTeam || !newTeamName.trim()}>
+              {creatingTeam ? "Creating..." : "Create"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add member dialog */}
+      <Dialog open={addMemberOpen} onOpenChange={setAddMemberOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Member to {managingTeam?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="py-2 space-y-3">
+            <div>
+              <label className="text-sm text-zinc-400 mb-1 block">User</label>
+              <select
+                className="w-full rounded-md border border-zinc-700 bg-zinc-800 text-zinc-100 px-3 py-2 text-sm"
+                value={addMemberUserId}
+                onChange={(e) => setAddMemberUserId(e.target.value)}
+              >
+                <option value="">Select a user...</option>
+                {nonMembers.map((u) => (
+                  <option key={u.id} value={u.id}>{u.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-sm text-zinc-400 mb-1 block">Role</label>
+              <select
+                className="w-full rounded-md border border-zinc-700 bg-zinc-800 text-zinc-100 px-3 py-2 text-sm"
+                value={addMemberRole}
+                onChange={(e) => setAddMemberRole(e.target.value as "manager" | "member")}
+              >
+                <option value="member">Member</option>
+                <option value="manager">Manager</option>
+              </select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setAddMemberOpen(false)}>Cancel</Button>
+            <Button onClick={handleAddMember} disabled={addingMember || !addMemberUserId}>
+              {addingMember ? "Adding..." : "Add Member"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

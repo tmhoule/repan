@@ -11,6 +11,11 @@ enum UserRole {
   staff
 }
 
+enum TeamRole {
+  manager
+  member
+}
+
 enum TaskStatus {
   not_started
   in_progress
@@ -62,6 +67,7 @@ model User {
   soundEnabled  Boolean   @default(true) @map("sound_enabled")
   createdAt     DateTime  @default(now()) @map("created_at")
   isActive      Boolean   @default(true) @map("is_active")
+  isSuperAdmin  Boolean   @default(false) @map("is_super_admin")
 
   createdTasks    Task[]          @relation("CreatedTasks")
   assignedTasks   Task[]          @relation("AssignedTasks")
@@ -70,8 +76,33 @@ model User {
   pointsLedger    PointsLedger[]
   userAwards      UserAward[]
   streaks         Streak[]
+  teamMemberships TeamMembership[]
 
   @@map("users")
+}
+
+model Team {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+
+  memberships TeamMembership[]
+  tasks       Task[]
+
+  @@map("teams")
+}
+
+model TeamMembership {
+  id     String   @id @default(uuid())
+  userId String   @map("user_id")
+  teamId String   @map("team_id")
+  role   TeamRole @default(member)
+
+  user   User     @relation(fields: [userId], references: [id])
+  team   Team     @relation(fields: [teamId], references: [id])
+
+  @@unique([userId, teamId])
+  @@map("team_memberships")
 }
 
 model Task {
@@ -91,9 +122,11 @@ model Task {
   createdById     String        @map("created_by")
   assignedToId    String?       @map("assigned_to")
   backlogPosition Int?          @map("backlog_position")
+  teamId          String        @map("team_id")
 
   createdBy       User          @relation("CreatedTasks", fields: [createdById], references: [id])
   assignedTo      User?         @relation("AssignedTasks", fields: [assignedToId], references: [id])
+  team            Team          @relation(fields: [teamId], references: [id])
   activities      TaskActivity[]
   notifications   Notification[]
   pointsLedger    PointsLedger[]

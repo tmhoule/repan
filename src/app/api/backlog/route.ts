@@ -1,20 +1,21 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { requireSession, handleApiError } from "@/lib/session";
+import { requireSession, handleApiError, requireTeam } from "@/lib/session";
 import { calculateBacklogForecast, getWeeklyThroughput, getBacklogHealth } from "@/lib/forecasting";
 import { sortByUrgency } from "@/lib/urgency";
 
 export async function GET() {
   try {
   await requireSession();
+  const teamId = await requireTeam();
 
   const [backlogTasks, completedTasks] = await Promise.all([
     prisma.task.findMany({
-      where: { assignedToId: null, archivedAt: null },
+      where: { assignedToId: null, archivedAt: null, teamId },
       include: { createdBy: { select: { id: true, name: true, avatarColor: true } } },
     }),
     prisma.task.findMany({
-      where: { status: "done", completedAt: { gte: new Date(Date.now() - 28 * 86400000) } },
+      where: { status: "done", completedAt: { gte: new Date(Date.now() - 28 * 86400000) }, teamId },
       select: { effortEstimate: true, completedAt: true },
     }),
   ]);

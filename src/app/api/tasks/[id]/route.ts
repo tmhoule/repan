@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { requireSession, handleApiError } from "@/lib/session";
+import { requireSession, handleApiError, requireTeam } from "@/lib/session";
 import { canEditTask, canDeleteTask } from "@/lib/permissions";
 import { createNotification } from "@/lib/notifications";
 import { awardAction, updateOnTimeStreak } from "@/lib/gamification";
@@ -26,11 +26,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await requireSession();
+    const teamId = await requireTeam();
     const { id } = await params;
     const body = await request.json();
 
     const task = await prisma.task.findUnique({ where: { id } });
     if (!task) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (task.teamId !== teamId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     if (!canEditTask({ id: user.id, role: user.role }, { createdById: task.createdById, assignedToId: task.assignedToId })) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -125,10 +127,14 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await requireSession();
+    const teamId = await requireTeam();
     const { id } = await params;
     if (!canDeleteTask({ id: user.id, role: user.role })) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
+    const task = await prisma.task.findUnique({ where: { id } });
+    if (!task) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (task.teamId !== teamId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     // Soft delete: archive the task instead of hard-deleting to preserve related records
     await prisma.task.update({ where: { id }, data: { archivedAt: new Date(), status: "done" } });
     return NextResponse.json({ success: true });

@@ -1,24 +1,44 @@
 import { NextResponse } from "next/server";
-import { requireManager, handleApiError } from "@/lib/session";
+import { requireSession, handleApiError, requireTeam } from "@/lib/session";
+import { getTeamRole } from "@/lib/team-auth";
 import { prisma } from "@/lib/db";
 import { getWeeklyThroughput, getBacklogHealth } from "@/lib/forecasting";
 
 export async function GET() {
   try {
-  await requireManager();
+  const user = await requireSession();
+  const teamId = await requireTeam();
+
+  // Check team manager or super_admin access
+  const teamRole = await getTeamRole(user.id, teamId);
+  if (!user.isSuperAdmin && teamRole !== "manager") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const oneWeekAgo = new Date(Date.now() - 7 * 86400000);
   const now = new Date();
 
-  const [users, tasks, backlogTasks, recentActivity, completedRecent, previousBacklogSize] = await Promise.all([
-    prisma.user.findMany({ where: { isActive: true }, select: { id: true, name: true, avatarColor: true } }),
-    prisma.task.findMany({ where: { archivedAt: null, status: { not: "done" } }, include: { assignedTo: { select: { id: true, name: true } } } }),
-    prisma.task.findMany({ where: { assignedToId: null, archivedAt: null }, select: { id: true, effortEstimate: true, backlogPosition: true } }),
-    prisma.taskActivity.findMany({ orderBy: { timestamp: "desc" }, take: 50, include: { user: { select: { name: true, avatarColor: true } }, task: { select: { id: true, title: true } } } }),
-    prisma.task.findMany({ where: { status: "done", completedAt: { gte: new Date(Date.now() - 56 * 86400000) } }, select: { effortEstimate: true, completedAt: true } }),
-    prisma.task.count({ where: { assignedToId: null, archivedAt: null, createdAt: { lte: oneWeekAgo } } }),
+  // Get users who are members of this team
+  const teamMemberships = await prisma.teamMembership.findMany({
+    where: { teamId },
+    include: { user: { select: { id: true, name: true, avatarColor: true, isActive: true } } },
+  });
+  const teamUsers = teamMemberships.map((m) => m.user).filter((u) => u.isActive);
+
+  const [tasks, backlogTasks, recentActivity, completedRecent, previousBacklogSize] = await Promise.all([
+    prisma.task.findMany({ where: { archivedAt: null, status: { not: "done" }, teamId }, include: { assignedTo: { select: { id: true, name: true } } } }),
+    prisma.task.findMany({ where: { assignedToId: null, archivedAt: null, teamId }, select: { id: true, effortEstimate: true, backlogPosition: true } }),
+    prisma.taskActivity.findMany({
+      where: { task: { teamId } },
+      orderBy: { timestamp: "desc" },
+      take: 50,
+      include: { user: { select: { name: true, avatarColor: true } }, task: { select: { id: true, title: true } } },
+    }),
+    prisma.task.findMany({ where: { status: "done", completedAt: { gte: new Date(Date.now() - 56 * 86400000) }, teamId }, select: { effortEstimate: true, completedAt: true } }),
+    prisma.task.count({ where: { assignedToId: null, archivedAt: null, teamId, createdAt: { lte: oneWeekAgo } } }),
   ]);
 
-  const workload = users.map((u) => ({
+  const workload = teamUsers.map((u) => ({
     user: u, taskCount: tasks.filter((t) => t.assignedTo?.id === u.id).length,
     byPriority: { high: tasks.filter(t => t.assignedTo?.id === u.id && t.priority === "high").length, medium: tasks.filter(t => t.assignedTo?.id === u.id && t.priority === "medium").length, low: tasks.filter(t => t.assignedTo?.id === u.id && t.priority === "low").length },
   }));

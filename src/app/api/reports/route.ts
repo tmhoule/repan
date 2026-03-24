@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { requireSession, handleApiError } from "@/lib/session";
-import { canViewFullReports } from "@/lib/permissions";
+import { requireSession, handleApiError, requireTeam } from "@/lib/session";
+import { getTeamRole } from "@/lib/team-auth";
 
 export async function GET(request: NextRequest) {
   try {
   const user = await requireSession();
+  const teamId = await requireTeam();
   const period = request.nextUrl.searchParams.get("period") || "weekly";
   const daysBack = period === "monthly" ? 30 : 7;
   const since = new Date(Date.now() - daysBack * 86400000);
@@ -15,14 +16,14 @@ export async function GET(request: NextRequest) {
   const now = new Date();
 
   const [completed, created, backlogCount, completedForThroughput] = await Promise.all([
-    prisma.task.findMany({ where: { status: "done", completedAt: { gte: since } }, include: { assignedTo: { select: { id: true, name: true } } } }),
-    prisma.task.count({ where: { createdAt: { gte: since } } }),
-    prisma.task.count({ where: { assignedToId: null, archivedAt: null } }),
-    prisma.task.findMany({ where: { status: "done", completedAt: { gte: eightWeeksAgo } }, select: { effortEstimate: true, completedAt: true } }),
+    prisma.task.findMany({ where: { status: "done", completedAt: { gte: since }, teamId }, include: { assignedTo: { select: { id: true, name: true } } } }),
+    prisma.task.count({ where: { createdAt: { gte: since }, teamId } }),
+    prisma.task.count({ where: { assignedToId: null, archivedAt: null, teamId } }),
+    prisma.task.findMany({ where: { status: "done", completedAt: { gte: eightWeeksAgo }, teamId }, select: { effortEstimate: true, completedAt: true } }),
   ]);
 
   const missedDeadlines = completed.filter(t => t.dueDate && t.completedAt && t.completedAt > t.dueDate).length;
-  const previousBacklogCount = await prisma.task.count({ where: { assignedToId: null, archivedAt: null, createdAt: { lte: since } } });
+  const previousBacklogCount = await prisma.task.count({ where: { assignedToId: null, archivedAt: null, teamId, createdAt: { lte: since } } });
 
   const summary = { tasksCompleted: completed.length, tasksCreated: created, backlogSize: backlogCount, backlogDelta: backlogCount - previousBacklogCount, missedDeadlines, period };
 
@@ -37,12 +38,21 @@ export async function GET(request: NextRequest) {
     weeklyThroughput.push({ week: weekStart.toISOString().split("T")[0], points: pts });
   }
 
+  // Per-person breakdown: visible to team managers and super_admins
+  const teamRole = await getTeamRole(user.id, teamId);
+  const canViewFull = user.isSuperAdmin || teamRole === "manager";
+
   let perPerson = null;
-  if (canViewFullReports({ id: user.id, role: user.role })) {
-    const users = await prisma.user.findMany({ where: { isActive: true }, select: { id: true, name: true } });
-    perPerson = await Promise.all(users.map(async (u) => {
+  if (canViewFull) {
+    const teamMemberships = await prisma.teamMembership.findMany({
+      where: { teamId },
+      include: { user: { select: { id: true, name: true, isActive: true } } },
+    });
+    const teamUsers = teamMemberships.map((m) => m.user).filter((u) => u.isActive);
+
+    perPerson = await Promise.all(teamUsers.map(async (u) => {
       const [tasksDone, points] = await Promise.all([
-        prisma.task.count({ where: { assignedToId: u.id, status: "done", completedAt: { gte: since } } }),
+        prisma.task.count({ where: { assignedToId: u.id, status: "done", completedAt: { gte: since }, teamId } }),
         prisma.pointsLedger.aggregate({ where: { userId: u.id, timestamp: { gte: since } }, _sum: { points: true } }),
       ]);
       return { user: u, tasksCompleted: tasksDone, pointsEarned: points._sum.points || 0 };

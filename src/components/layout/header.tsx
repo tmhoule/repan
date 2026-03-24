@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Menu, X, LogOut, User } from "lucide-react";
+import { Menu, X, LogOut, User, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -30,7 +30,7 @@ const managerNavLinks = [
 ];
 
 export function Header() {
-  const { user, logout } = useUser();
+  const { user, activeTeam, logout } = useUser();
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -59,6 +59,14 @@ export function Header() {
         >
           <span className="text-primary">Repan</span>
         </Link>
+
+        {/* Active team indicator */}
+        {activeTeam && (
+          <span className="hidden sm:inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted rounded-md px-2 py-1 shrink-0">
+            <Users className="h-3 w-3" />
+            {activeTeam.name}
+          </span>
+        )}
 
         {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-1 flex-1">
@@ -137,9 +145,18 @@ export function Header() {
                     >
                       {user.role}
                     </Badge>
+                    {activeTeam && (
+                      <span className="text-xs text-muted-foreground font-normal">
+                        {activeTeam.name}
+                      </span>
+                    )}
                   </DropdownMenuLabel>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => router.push("/team-select")}>
+                  <Users className="mr-2 h-4 w-4" />
+                  Switch Team
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={async () => { await logout(); }}>
                   <User className="mr-2 h-4 w-4" />
                   Switch User

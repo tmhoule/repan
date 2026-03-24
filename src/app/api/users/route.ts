@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { requireManager, getSession, handleApiError } from "@/lib/session";
+import { requireManager, getSession, getActiveTeam, handleApiError } from "@/lib/session";
 
 export async function GET(request: NextRequest) {
   try {
@@ -8,6 +8,27 @@ export async function GET(request: NextRequest) {
     // Managers can optionally include inactive users.
     const session = await getSession();
     const includeInactive = request.nextUrl.searchParams.get("includeInactive") === "true";
+    const teamId = await getActiveTeam();
+
+    // If there's an active team and user is logged in, filter by team members
+    if (teamId && session) {
+      const memberships = await prisma.teamMembership.findMany({
+        where: { teamId },
+        include: {
+          user: {
+            select: { id: true, name: true, role: true, avatarColor: true, isActive: true, createdAt: true },
+          },
+        },
+        orderBy: { user: { name: "asc" } },
+      });
+
+      let users = memberships.map((m) => m.user);
+      if (!includeInactive || session.role !== "manager") {
+        users = users.filter((u) => u.isActive);
+      }
+
+      return NextResponse.json(users);
+    }
 
     const where = (includeInactive && session?.role === "manager")
       ? {}

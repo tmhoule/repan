@@ -1,4 +1,4 @@
-import { PrismaClient, UserRole, TaskStatus, TaskPriority, EffortEstimate } from "@prisma/client";
+import { PrismaClient, UserRole, TaskStatus, TaskPriority, EffortEstimate, TeamRole } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -29,9 +29,14 @@ const STARTER_BADGES = [
 ];
 
 async function main() {
+  // Create default team
+  const defaultTeam = await prisma.team.create({
+    data: { name: "Default Team" },
+  });
+
   // Create users
   const manager = await prisma.user.create({
-    data: { name: "Todd", role: UserRole.manager, avatarColor: AVATAR_COLORS[0] },
+    data: { name: "Todd", role: UserRole.manager, avatarColor: AVATAR_COLORS[0], isSuperAdmin: true },
   });
 
   const staffNames = ["Alice", "Bob", "Carol", "Dave", "Eve", "Frank", "Grace"];
@@ -43,6 +48,19 @@ async function main() {
     )
   );
 
+  // Add all users to the default team
+  await prisma.teamMembership.create({
+    data: { userId: manager.id, teamId: defaultTeam.id, role: TeamRole.manager },
+  });
+
+  await Promise.all(
+    staff.map((s) =>
+      prisma.teamMembership.create({
+        data: { userId: s.id, teamId: defaultTeam.id, role: TeamRole.member },
+      })
+    )
+  );
+
   // Create starter badges
   await Promise.all(
     STARTER_BADGES.map((badge) =>
@@ -50,7 +68,7 @@ async function main() {
     )
   );
 
-  // Create sample tasks
+  // Create sample tasks (all assigned to the default team)
   const sampleTasks = [
     { title: "Update company website homepage", priority: TaskPriority.high, effortEstimate: EffortEstimate.large, assignedToId: staff[0].id, status: TaskStatus.in_progress, percentComplete: 40, dueDate: new Date("2026-03-28") },
     { title: "Prepare Q1 budget report", priority: TaskPriority.high, effortEstimate: EffortEstimate.medium, assignedToId: staff[1].id, status: TaskStatus.not_started, dueDate: new Date("2026-03-25") },
@@ -64,11 +82,11 @@ async function main() {
 
   for (const task of sampleTasks) {
     await prisma.task.create({
-      data: { ...task, createdById: manager.id },
+      data: { ...task, createdById: manager.id, teamId: defaultTeam.id },
     });
   }
 
-  console.log("Seed complete: 1 manager, 7 staff, 15 badges, 8 sample tasks");
+  console.log("Seed complete: 1 default team, 1 manager (super_admin), 7 staff, 15 badges, 8 sample tasks");
 }
 
 main()
