@@ -35,8 +35,19 @@ export async function requireSession() {
 
 export async function requireManager() {
   const user = await requireSession();
-  if (user.role !== "manager") throw new Error("Forbidden");
-  return user;
+  // Super admins always have manager access
+  if (user.isSuperAdmin) return user;
+  // Check team membership role
+  const teamId = await getActiveTeam();
+  if (teamId) {
+    const membership = await prisma.teamMembership.findUnique({
+      where: { userId_teamId: { userId: user.id, teamId } },
+    });
+    if (membership?.role === "manager") return user;
+  }
+  // Fall back to global role
+  if (user.role === "manager") return user;
+  throw new Error("Forbidden");
 }
 
 export async function getActiveTeam(): Promise<string | null> {

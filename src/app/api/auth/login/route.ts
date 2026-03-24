@@ -23,8 +23,13 @@ export async function POST(request: NextRequest) {
     role: m.role,
   }));
 
+  // Effective role: if user is on exactly one team, use that team's role
+  let effectiveRole = user.role;
+  if (teams.length === 1 && teams[0].role === "manager") effectiveRole = "manager";
+  if (user.isSuperAdmin) effectiveRole = "manager";
+
   const response = NextResponse.json({
-    user: { id: user.id, name: user.name, role: user.role, avatarColor: user.avatarColor, isSuperAdmin: user.isSuperAdmin },
+    user: { id: user.id, name: user.name, role: effectiveRole, avatarColor: user.avatarColor, isSuperAdmin: user.isSuperAdmin },
     teams,
   });
 

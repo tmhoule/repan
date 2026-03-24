@@ -31,21 +31,32 @@ export default async function RootLayout({
 }>) {
   const [session, teamId] = await Promise.all([getSession(), getActiveTeam()]);
 
+  // Determine effective role: team membership role takes precedence over global role
+  let effectiveRole = session?.role ?? "staff";
+  let initialTeam: { id: string; name: string } | null = null;
+
+  if (session && teamId) {
+    const [team, membership] = await Promise.all([
+      prisma.team.findUnique({ where: { id: teamId }, select: { id: true, name: true } }),
+      prisma.teamMembership.findUnique({
+        where: { userId_teamId: { userId: session.id, teamId } },
+        select: { role: true },
+      }),
+    ]);
+    initialTeam = team ?? null;
+    if (membership?.role === "manager") effectiveRole = "manager";
+    if (session.isSuperAdmin) effectiveRole = "manager";
+  }
+
   const initialUser = session
     ? {
         id: session.id,
         name: session.name,
-        role: session.role,
+        role: effectiveRole,
         avatarColor: session.avatarColor,
         isSuperAdmin: session.isSuperAdmin,
       }
     : null;
-
-  let initialTeam: { id: string; name: string } | null = null;
-  if (teamId) {
-    const team = await prisma.team.findUnique({ where: { id: teamId }, select: { id: true, name: true } });
-    initialTeam = team ?? null;
-  }
 
   return (
     <html
