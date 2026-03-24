@@ -42,8 +42,9 @@ repan/
 │   │   ├── api/          # REST API endpoints
 │   │   │   ├── tasks/    # CRUD, status updates, progress
 │   │   │   ├── users/    # User management
-│   │   │   ├── backlog/  # Backlog operations
+│   │   │   ├── backlog/  # Backlog operations, reorder
 │   │   │   ├── points/   # Points and awards
+│   │   │   ├── notifications/ # Notification endpoints
 │   │   │   └── reports/  # Report generation
 │   │   ├── (auth)/       # Login screen
 │   │   ├── tasks/        # My Tasks view, Task Detail
@@ -65,7 +66,7 @@ repan/
 │   │   └── badges.ts     # Badge criteria evaluation engine
 │   └── prisma/           # Database schema & migrations
 │       └── schema.prisma
-├── public/               # Static assets
+├── public/               # Static assets (including celebration sounds)
 ├── docs/                 # Documentation
 └── docker-compose.yml    # Development & deployment
 ```
@@ -88,10 +89,11 @@ repan/
 | name | String | Unique display name |
 | role | Enum | `manager` or `staff` |
 | avatar_color | String | Color for avatar circle |
+| sound_enabled | Boolean | Whether celebration sounds play (default true) |
 | created_at | DateTime | Account creation date |
 | is_active | Boolean | Soft delete for deactivated users |
 
-Authentication: no passwords. Users select their name from a list to log in. Manager creates accounts via the admin interface.
+**Authentication:** No passwords. Users select their name from a list to log in. Session is maintained via an HTTP-only cookie containing the user ID, set on login and cleared on logout. Sessions last 30 days. A user can be logged in on multiple devices. Switching users requires clicking "Switch User" on any page, which clears the cookie and returns to the login screen. Manager creates accounts via the admin interface.
 
 ### Tasks
 
@@ -105,13 +107,16 @@ Authentication: no passwords. Users select their name from a list to log in. Man
 | percent_complete | Int | 0-100 |
 | effort_estimate | Enum | `small`, `medium`, `large` |
 | due_date | DateTime? | Optional deadline |
+| blocker_reason | String? | Description of what's blocking the task (set when status is `blocked`) |
 | created_at | DateTime | When the task was created |
+| updated_at | DateTime | Auto-updated on any field change |
 | completed_at | DateTime? | When the task was marked done |
+| archived_at | DateTime? | When the task was archived (null = active) |
 | created_by | UUID | FK to Users — who created this task |
 | assigned_to | UUID? | FK to Users — null means it's in the backlog |
-| position | Int | Sort order within backlog or personal list |
+| backlog_position | Int? | Sort order within backlog (null when assigned) |
 
-All fields are editable by the manager and the assigned staff member. Every edit is logged in the activity log.
+**Archival:** Completed tasks are automatically archived after 90 days. Archived tasks are excluded from default views but remain queryable in reports. No hard deletion.
 
 ### Task Activity Log
 
@@ -121,12 +126,27 @@ All fields are editable by the manager and the assigned staff member. Every edit
 | task_id | UUID | FK to Tasks |
 | user_id | UUID | FK to Users — who made this change |
 | timestamp | DateTime | When the change occurred |
-| type | Enum | `comment`, `status_change`, `progress_update`, `priority_change`, `assignment_change`, `due_date_change`, `effort_change`, `blocker_added`, `blocker_resolved` |
+| type | Enum | `comment`, `status_change`, `progress_update`, `priority_change`, `assignment_change`, `due_date_change`, `effort_change`, `blocker_added`, `blocker_resolved`, `title_change`, `description_change` |
 | content | String? | Comment text or change description |
 | old_value | String? | Previous value (for field changes) |
 | new_value | String? | New value (for field changes) |
 
 Append-only. Never deleted or modified.
+
+### Notifications
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | Primary key |
+| user_id | UUID | FK to Users — who receives this notification |
+| type | Enum | `task_assigned`, `due_date_approaching`, `comment_added`, `badge_earned`, `streak_milestone`, `blocker_resolved` |
+| title | String | Short notification title |
+| message | String | Notification body text |
+| task_id | UUID? | FK to Tasks (null for non-task notifications like badges) |
+| is_read | Boolean | Whether the user has seen it (default false) |
+| created_at | DateTime | When the notification was created |
+
+Notifications older than 30 days are automatically purged. Clicking a notification marks it as read and navigates to the relevant task or profile.
 
 ### Points Ledger
 
@@ -148,7 +168,7 @@ Append-only. Never deleted or modified.
 | description | String | What it means |
 | icon | String | Icon identifier or emoji |
 | criteria_type | String | Rule type for evaluation engine |
-| criteria_value | JSON | Parameters for the rule (e.g., `{"count": 5, "action": "complete_on_time"}`) |
+| criteria_value | JSON | Parameters for the rule (see Badge Criteria Engine for schema) |
 | is_active | Boolean | Can be earned (allows retiring badges) |
 | created_at | DateTime | When the badge was defined |
 
@@ -189,19 +209,21 @@ urgency = base_priority + due_date_modifier + status_modifier
 - Medium = 20
 - Low = 10
 
-**Due date modifier:**
+**Due date modifier (tasks with a due date only):**
 - 7+ days away: +0
 - 3-7 days away: +5
 - 1-2 days away: +10
 - Due today: +20
-- Overdue: +30, plus +2 per additional day overdue
+- Overdue: +30, plus +2 per day overdue (e.g., 3 days overdue = +30 + 6 = +36)
 
 **Status modifier:**
 - Blocked or Stalled: +5
 
-**Example:** A Low priority task 3 days overdue scores 10 + 30 + 6 = 46, outranking a Medium task due next week (20 + 0 = 20).
+**Tasks without a due date** receive only the base priority score and status modifier. They are not partitioned separately — they sort by score alongside everything else.
 
-Tasks with no due date sort by base priority only, appearing below time-sensitive items.
+**Tie-breaking:** When two tasks have the same urgency score, they are sorted by due date ascending (earliest due first), then by creation date ascending (oldest first).
+
+**Example:** A Low priority task 3 days overdue scores 10 + 36 + 0 = 46, outranking a Medium task due next week (20 + 0 = 20).
 
 ## Backlog Forecasting
 
@@ -247,12 +269,21 @@ Displayed as approximate ranges: "~2-3 weeks", "~1 month". Never as specific dat
 | Add a comment | 1 | Encourages communication |
 | Resolve a blocker | 5 | Rewards unblocking work |
 | Pick up a backlog item | 3 | Rewards taking initiative |
+| Streak milestone (3-day) | 5 | Rewards consistency |
+| Streak milestone (5-day) | 10 | Rewards sustained consistency |
+| Streak milestone (10-day) | 20 | Rewards dedication |
+| Streak milestone (30-day) | 50 | Major achievement |
+
+**Anti-gaming rules:**
+- **Progress updates:** Maximum 2 points per task per calendar day for progress updates. Moving the slider multiple times in a day on the same task only counts once.
+- **Comments:** Maximum 5 comment points per day across all tasks.
+- **Resolve a blocker:** Points are awarded when a task's status changes from `blocked` to any other status. Only the user who makes the status change receives the points. A task can only award blocker resolution points once per blocked→unblocked cycle.
 
 ### Streaks
 
-- **Daily Check-in:** Updated at least one task today. Milestones at 3, 5, 10, 30 days.
-- **On-Time Streak:** Consecutive tasks completed by their due date.
-- **Momentum:** Completed at least one task every week for X consecutive weeks.
+- **Daily Check-in:** Updated at least one task today (any progress update, comment, status change, or completion counts). A "day" is a calendar day in the server's configured timezone. Missing a calendar day resets the streak to 0. Weekends count — if users don't work weekends, they can still update a task briefly to maintain the streak, or accept the reset. Milestones at 3, 5, 10, 30 days.
+- **On-Time Streak:** Consecutive tasks with due dates that were completed on or before the due date. Tasks without due dates are skipped (neither break nor extend the streak). Completing a task past its due date breaks the streak.
+- **Momentum:** Completed at least one task per calendar week (Monday-Sunday in server timezone) for X consecutive weeks. Missing a full week resets the streak.
 
 Streaks display as a flame icon with the count next to the user's name.
 
@@ -282,12 +313,18 @@ This is a starter set. Additional badges are created through the admin UI at any
 
 Badges are evaluated after each qualifying action (task completion, comment, status change, etc.). The engine supports these criteria types:
 
-- `count_action` — performed action X a total of N times (e.g., complete 25 tasks)
+- `count_action` — performed action X a total of N times
+  - Schema: `{"action": "complete_task", "count": 25}`
 - `streak_milestone` — reached streak length N for streak type X
-- `consecutive_action` — performed action X consecutively N times (e.g., 5 on-time completions in a row)
+  - Schema: `{"streak_type": "daily_checkin", "count": 10}`
+- `consecutive_action` — performed action X consecutively N times
+  - Schema: `{"action": "complete_on_time", "count": 5}`
 - `single_day_count` — performed action X at least N times in one day
+  - Schema: `{"action": "complete_task", "count": 3}`
 - `total_points` — accumulated N total points
+  - Schema: `{"count": 100}`
 - `compound` — combination of multiple criteria (AND/OR)
+  - Schema: `{"operator": "AND", "criteria": [{"type": "count_action", "value": {"action": "complete_task", "count": 10}}, {"type": "streak_milestone", "value": {"streak_type": "daily_checkin", "count": 5}}]}`
 
 New criteria types can be added in code when the existing set doesn't cover a desired badge.
 
@@ -296,13 +333,13 @@ New criteria types can be added in code when the existing set doesn't cover a de
 - **Task completion:** Confetti or burst animation, points float up
 - **Badge earned:** Toast notification with badge icon, name, and description
 - **Streak active:** Flame icon with count next to user's name in all views
-- **Milestone hit:** Larger celebration with sound (optional, user can mute)
+- **Milestone hit:** Larger celebration with sound (optional, controlled by `sound_enabled` user preference)
 
 ## Application Views
 
 ### 1. Login Screen
 
-Grid of user avatars with names. Click to enter. No passwords. Clean, welcoming design.
+Grid of user avatars with names. Click to enter — sets the session cookie. No passwords. Clean, welcoming design. "Switch User" option available from all pages in the header.
 
 ### 2. My Tasks (Staff Home)
 
@@ -311,28 +348,29 @@ Grid of user avatars with names. Click to enter. No passwords. Clean, welcoming 
 - Each task shows: title, status badge, priority indicator, due date, percent complete bar
 - Quick actions: update progress (slider), mark done, flag blocked/stalled, add comment
 - Completion triggers celebration animation
-- Filter/search bar
+- **Filter bar:** Filter by status (multi-select), priority, due date range. Search by title and description text. Server-side filtering and pagination (20 tasks per page).
+- **Create task button:** Staff can create tasks for themselves
 
 ### 3. Task Detail / Edit
 
-- All fields editable inline
-- Full activity log (chronological, all changes and comments)
+- All fields editable inline (see Permissions for who can edit what)
+- Full activity log (chronological, all changes and comments) with pagination (load more)
 - Progress slider
-- Blocker flag toggle with description field
+- Blocker flag toggle with reason text field (stored in `blocker_reason`)
 - Comment box
-- Shows created by, assigned to, creation date, last update
+- Shows created by, assigned to, creation date, last update (`updated_at`)
 
 ### 4. Backlog
 
 - Unassigned tasks sorted by priority/urgency
 - Each shows: title, priority, effort estimate, forecasted "estimated start" range
 - Staff can claim items (assigns to them, awards points)
-- Manager can drag to reorder
+- Manager can drag to reorder — reorder API accepts an ordered list of task IDs and batch-updates `backlog_position` values. Optimistic UI: positions update immediately, rollback on API failure.
 - Summary bar at top: total items, total effort, estimated weeks of work, trend indicator
 
 ### 5. Team View
 
-- Grid of team members showing: name, avatar, current task count, active streak, recent badges
+- Grid of team members showing: name, avatar, current task count, active streak, badges earned in the last 30 days
 - Click a person to see their full task list
 - No rankings or leaderboards — just visibility
 
@@ -342,7 +380,7 @@ Grid of user avatars with names. Click to enter. No passwords. Clean, welcoming 
 - **At-risk items:** List of overdue, stalled, or blocked tasks with assignee and days overdue
 - **Backlog health:** Total items, effort points, weeks of work, growing/shrinking trend
 - **Weekly throughput:** Line chart of effort points completed per week (last 8 weeks)
-- **Team activity feed:** Recent updates across all tasks
+- **Team activity feed:** Most recent 50 updates across all tasks, with "Load more" pagination
 
 ### 7. Reports
 
@@ -351,7 +389,8 @@ Grid of user avatars with names. Click to enter. No passwords. Clean, welcoming 
 - Throughput trend chart
 - Per-person contribution summary (tasks completed, points earned)
 - Overdue/missed deadline count
-- Exportable (PDF or printable)
+- **Export:** Browser print-to-PDF via a print-optimized CSS stylesheet. No server-side PDF generation needed.
+- **Staff access:** Staff can view reports but see only the team summary, not per-person breakdowns. Managers see full detail.
 
 ### 8. Profile & Achievements
 
@@ -367,24 +406,44 @@ Grid of user avatars with names. Click to enter. No passwords. Clean, welcoming 
 - **Badge management:** Create new badges, edit criteria, retire old badges. Preview badge criteria before publishing.
 - **System settings:** App name, default effort estimates, point values (future).
 
+## Permissions
+
+### Manager can:
+- Create, edit, and delete any task
+- Create and manage user accounts
+- Create and manage badge definitions
+- Reorder the backlog (drag-and-drop)
+- View full reports with per-person breakdowns
+- Access admin panel
+- Reassign tasks (change `assigned_to` on any task)
+
+### Staff can:
+- Create tasks (assigned to themselves or unassigned/backlog)
+- Edit all fields on tasks assigned to them or tasks they created
+- Claim unassigned backlog items (sets `assigned_to` to themselves)
+- View team view, backlog, and their own tasks
+- View reports (team summary only, no per-person breakdowns)
+- View any team member's profile and achievements
+- **Cannot:** edit tasks they didn't create and aren't assigned to, reassign tasks to other people, access admin, reorder the backlog, delete tasks
+
 ## In-App Notifications
 
 Notification bell in the header with unread count. Notifications for:
 
 - Task assigned to you
-- Due date approaching (1 day warning)
+- Due date approaching (1 day warning, checked daily by a scheduled job or on-login check)
 - Someone commented on your task
 - Badge earned or streak milestone hit
 - A task you're blocked on got unblocked
 
-Notifications are in-app only. No email or external notifications in v1.
+Notifications are in-app only. No email or external notifications in v1. See Notifications data model above for schema.
 
 ## Security Considerations
 
 - No password authentication — acceptable for an internal team tool on a trusted network
-- Manager role required for: creating/editing users, accessing admin, reordering backlog, viewing full reports
-- Staff can only edit tasks assigned to them or tasks they created
-- All API routes check user role before performing privileged operations
+- Session via HTTP-only cookie with user ID; session lasts 30 days
+- All API routes validate the session cookie and check user role before performing privileged operations
+- Staff cannot access admin endpoints or manager-only data
 - CSRF protection via Next.js built-in mechanisms
 
 ## Future Considerations (Not in v1)
