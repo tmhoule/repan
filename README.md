@@ -1,36 +1,114 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Repan
+
+A team task tracker with gamification. Manage tasks with dynamic priority scoring, backlog forecasting, and a points/badges/streaks system that makes getting work done a little more fun.
+
+Built with Next.js, TypeScript, PostgreSQL, Tailwind CSS, and shadcn/ui.
+
+## Features
+
+- **Task Management** -- Create, assign, and track tasks with status, priority, effort estimates, due dates, comments, and activity logs
+- **Dynamic Priority** -- Tasks auto-sort by urgency score (priority + due date proximity). Overdue low-priority items bubble up automatically
+- **Backlog Forecasting** -- Unassigned tasks show estimated start times based on team throughput ("~2-3 weeks")
+- **Gamification** -- Earn points for completing tasks, commenting, resolving blockers, and maintaining streaks. 15 badges to unlock
+- **Manager Dashboard** -- Workload distribution, at-risk items, throughput trends, and backlog health at a glance
+- **Reports** -- Weekly/monthly summaries with per-person breakdowns (manager view)
+- **No Passwords** -- Pick your name to log in. Designed for trusted internal teams
+
+## Prerequisites
+
+- [Node.js](https://nodejs.org/) 20+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (for PostgreSQL)
+- npm
 
 ## Getting Started
 
-First, run the development server:
+### 1. Clone the repo
+
+```bash
+git clone https://github.com/tmhoule/repan.git
+cd repan
+```
+
+### 2. Install dependencies
+
+```bash
+npm install
+```
+
+### 3. Set up environment
+
+```bash
+cp .env.example .env
+```
+
+The defaults work out of the box with the Docker database.
+
+### 4. Start the database
+
+```bash
+docker compose up -d
+```
+
+This starts PostgreSQL on port 5432.
+
+### 5. Run database migrations
+
+```bash
+npx prisma migrate dev
+```
+
+### 6. Seed the database
+
+```bash
+npx prisma db seed
+```
+
+This creates 8 users (1 manager "Todd" + 7 staff), 15 badges, and sample tasks.
+
+### 7. Start the dev server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) and pick a user to log in.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+src/
+  app/           -- Pages and API routes (Next.js App Router)
+  components/    -- UI components (tasks, gamification, dashboard, etc.)
+  lib/           -- Business logic (urgency scoring, points, badges, streaks, forecasting)
+  prisma/        -- Database schema and seed data
+```
 
-## Learn More
+## Key Commands
 
-To learn more about Next.js, take a look at the following resources:
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Production build |
+| `npm test` | Run tests (60 unit tests) |
+| `npx prisma studio` | Browse database in browser |
+| `npx prisma db seed` | Re-seed sample data |
+| `docker compose up -d` | Start PostgreSQL |
+| `docker compose down` | Stop PostgreSQL |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Docker Production Deploy
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+docker compose up --build
+```
 
-## Deploy on Vercel
+This builds the app and runs it alongside PostgreSQL. The app is available at port 3000.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Tech Stack
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Framework**: Next.js 14+ (App Router)
+- **Language**: TypeScript
+- **Database**: PostgreSQL + Prisma ORM
+- **Styling**: Tailwind CSS + shadcn/ui
+- **Charts**: Recharts
+- **Animations**: Framer Motion
+- **Data Fetching**: SWR
