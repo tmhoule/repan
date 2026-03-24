@@ -10,7 +10,7 @@ const BASE_PRIORITY: Record<string, number> = { high: 30, medium: 20, low: 10 };
 // Effort modifier: larger tasks need more lead time, so they get a bump
 // when a due date is approaching. The idea: a large task due soon is more
 // urgent than a small task due at the same time because you need to start earlier.
-const EFFORT_WEIGHT: Record<string, number> = { large: 8, medium: 4, small: 0 };
+const EFFORT_WEIGHT: Record<string, number> = { large: 8, medium: 4, small: 2 };
 
 export function calculateUrgencyScore(task: UrgencyInput, now: Date = new Date()): number {
   let score = BASE_PRIORITY[task.priority] ?? 10;
