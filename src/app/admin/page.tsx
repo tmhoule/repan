@@ -209,6 +209,7 @@ export default function AdminPage() {
     });
     mutateTeamMembers();
     mutateTeams();
+    mutateUsers();
   };
 
   const handleAddMember = async () => {
@@ -225,6 +226,7 @@ export default function AdminPage() {
       setAddMemberOpen(false);
       mutateTeamMembers();
       mutateTeams();
+      mutateUsers();
     } finally {
       setAddingMember(false);
     }
@@ -668,7 +670,7 @@ export default function AdminPage() {
       <UserForm
         open={userFormOpen}
         onClose={() => setUserFormOpen(false)}
-        onSave={() => mutateUsers()}
+        onSave={() => { mutateUsers(); mutateTeams(); }}
         initialData={editingUser}
         currentUserIsSuperAdmin={isSuperAdmin}
       />
