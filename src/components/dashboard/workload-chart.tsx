@@ -107,10 +107,15 @@ export function WorkloadChart({ data }: WorkloadChartProps) {
                 wrapperStyle={{ fontSize: 11, color: "#71717a", paddingTop: 8 }}
                 iconSize={8}
                 iconType="square"
+                payload={[
+                  { value: "High", type: "square", color: "#dc2626" },
+                  { value: "Medium", type: "square", color: "#f59e0b" },
+                  { value: "Low", type: "square", color: "#166534" },
+                ]}
               />
-              <Bar dataKey="High" stackId="a" fill="#ef4444" radius={[0, 0, 0, 0]} />
-              <Bar dataKey="Medium" stackId="a" fill="#eab308" radius={[0, 0, 0, 0]} />
-              <Bar dataKey="Low" stackId="a" fill="#22c55e" radius={[2, 2, 0, 0]} />
+              <Bar dataKey="High" stackId="a" fill="#dc2626" radius={[0, 0, 0, 0]} />
+              <Bar dataKey="Medium" stackId="a" fill="#f59e0b" radius={[0, 0, 0, 0]} />
+              <Bar dataKey="Low" stackId="a" fill="#166534" radius={[2, 2, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         )}
