@@ -248,13 +248,6 @@ export default function LoginPage() {
                     {user.name}
                   </span>
 
-                  {/* Role badge */}
-                  <Badge
-                    variant={user.role === "manager" ? "default" : "secondary"}
-                    className="text-xs capitalize"
-                  >
-                    {user.role}
-                  </Badge>
                 </button>
               );
             })}
