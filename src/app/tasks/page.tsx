@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import useSWR, { useSWRConfig } from "swr";
-import { Plus, ClipboardList, Package } from "lucide-react";
+import { Plus, ClipboardList, Package, ChevronDown, ChevronRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TaskCard } from "@/components/tasks/task-card";
 import { TaskFilters, TaskFiltersState } from "@/components/tasks/task-filters";
@@ -49,6 +49,9 @@ export default function MyTasksPage() {
   );
 
   const tasks = data?.tasks ?? [];
+  const activeTasks = tasks.filter((t) => t.status !== "done");
+  const completedTasks = tasks.filter((t) => t.status === "done");
+  const [showCompleted, setShowCompleted] = useState(false);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 space-y-6">
@@ -59,7 +62,7 @@ export default function MyTasksPage() {
           <p className="text-sm text-muted-foreground mt-0.5">
             {isLoading
               ? "Loading..."
-              : `${tasks.length} task${tasks.length !== 1 ? "s" : ""}`}
+              : `${activeTasks.length} active task${activeTasks.length !== 1 ? "s" : ""}${completedTasks.length > 0 ? ` · ${completedTasks.length} completed` : ""}`}
           </p>
         </div>
         <Link href="/tasks/new">
@@ -86,7 +89,7 @@ export default function MyTasksPage() {
             />
           ))}
         </div>
-      ) : tasks.length === 0 ? (
+      ) : activeTasks.length === 0 && completedTasks.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-border py-16 text-center">
           <ClipboardList className="size-12 text-muted-foreground/40" />
           <div className="space-y-1">
@@ -117,10 +120,38 @@ export default function MyTasksPage() {
           </div>
         </div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-1 md:grid-cols-2">
-          {tasks.map((task) => (
-            <TaskCard key={task.id} task={task} onUpdate={() => mutate()} />
-          ))}
+        <div className="space-y-4">
+          {/* Active tasks */}
+          {activeTasks.length > 0 ? (
+            <div className="grid gap-3 sm:grid-cols-1 md:grid-cols-2">
+              {activeTasks.map((task) => (
+                <TaskCard key={task.id} task={task} onUpdate={() => mutate()} />
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-6">No active tasks</p>
+          )}
+
+          {/* Completed tasks — collapsed section */}
+          {completedTasks.length > 0 && (
+            <div>
+              <button
+                onClick={() => setShowCompleted((v) => !v)}
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
+              >
+                {showCompleted ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+                <CheckCircle2 className="size-4 text-green-500" />
+                <span>{completedTasks.length} completed task{completedTasks.length !== 1 ? "s" : ""}</span>
+              </button>
+              {showCompleted && (
+                <div className="grid gap-3 sm:grid-cols-1 md:grid-cols-2 mt-2">
+                  {completedTasks.map((task) => (
+                    <TaskCard key={task.id} task={task} onUpdate={() => mutate()} />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
