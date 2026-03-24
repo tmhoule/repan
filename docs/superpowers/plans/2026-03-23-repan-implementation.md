@@ -1772,13 +1772,15 @@ export async function POST(request: NextRequest) {
   const user = await requireSession();
   const body = await request.json();
 
-  // Staff can only assign tasks to themselves or leave unassigned (backlog)
-  let assignedToId = body.assignedToId ?? null;
+  // Staff can assign tasks to themselves or leave unassigned (backlog).
+  // To create a backlog task, staff must explicitly send assignedToId: null.
+  // If assignedToId is omitted (undefined), default to self for staff.
+  let assignedToId = body.assignedToId !== undefined ? body.assignedToId : null;
   if (user.role === "staff") {
     if (assignedToId && assignedToId !== user.id) {
       return NextResponse.json({ error: "Staff can only assign tasks to themselves" }, { status: 403 });
     }
-    if (!assignedToId) assignedToId = user.id; // Default to self for staff
+    if (assignedToId === undefined) assignedToId = user.id; // Default to self for staff
   }
 
   const task = await prisma.task.create({
