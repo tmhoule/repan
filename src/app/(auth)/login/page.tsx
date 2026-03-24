@@ -1,6 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 type User = {
   id: string;
@@ -22,22 +25,61 @@ export default function LoginPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [loggingIn, setLoggingIn] = useState<string | null>(null);
+  const [needsSetup, setNeedsSetup] = useState(false);
+  const [setupName, setSetupName] = useState("");
+  const [settingUp, setSettingUp] = useState(false);
+  const [setupError, setSetupError] = useState("");
 
   useEffect(() => {
-    fetch("/api/users", { cache: "no-store" })
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
+    // Check if setup is needed first
+    fetch("/api/bootstrap", { cache: "no-store" })
+      .then((res) => res.json())
       .then((data) => {
-        setUsers(Array.isArray(data) ? data : []);
+        if (data.needsSetup) {
+          setNeedsSetup(true);
+          setLoading(false);
+          return;
+        }
+        // Setup done, fetch users
+        return fetch("/api/users", { cache: "no-store" })
+          .then((res) => {
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return res.json();
+          })
+          .then((data) => {
+            setUsers(Array.isArray(data) ? data : []);
+          });
       })
       .catch((err) => {
-        console.error("Failed to fetch users:", err);
+        console.error("Failed to load:", err);
         setUsers([]);
       })
       .finally(() => setLoading(false));
   }, []);
+
+  const handleSetup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!setupName.trim()) return;
+    setSettingUp(true);
+    setSetupError("");
+    try {
+      const res = await fetch("/api/bootstrap", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: setupName.trim() }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? "Setup failed");
+      }
+      // Reload the page to show the new user
+      window.location.reload();
+    } catch (err) {
+      setSetupError(err instanceof Error ? err.message : "Setup failed");
+    } finally {
+      setSettingUp(false);
+    }
+  };
 
   const handleLogin = async (userId: string) => {
     setLoggingIn(userId);
@@ -86,11 +128,35 @@ export default function LoginPage() {
             Repan
           </h1>
           <p className="text-muted-foreground text-lg">Team Task Tracker</p>
-          <p className="text-muted-foreground text-sm mt-3">Choose your player</p>
+          <p className="text-muted-foreground text-sm mt-3">
+            {needsSetup ? "Welcome! Let's set up your admin account." : "Choose your player"}
+          </p>
         </div>
 
-        {/* User grid */}
-        {loading ? (
+        {/* First-time setup */}
+        {needsSetup && !loading ? (
+          <div className="max-w-sm mx-auto">
+            <form onSubmit={handleSetup} className="space-y-4 p-6 rounded-xl border bg-card">
+              <div className="space-y-1.5">
+                <Label htmlFor="admin-name">Your Name</Label>
+                <Input
+                  id="admin-name"
+                  value={setupName}
+                  onChange={(e) => setSetupName(e.target.value)}
+                  placeholder="Enter your name"
+                  autoFocus
+                />
+              </div>
+              {setupError && <p className="text-sm text-destructive">{setupError}</p>}
+              <p className="text-xs text-muted-foreground">
+                This creates your super admin account and a default team. You can add more users and teams from the Admin panel.
+              </p>
+              <Button type="submit" className="w-full" disabled={settingUp || !setupName.trim()}>
+                {settingUp ? "Setting up..." : "Create Admin Account"}
+              </Button>
+            </form>
+          </div>
+        ) : loading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {Array.from({ length: 6 }).map((_, i) => (
               <div
@@ -105,7 +171,7 @@ export default function LoginPage() {
           </div>
         ) : users.length === 0 ? (
           <div className="text-center text-muted-foreground py-12">
-            <p>No users found. Please seed the database.</p>
+            <p>No users found. Check your database connection.</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
