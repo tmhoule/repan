@@ -150,8 +150,8 @@ function TeamMemberSection({ user }: { user: UserSummary }) {
 
                 {/* Badges */}
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <StatusBadge status={task.status} />
-                  <PriorityBadge priority={task.priority} />
+                  <StatusBadge status={task.status as "not_started" | "in_progress" | "blocked" | "stalled" | "done"} />
+                  <PriorityBadge priority={task.priority as "high" | "medium" | "low"} />
                 </div>
               </div>
             );
