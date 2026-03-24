@@ -26,6 +26,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { UserForm } from "@/components/admin/user-form";
 import { BadgeForm } from "@/components/admin/badge-form";
+import { resolveIcon } from "@/lib/badge-icons";
 
 interface UserRow {
   id: string;
@@ -431,7 +432,7 @@ export default function AdminPage() {
                                 role="img"
                                 aria-hidden="true"
                               >
-                                {a.icon}
+                                {resolveIcon(a.icon)}
                               </span>
                               <span className="text-sm text-zinc-200 font-medium">
                                 {a.name}

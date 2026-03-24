@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { resolveIcon } from "@/lib/badge-icons";
 
 export interface Award {
   id: string;
@@ -19,33 +20,8 @@ interface BadgeGridProps {
   earnedDates: Record<string, string>;
 }
 
-const ICON_EMOJI_MAP: Record<string, string> = {
-  sword: "⚔️",
-  broom: "🧹",
-  key: "🔑",
-  fire: "🔥",
-  clock: "⏰",
-  shield: "🛡️",
-  "speech-bubble": "💬",
-  weight: "🏋️",
-  sunrise: "🌅",
-  handshake: "🤝",
-  crown: "👑",
-  star: "⭐",
-  "magnifying-glass": "🔍",
-  lightning: "⚡",
-  medal: "🏅",
-  trophy: "🏆",
-  rocket: "🚀",
-  gem: "💎",
-  heart: "❤️",
-  target: "🎯",
-};
-
 function BadgeIcon({ icon, earned }: { icon: string; earned: boolean }) {
-  // Map icon name to emoji, or use directly if already an emoji
-  const isEmoji = /\p{Extended_Pictographic}/u.test(icon);
-  const emoji = isEmoji ? icon : (ICON_EMOJI_MAP[icon] || "🏅");
+  const emoji = resolveIcon(icon);
 
   return (
     <span
