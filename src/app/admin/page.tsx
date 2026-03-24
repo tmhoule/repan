@@ -229,8 +229,13 @@ export default function AdminPage() {
     }
   };
 
+  // Fetch ALL users (across all teams) for the add-member dialog
+  const { data: allUsers } = useSWR<UserRow[]>(
+    managingTeam ? "/api/users?includeInactive=true&allTeams=true" : null
+  );
+
   // Users not in the team (for add member dialog)
-  const nonMembers = (users ?? []).filter(
+  const nonMembers = (allUsers ?? []).filter(
     (u) => u.isActive && !(teamMembers ?? []).some((m) => m.userId === u.id)
   );
 

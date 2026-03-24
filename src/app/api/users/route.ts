@@ -8,10 +8,12 @@ export async function GET(request: NextRequest) {
     // Managers can optionally include inactive users.
     const session = await getSession();
     const includeInactive = request.nextUrl.searchParams.get("includeInactive") === "true";
+    const allTeams = request.nextUrl.searchParams.get("allTeams") === "true";
     const teamId = await getActiveTeam();
 
+    // If allTeams is requested (for admin add-member), skip team filtering
     // If there's an active team and user is logged in, filter by team members
-    if (teamId && session) {
+    if (teamId && session && !allTeams) {
       const memberships = await prisma.teamMembership.findMany({
         where: { teamId },
         include: {
