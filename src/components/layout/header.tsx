@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Menu, X, LogOut, User, Users } from "lucide-react";
+import { Menu, X, LogOut, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -157,11 +157,6 @@ export function Header() {
                   <Users className="mr-2 h-4 w-4" />
                   Switch Team
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={async () => { await logout(); }}>
-                  <User className="mr-2 h-4 w-4" />
-                  Switch User
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={logout}
                   variant="destructive"
