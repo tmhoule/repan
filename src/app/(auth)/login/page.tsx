@@ -68,11 +68,11 @@ export default function LoginPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: setupName.trim() }),
       });
-      if (!res.ok) {
+      if (!res.ok && res.status !== 409) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error ?? "Setup failed");
       }
-      // Reload the page to show the new user
+      // Success or already exists — either way, reload to show users
       window.location.reload();
     } catch (err) {
       setSetupError(err instanceof Error ? err.message : "Setup failed");
