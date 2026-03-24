@@ -19,30 +19,41 @@ interface BadgeGridProps {
   earnedDates: Record<string, string>;
 }
 
+const ICON_EMOJI_MAP: Record<string, string> = {
+  sword: "⚔️",
+  broom: "🧹",
+  key: "🔑",
+  fire: "🔥",
+  clock: "⏰",
+  shield: "🛡️",
+  "speech-bubble": "💬",
+  weight: "🏋️",
+  sunrise: "🌅",
+  handshake: "🤝",
+  crown: "👑",
+  star: "⭐",
+  "magnifying-glass": "🔍",
+  lightning: "⚡",
+  medal: "🏅",
+  trophy: "🏆",
+  rocket: "🚀",
+  gem: "💎",
+  heart: "❤️",
+  target: "🎯",
+};
+
 function BadgeIcon({ icon, earned }: { icon: string; earned: boolean }) {
-  // Detect if icon is an emoji (starts with non-ascii or multi-char sequence)
+  // Map icon name to emoji, or use directly if already an emoji
   const isEmoji = /\p{Extended_Pictographic}/u.test(icon);
+  const emoji = isEmoji ? icon : (ICON_EMOJI_MAP[icon] || "🏅");
 
-  if (isEmoji) {
-    return (
-      <span
-        className={cn("text-3xl leading-none transition-all", !earned && "grayscale opacity-40")}
-        role="img"
-        aria-hidden="true"
-      >
-        {icon}
-      </span>
-    );
-  }
-
-  // Fallback to a star icon for unrecognized icon values
   return (
     <span
-      className={cn("text-3xl leading-none transition-all", !earned && "grayscale opacity-40")}
+      className={cn("text-4xl leading-none transition-all", !earned && "grayscale opacity-50")}
       role="img"
       aria-hidden="true"
     >
-      {icon || "🏅"}
+      {emoji}
     </span>
   );
 }
