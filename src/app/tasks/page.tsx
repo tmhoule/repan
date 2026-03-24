@@ -17,6 +17,7 @@ interface Task {
   title: string;
   status: TaskStatus;
   priority: TaskPriority;
+  effortEstimate: "small" | "medium" | "large";
   percentComplete: number;
   dueDate: string | null;
   blockerReason?: string | null;
