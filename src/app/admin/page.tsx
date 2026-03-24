@@ -628,10 +628,7 @@ export default function AdminPage() {
                         {(teams ?? []).map((t) => (
                           <TableRow key={t.id} className="border-zinc-800 hover:bg-zinc-800/40">
                             <TableCell className="pl-4">
-                              <div className="flex items-center gap-2">
-                                <Users className="size-4 text-zinc-400" />
-                                <span className="text-sm text-zinc-200 font-medium">{t.name}</span>
-                              </div>
+                              <EditableTeamName teamId={t.id} name={t.name} onSave={() => mutateTeams()} />
                             </TableCell>
                             <TableCell className="text-zinc-400 text-sm">
                               {t.memberCount}
@@ -757,6 +754,73 @@ export default function AdminPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function EditableTeamName({ teamId, name, onSave }: { teamId: string; name: string; onSave: () => void }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(name);
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!value.trim() || value.trim() === name) {
+      setEditing(false);
+      setValue(name);
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/teams/${teamId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: value.trim() }),
+      });
+      if (res.ok) {
+        onSave();
+        setEditing(false);
+      }
+    } catch {
+      setValue(name);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-2">
+        <Users className="size-4 text-muted-foreground shrink-0" />
+        <Input
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onBlur={handleSave}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleSave();
+            if (e.key === "Escape") { setEditing(false); setValue(name); }
+          }}
+          className="h-7 text-sm"
+          autoFocus
+          disabled={saving}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2 group">
+      <Users className="size-4 text-muted-foreground" />
+      <span
+        className="text-sm font-medium cursor-pointer hover:text-primary transition-colors"
+        onClick={() => setEditing(true)}
+        title="Click to rename"
+      >
+        {name}
+      </span>
+      <Pencil
+        className="size-3 text-muted-foreground/0 group-hover:text-muted-foreground/60 transition-all cursor-pointer"
+        onClick={() => setEditing(true)}
+      />
     </div>
   );
 }
