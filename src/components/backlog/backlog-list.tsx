@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import Link from "next/link";
 import {
   DndContext,
   closestCenter,
@@ -136,9 +137,12 @@ function SortableItem({ task, isManager, onClaim, claimingId, claimedId }: Sorta
 
       {/* Title */}
       <div className="flex-1 min-w-0">
-        <span className="text-sm font-medium leading-snug line-clamp-2">
+        <Link
+          href={`/tasks/${task.id}`}
+          className="text-sm font-medium leading-snug line-clamp-2 hover:text-primary hover:underline transition-colors"
+        >
           {task.title}
-        </span>
+        </Link>
         <p className="text-xs text-muted-foreground/60 mt-0.5">
           by {task.createdBy.name}
         </p>
