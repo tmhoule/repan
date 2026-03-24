@@ -33,9 +33,10 @@ export async function POST(request: NextRequest) {
     teams,
   });
 
+  const isSecure = process.env.NODE_ENV === "production" && !process.env.DISABLE_SECURE_COOKIES;
   response.cookies.set(SESSION_COOKIE, user.id, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: isSecure,
     sameSite: "lax",
     maxAge: SESSION_MAX_AGE,
     path: "/",
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
   if (teams.length === 1) {
     response.cookies.set(TEAM_COOKIE, teams[0].id, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: isSecure,
       sameSite: "lax",
       maxAge: SESSION_MAX_AGE,
       path: "/",

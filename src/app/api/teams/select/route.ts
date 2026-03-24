@@ -22,10 +22,11 @@ export async function POST(request: NextRequest) {
     const team = await prisma.team.findUnique({ where: { id: teamId } });
     if (!team) return NextResponse.json({ error: "Team not found" }, { status: 404 });
 
+    const isSecure = process.env.NODE_ENV === "production" && !process.env.DISABLE_SECURE_COOKIES;
     const response = NextResponse.json({ success: true, team: { id: team.id, name: team.name } });
     response.cookies.set(TEAM_COOKIE, teamId, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: isSecure,
       sameSite: "lax",
       maxAge: SESSION_MAX_AGE,
       path: "/",
