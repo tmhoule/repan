@@ -58,17 +58,17 @@ interface BacklogListProps {
 
 const effortConfig: Record<EffortEstimate, { label: string; className: string }> = {
   small: {
-    label: "S",
+    label: "Low Effort",
     className:
       "bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-950 dark:text-teal-400 dark:border-teal-800",
   },
   medium: {
-    label: "M",
+    label: "Medium Effort",
     className:
       "bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950 dark:text-violet-400 dark:border-violet-800",
   },
   large: {
-    label: "L",
+    label: "High Effort",
     className:
       "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950 dark:text-orange-400 dark:border-orange-800",
   },
