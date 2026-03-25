@@ -1,0 +1,22 @@
+# Production override for docker-compose
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#    Or: COMPOSE_FILE=docker-compose.yml:docker-compose.prod.yml docker compose up -d
+
+version: "3.8"
+services:
+  db:
+    ports:
+      # Bind to all interfaces in production (use firewall to restrict access)
+      - "5432:5432"
+    restart: unless-stopped
+
+  app:
+    ports:
+      # Bind to all interfaces so the app is accessible from other machines
+      - "3000:3000"
+    restart: unless-stopped
+    environment:
+      # Override with production values
+      DATABASE_URL: "postgresql://repan:repan_dev@db:5432/repan"
+      DISABLE_SECURE_COOKIES: "${DISABLE_SECURE_COOKIES:-false}"
+      NEXT_PUBLIC_APP_NAME: "${NEXT_PUBLIC_APP_NAME:-Repan}"

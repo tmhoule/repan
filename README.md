@@ -16,9 +16,15 @@ Built with Next.js, TypeScript, PostgreSQL, Tailwind CSS, and shadcn/ui.
 
 ## Prerequisites
 
+### For Development
 - [Node.js](https://nodejs.org/) 20+
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (for PostgreSQL)
 - npm
+
+### For Production
+- [Docker](https://docs.docker.com/engine/install/) and docker-compose
+- Git
+- **No Node.js or npm required on the host** - everything runs in containers
 
 ## Getting Started
 
@@ -106,22 +112,51 @@ src/
 | `docker compose up -d` | Start PostgreSQL |
 | `docker compose down` | Stop PostgreSQL |
 
-## Docker Production Deploy
+## Production Deployment
+
+### Simple Deployment (Recommended for servers without npm/node)
+
+The easiest way to deploy on a production server is using the provided bash script:
 
 ```bash
-docker compose up --build
+git clone https://github.com/tmhoule/repan.git
+cd repan
+./deploy.sh
 ```
 
-This builds the app and runs it alongside PostgreSQL. The app is available at port 3000.
+This script:
+- Pulls the latest code
+- Creates `.env` from `.env.example` if needed
+- Builds and starts Docker containers with production settings
+- Runs database migrations automatically
+- Makes the app accessible on port 3000 from any network interface
+- Works on any server with just Docker and Git
+
+**Requirements:** Docker, docker-compose (or `docker compose`), Git
+
+**Security Note:** The app will be accessible from other machines on port 3000. Use a firewall or reverse proxy (nginx/apache) to control access.
+
+### Manual Docker Deployment
+
+For local development (binds to localhost only):
+```bash
+docker compose up -d --build
+```
+
+For production (accessible from other machines):
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+```
 
 The Docker container automatically:
 1. Waits for the database to be ready
 2. Runs migrations using `node src/scripts/migrate.js` (no `npx` required)
 3. Starts the application
+4. Restarts automatically on failure (production mode)
 
-### Production Server Setup (without Docker)
+### Advanced: Production Server Without Docker
 
-If deploying to a production server without `npx`:
+If deploying to a production server without Docker (requires Node.js + npm):
 
 1. Set the `DATABASE_URL` environment variable
 2. Install dependencies: `npm ci --production`
