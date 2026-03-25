@@ -46,8 +46,6 @@ export async function requireManager() {
     });
     if (membership?.role === "manager") return user;
   }
-  // Fall back to global role
-  if (user.role === "manager") return user;
   throw new Error("Forbidden");
 }
 

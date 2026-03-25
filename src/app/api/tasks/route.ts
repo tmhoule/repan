@@ -12,7 +12,21 @@ export async function GET(request: NextRequest) {
     const status = searchParams.getAll("status");
     const priority = searchParams.get("priority");
     const search = searchParams.get("search");
-    const assignedTo = searchParams.get("assignedTo") || user.id;
+    const requestedAssignedTo = searchParams.get("assignedTo");
+
+    // Only managers and super admins may view tasks assigned to other users
+    let assignedTo = user.id;
+    if (requestedAssignedTo && requestedAssignedTo !== user.id) {
+      const membership = await prisma.teamMembership.findUnique({
+        where: { userId_teamId: { userId: user.id, teamId } },
+      });
+      const isManager = user.isSuperAdmin || membership?.role === "manager";
+      if (isManager) {
+        assignedTo = requestedAssignedTo;
+      }
+    } else if (requestedAssignedTo) {
+      assignedTo = requestedAssignedTo;
+    }
 
     const where: any = { archivedAt: null, assignedToId: assignedTo, teamId };
     if (status.length > 0) where.status = { in: status };

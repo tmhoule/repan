@@ -65,21 +65,27 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     // Move all open (non-done) assigned tasks back to backlog
     const openTasks = await prisma.task.findMany({
       where: { assignedToId: id, status: { not: "done" }, archivedAt: null },
-      select: { id: true },
+      select: { id: true, teamId: true },
     });
 
     if (openTasks.length > 0) {
-      // Find the max backlog position to append after
-      const maxPos = await prisma.task.aggregate({
-        where: { assignedToId: null, archivedAt: null },
-        _max: { backlogPosition: true },
-      });
-      let nextPos = (maxPos._max.backlogPosition ?? 0) + 1;
+      // Calculate the max backlog position per team to avoid cross-team position conflicts
+      const teamIds = [...new Set(openTasks.map((t) => t.teamId))];
+      const teamMaxPositions: Record<string, number> = {};
+
+      for (const tid of teamIds) {
+        const maxPos = await prisma.task.aggregate({
+          where: { assignedToId: null, archivedAt: null, teamId: tid },
+          _max: { backlogPosition: true },
+        });
+        teamMaxPositions[tid] = (maxPos._max.backlogPosition ?? 0) + 1;
+      }
 
       for (const task of openTasks) {
+        const nextPos = teamMaxPositions[task.teamId]++;
         await prisma.task.update({
           where: { id: task.id },
-          data: { assignedToId: null, backlogPosition: nextPos++ },
+          data: { assignedToId: null, backlogPosition: nextPos },
         });
       }
     }

@@ -8,6 +8,7 @@ import { awardAction, updateOnTimeStreak } from "@/lib/gamification";
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await requireSession();
+    const teamId = await requireTeam();
     const { id } = await params;
     const task = await prisma.task.findUnique({
       where: { id },
@@ -17,6 +18,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       },
     });
     if (!task) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (task.teamId !== teamId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     return NextResponse.json(task);
   } catch (error) {
     return handleApiError(error);
