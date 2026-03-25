@@ -118,7 +118,8 @@ export default function LoginPage() {
           >
             Repan
           </h1>
-          <p className="text-muted-foreground text-lg">Team Task Tracker</p>
+          <p className="text-muted-foreground text-lg">Resource Planning</p>
+          <p className="text-muted-foreground text-sm mt-1">Team Task Tracker</p>
           <p className="text-muted-foreground text-sm mt-3">{subtitle}</p>
         </div>
 
