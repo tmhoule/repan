@@ -59,13 +59,10 @@ if $DOCKER_COMPOSE ps | grep -q "Up"; then
     echo ""
     echo "Application is running at:"
     echo "  http://localhost:3000"
-    
-    # Try to get server IP
-    SERVER_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
-    if [ -n "$SERVER_IP" ]; then
-        echo "  http://${SERVER_IP}:3000"
-    fi
-    
+    echo ""
+    echo "Note: App binds to localhost only for security."
+    echo "Use SSH tunnel or reverse proxy for external access."
+    echo "See DEPLOYMENT.md for details."
     echo ""
     echo "To view logs:"
     echo "  $DOCKER_COMPOSE logs -f"

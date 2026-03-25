@@ -129,12 +129,12 @@ This script:
 - Creates `.env` from `.env.example` if needed
 - Builds and starts Docker containers with production settings
 - Runs database migrations automatically
-- Makes the app accessible on port 3000 from any network interface
+- Binds to localhost:3000 only (use reverse proxy for external access)
 - Works on any server with just Docker and Git
 
 **Requirements:** Docker, docker-compose (or `docker compose`), Git
 
-**Security Note:** The app will be accessible from other machines on port 3000. Use a firewall or reverse proxy (nginx/apache) to control access.
+**Access:** The app runs on `http://localhost:3000`. Use nginx or apache as a reverse proxy for external access.
 
 ### Manual Docker Deployment
 
@@ -143,7 +143,7 @@ For local development (binds to localhost only):
 docker compose up -d --build
 ```
 
-For production (accessible from other machines):
+For production (also binds to localhost only):
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 ```
@@ -153,6 +153,7 @@ The Docker container automatically:
 2. Runs migrations using `node src/scripts/migrate.js` (no `npx` required)
 3. Starts the application
 4. Restarts automatically on failure (production mode)
+5. Binds to localhost only for security
 
 ### Advanced: Production Server Without Docker
 

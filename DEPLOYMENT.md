@@ -41,7 +41,9 @@ That's it! The script will:
 - Run database migrations automatically
 - Start the application
 
-The app will be accessible at `http://your-server-ip:3000`
+The app will be accessible at `http://localhost:3000` on the server.
+
+**Important:** The app binds to localhost only for security. To make it accessible externally, set up a reverse proxy (nginx, apache, or SSH tunnel).
 
 ## Updating to Latest Version
 
@@ -102,6 +104,67 @@ After changing `.env`, restart containers:
 docker compose -f docker-compose.yml -f docker-compose.prod.yml restart
 ```
 
+## Accessing the App
+
+The app binds to `localhost:3000` only for security. Choose one of these options to access it:
+
+### Option 1: SSH Tunnel (Simple, Secure)
+
+From your local machine:
+```bash
+ssh -L 3000:localhost:3000 user@your-server
+```
+
+Then open `http://localhost:3000` in your local browser.
+
+### Option 2: Reverse Proxy with nginx (For permanent external access)
+
+Install nginx:
+```bash
+sudo yum install -y nginx
+sudo systemctl start nginx
+sudo systemctl enable nginx
+```
+
+Create nginx config:
+```bash
+sudo vi /etc/nginx/conf.d/repan.conf
+```
+
+Add this configuration:
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com;  # or your server IP
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+Test and reload nginx:
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+Open firewall for HTTP:
+```bash
+sudo firewall-cmd --permanent --add-service=http
+sudo firewall-cmd --reload
+```
+
+Now access at `http://your-server-ip` or `http://your-domain.com`
+
 ## Backup Database
 
 ```bash
@@ -113,18 +176,6 @@ docker exec repan-db-1 pg_dump -U repan repan > backup-$(date +%Y%m%d).sql
 ```bash
 docker exec -i repan-db-1 psql -U repan repan < backup-20260325.sql
 ```
-
-## Firewall Configuration
-
-If using firewalld (RHEL/CentOS):
-
-```bash
-# Allow port 3000
-sudo firewall-cmd --permanent --add-port=3000/tcp
-sudo firewall-cmd --reload
-```
-
-For production, consider using a reverse proxy (nginx/apache) on port 80/443.
 
 ## Troubleshooting
 

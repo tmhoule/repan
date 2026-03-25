@@ -6,14 +6,14 @@ version: "3.8"
 services:
   db:
     ports:
-      # Bind to all interfaces in production (use firewall to restrict access)
-      - "5432:5432"
+      # Keep database on localhost only for security
+      - "127.0.0.1:5432:5432"
     restart: unless-stopped
 
   app:
     ports:
-      # Bind to all interfaces so the app is accessible from other machines
-      - "3000:3000"
+      # Keep app on localhost only - use reverse proxy (nginx/apache) for external access
+      - "127.0.0.1:3000:3000"
     restart: unless-stopped
     environment:
       # Override with production values
