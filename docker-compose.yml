@@ -7,14 +7,14 @@ services:
       POSTGRES_PASSWORD: repan_dev
       POSTGRES_DB: repan
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
 
   app:
     build: .
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     environment:
       DATABASE_URL: "postgresql://repan:repan_dev@db:5432/repan"
       DISABLE_SECURE_COOKIES: "true"

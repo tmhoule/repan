@@ -29,34 +29,39 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [session, teamId] = await Promise.all([getSession(), getActiveTeam()]);
-
-  // Determine effective role: team membership role takes precedence over global role
-  let effectiveRole = session?.role ?? "staff";
+  let initialUser: { id: string; name: string; role: string; avatarColor: string; isSuperAdmin: boolean } | null = null;
   let initialTeam: { id: string; name: string } | null = null;
 
-  if (session && teamId) {
-    const [team, membership] = await Promise.all([
-      prisma.team.findUnique({ where: { id: teamId }, select: { id: true, name: true } }),
-      prisma.teamMembership.findUnique({
-        where: { userId_teamId: { userId: session.id, teamId } },
-        select: { role: true },
-      }),
-    ]);
-    initialTeam = team ?? null;
-    if (membership?.role === "manager") effectiveRole = "manager";
-    if (session.isSuperAdmin) effectiveRole = "manager";
-  }
+  try {
+    const [session, teamId] = await Promise.all([getSession(), getActiveTeam()]);
 
-  const initialUser = session
-    ? {
-        id: session.id,
-        name: session.name,
-        role: effectiveRole,
-        avatarColor: session.avatarColor,
-        isSuperAdmin: session.isSuperAdmin,
-      }
-    : null;
+    let effectiveRole = session?.role ?? "staff";
+
+    if (session && teamId) {
+      const [team, membership] = await Promise.all([
+        prisma.team.findUnique({ where: { id: teamId }, select: { id: true, name: true } }),
+        prisma.teamMembership.findUnique({
+          where: { userId_teamId: { userId: session.id, teamId } },
+          select: { role: true },
+        }),
+      ]);
+      initialTeam = team ?? null;
+      if (membership?.role === "manager") effectiveRole = "manager";
+      if (session.isSuperAdmin) effectiveRole = "manager";
+    }
+
+    initialUser = session
+      ? {
+          id: session.id,
+          name: session.name,
+          role: effectiveRole,
+          avatarColor: session.avatarColor,
+          isSuperAdmin: session.isSuperAdmin,
+        }
+      : null;
+  } catch {
+    // DB not available (e.g., during build) — continue with null session
+  }
 
   return (
     <html

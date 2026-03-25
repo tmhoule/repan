@@ -3,7 +3,13 @@ import { prisma } from "@/lib/db";
 
 // GET: Check if setup is needed AND return public team/user list for login
 export async function GET() {
-  const superAdmin = await prisma.user.findFirst({ where: { isSuperAdmin: true } });
+  let superAdmin;
+  try {
+    superAdmin = await prisma.user.findFirst({ where: { isSuperAdmin: true } });
+  } catch {
+    // DB not ready — treat as needs setup
+    return NextResponse.json({ needsSetup: true, teams: [] });
+  }
 
   if (!superAdmin) {
     return NextResponse.json({ needsSetup: true, teams: [] });
