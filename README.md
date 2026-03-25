@@ -54,7 +54,17 @@ This starts PostgreSQL on port 5432.
 ### 5. Run database migrations
 
 ```bash
-npx prisma migrate dev
+npm run migrate
+```
+
+This command:
+- Generates the Prisma Client
+- Runs database migrations to create all tables
+- Works without `npx` (production-friendly)
+
+Alternatively, if you have `npx` available, you can use:
+```bash
+npx prisma migrate deploy
 ```
 
 ### 6. Seed the database
@@ -90,6 +100,7 @@ src/
 | `npm run dev` | Start development server |
 | `npm run build` | Production build |
 | `npm test` | Run tests (60 unit tests) |
+| `npm run migrate` | Run database migrations (no npx required) |
 | `npx prisma studio` | Browse database in browser |
 | `npx prisma db seed` | Re-seed sample data |
 | `docker compose up -d` | Start PostgreSQL |
@@ -102,6 +113,26 @@ docker compose up --build
 ```
 
 This builds the app and runs it alongside PostgreSQL. The app is available at port 3000.
+
+The Docker container automatically:
+1. Waits for the database to be ready
+2. Runs migrations using `node src/scripts/migrate.js` (no `npx` required)
+3. Starts the application
+
+### Production Server Setup (without Docker)
+
+If deploying to a production server without `npx`:
+
+1. Set the `DATABASE_URL` environment variable
+2. Install dependencies: `npm ci --production`
+3. Run migrations: `npm run migrate` or `node src/scripts/migrate.js`
+4. Start the app: `npm start`
+
+The migration script automatically:
+- Loads environment variables from `.env` if present
+- Generates the Prisma Client
+- Applies all pending migrations
+- Works with just Node.js (no `npx` dependency)
 
 ## Tech Stack
 

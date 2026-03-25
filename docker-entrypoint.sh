@@ -19,9 +19,9 @@ for i in $(seq 1 30); do
   sleep 1
 done
 
-# Apply schema (creates tables if they don't exist)
-echo "Applying database schema..."
-npx prisma db push --schema=src/prisma/schema.prisma --accept-data-loss 2>/dev/null || echo "Schema push skipped (prisma config issue — tables may need manual setup)"
+# Apply migrations (creates tables if they don't exist)
+echo "Applying database migrations..."
+node src/scripts/migrate.js || echo "Migration skipped (may need manual setup)"
 
 echo "Starting Repan..."
 exec "$@"
