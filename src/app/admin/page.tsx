@@ -107,7 +107,7 @@ export default function AdminPage() {
     isLoading: usersLoading,
     mutate: mutateUsers,
   } = useSWR<UserRow[]>(
-    isManager ? "/api/users?includeInactive=true" : null
+    isManager ? "/api/users?includeInactive=true&allTeams=true" : null
   );
 
   const [userFormOpen, setUserFormOpen] = useState(false);
