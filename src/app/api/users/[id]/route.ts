@@ -9,7 +9,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const user = await prisma.user.findUnique({
       where: { id },
-      include: { userAwards: { include: { award: true }, orderBy: { earnedAt: "desc" } }, streaks: true },
+      include: {
+        userAwards: { include: { award: true }, orderBy: { earnedAt: "desc" } },
+        streaks: true,
+        teamMemberships: { include: { team: { select: { id: true, name: true } } } },
+      },
     });
     if (!user) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
