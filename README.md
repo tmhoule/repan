@@ -16,9 +16,15 @@ Built with Next.js, TypeScript, PostgreSQL, Tailwind CSS, and shadcn/ui.
 
 ## Prerequisites
 
+### For Development
 - [Node.js](https://nodejs.org/) 20+
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (for PostgreSQL)
 - npm
+
+### For Production
+- [Docker](https://docs.docker.com/engine/install/) and docker-compose
+- Git
+- **No Node.js or npm required on the host** - everything runs in containers
 
 ## Getting Started
 
@@ -54,7 +60,17 @@ This starts PostgreSQL on port 5432.
 ### 5. Run database migrations
 
 ```bash
-npx prisma migrate dev
+npm run migrate
+```
+
+This command:
+- Generates the Prisma Client
+- Runs database migrations to create all tables
+- Works without `npx` (production-friendly)
+
+Alternatively, if you have `npx` available, you can use:
+```bash
+npx prisma migrate deploy
 ```
 
 ### 6. Seed the database
@@ -90,18 +106,69 @@ src/
 | `npm run dev` | Start development server |
 | `npm run build` | Production build |
 | `npm test` | Run tests (60 unit tests) |
+| `npm run migrate` | Run database migrations (no npx required) |
 | `npx prisma studio` | Browse database in browser |
 | `npx prisma db seed` | Re-seed sample data |
 | `docker compose up -d` | Start PostgreSQL |
 | `docker compose down` | Stop PostgreSQL |
 
-## Docker Production Deploy
+## Production Deployment
+
+### Simple Deployment (Recommended for servers without npm/node)
+
+The easiest way to deploy on a production server is using the provided bash script:
 
 ```bash
-docker compose up --build
+git clone https://github.com/tmhoule/repan.git
+cd repan
+./deploy.sh
 ```
 
-This builds the app and runs it alongside PostgreSQL. The app is available at port 3000.
+This script:
+- Pulls the latest code
+- Creates `.env` from `.env.example` if needed
+- Builds and starts Docker containers with production settings
+- Runs database migrations automatically
+- Binds to localhost:3000 only (use reverse proxy for external access)
+- Works on any server with just Docker and Git
+
+**Requirements:** Docker, docker-compose (or `docker compose`), Git
+
+**Access:** The app runs on `http://localhost:3000`. Use nginx or apache as a reverse proxy for external access.
+
+### Manual Docker Deployment
+
+For local development (binds to localhost only):
+```bash
+docker compose up -d --build
+```
+
+For production (also binds to localhost only):
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+```
+
+The Docker container automatically:
+1. Waits for the database to be ready
+2. Runs migrations using `node src/scripts/migrate.js` (no `npx` required)
+3. Starts the application
+4. Restarts automatically on failure (production mode)
+5. Binds to localhost only for security
+
+### Advanced: Production Server Without Docker
+
+If deploying to a production server without Docker (requires Node.js + npm):
+
+1. Set the `DATABASE_URL` environment variable
+2. Install dependencies: `npm ci --production`
+3. Run migrations: `npm run migrate` or `node src/scripts/migrate.js`
+4. Start the app: `npm start`
+
+The migration script automatically:
+- Loads environment variables from `.env` if present
+- Generates the Prisma Client
+- Applies all pending migrations
+- Works with just Node.js (no `npx` dependency)
 
 ## Tech Stack
 

@@ -53,7 +53,11 @@ export async function POST(request: NextRequest) {
     data: { name: name.trim(), role: "manager", isSuperAdmin: true, avatarColor: "#8B5CF6" },
   });
 
-  const team = await prisma.team.create({ data: { name: "Default Team" } });
+  // Find or create default team
+  let team = await prisma.team.findFirst({ where: { name: "Default Team" } });
+  if (!team) {
+    team = await prisma.team.create({ data: { name: "Default Team" } });
+  }
 
   await prisma.teamMembership.create({
     data: { userId: user.id, teamId: team.id, role: "manager" },
