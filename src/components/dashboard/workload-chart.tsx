@@ -9,7 +9,6 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  LabelList,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -127,16 +126,34 @@ export function WorkloadChart({ data }: WorkloadChartProps) {
               />
               <Bar dataKey="High" stackId="a" fill="#dc2626" radius={[0, 0, 0, 0]} />
               <Bar dataKey="Medium" stackId="a" fill="#f59e0b" radius={[0, 0, 0, 0]} />
-              <Bar dataKey="Low" stackId="a" fill="#166534" radius={[2, 2, 0, 0]}>
-                <LabelList
-                  dataKey="boulderAllocation"
-                  position="right"
-                  formatter={(v: any) => v > 0 ? `${v}% boulder` : ""}
-                  style={{ fontSize: 10, fill: "#8B5CF6", fontWeight: 500 }}
-                />
-              </Bar>
+              <Bar dataKey="Low" stackId="a" fill="#166534" radius={[2, 2, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
+        )}
+
+        {/* Boulder utilization */}
+        {data.some((d) => (d.boulderAllocation ?? 0) > 0) && (
+          <div className="mt-4 pt-3 border-t border-border">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              🪨 Boulder Utilization
+            </p>
+            <div className="space-y-2">
+              {data.filter((d) => (d.boulderAllocation ?? 0) > 0).map((d) => (
+                <div key={d.user.id} className="flex items-center gap-3">
+                  <span className="text-xs text-muted-foreground w-16 truncate">{d.user.name.split(" ")[0]}</span>
+                  <div className="flex-1 h-3 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-purple-500"
+                      style={{ width: `${d.boulderAllocation}%` }}
+                    />
+                  </div>
+                  <span className="text-xs font-semibold text-purple-400 tabular-nums w-10 text-right">
+                    {d.boulderAllocation}%
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
       </CardContent>
     </Card>
