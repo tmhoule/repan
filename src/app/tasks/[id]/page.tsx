@@ -205,15 +205,17 @@ export default function TaskDetailPage({
           />
         </div>
 
-        {/* Progress bar */}
-        <div className="max-w-sm">
-          <ProgressSlider
-            taskId={task.id}
-            initialValue={task.percentComplete}
-            onUpdate={() => mutate()}
-            disabled={!canEdit}
-          />
-        </div>
+        {/* Progress bar — hidden for boulders (ongoing operational tasks) */}
+        {task.status !== "boulder" && (
+          <div className="max-w-sm">
+            <ProgressSlider
+              taskId={task.id}
+              initialValue={task.percentComplete}
+              onUpdate={() => mutate()}
+              disabled={!canEdit}
+            />
+          </div>
+        )}
       </div>
 
       <Separator />

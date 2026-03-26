@@ -9,6 +9,7 @@ import { AtRiskList } from "@/components/dashboard/at-risk-list";
 import { BacklogHealth } from "@/components/dashboard/backlog-health";
 import { ThroughputChart } from "@/components/dashboard/throughput-chart";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
+import { KeyProjects } from "@/components/dashboard/key-projects";
 
 type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "done";
 type TaskPriority = "high" | "medium" | "low";
@@ -36,6 +37,16 @@ interface DashboardData {
     estimatedWeeks: number | null;
     trend: "growing" | "shrinking" | "stable";
   };
+  keyProjects: Array<{
+    id: string;
+    title: string;
+    status: string;
+    percentComplete: number;
+    dueDate?: string | null;
+    assignedTo?: { id: string; name: string } | null;
+    tracking: "on_track" | "behind" | "at_risk" | "blocked";
+    riskFlags?: Array<{ riskType: string; label: string }>;
+  }>;
   weeklyThroughput: Array<{ week: string; points: number }>;
   recentActivity: Array<{
     id: string;
@@ -104,6 +115,15 @@ export default function DashboardPage() {
               <BacklogHealth data={data.backlogHealth} />
             )}
           </div>
+        </div>
+
+        {/* Key Projects row */}
+        <div>
+          {isLoading || !data ? (
+            <SkeletonCard className="h-48" />
+          ) : (
+            <KeyProjects projects={data.keyProjects} />
+          )}
         </div>
 
         {/* Middle row: At-Risk (left) + Throughput (right) */}

@@ -92,7 +92,31 @@ export async function GET() {
     weeklyData.push({ week: weekStart.toISOString().split("T")[0], points: pts });
   }
 
-  return NextResponse.json({ workload, atRisk, backlogHealth: health, weeklyThroughput: weeklyData, recentActivity });
+  // Key projects: high-priority tasks with their tracking status
+  const keyProjects = tasks
+    .filter((t) => t.priority === "high" && t.status !== "boulder")
+    .map((t) => {
+      const flags = getRiskFlags(t, lastActivityMap.get(t.id), now);
+      const riskTypes = new Set(flags.map((f) => f.riskType));
+
+      let tracking: "on_track" | "behind" | "at_risk" | "blocked" = "on_track";
+      if (riskTypes.has("blocked")) tracking = "blocked";
+      else if (riskTypes.has("behind_schedule") || riskTypes.has("overdue")) tracking = "behind";
+      else if (riskTypes.has("stale") || riskTypes.has("stalled")) tracking = "at_risk";
+
+      return {
+        id: t.id,
+        title: t.title,
+        status: t.status,
+        percentComplete: t.percentComplete,
+        dueDate: t.dueDate,
+        assignedTo: t.assignedTo,
+        tracking,
+        riskFlags: flags,
+      };
+    });
+
+  return NextResponse.json({ workload, atRisk, keyProjects, backlogHealth: health, weeklyThroughput: weeklyData, recentActivity });
   } catch (error) {
     return handleApiError(error);
   }
