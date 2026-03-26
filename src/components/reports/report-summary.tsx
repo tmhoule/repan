@@ -17,6 +17,8 @@ interface ReportSummaryData {
   backlogSize: number;
   backlogDelta: number;
   missedDeadlines: number;
+  activeBoulderCount?: number;
+  totalBoulderAllocation?: number;
   period: string;
 }
 
@@ -61,14 +63,14 @@ function BacklogDeltaIcon({ delta }: { delta: number }) {
 }
 
 export function ReportSummary({ data }: { data: ReportSummaryData }) {
-  const { tasksCompleted, tasksCreated, backlogSize, backlogDelta, missedDeadlines } = data;
+  const { tasksCompleted, tasksCreated, backlogSize, backlogDelta, missedDeadlines, activeBoulderCount, totalBoulderAllocation } = data;
 
   const deltaSign = backlogDelta > 0 ? "+" : "";
   const deltaHighlight: "positive" | "negative" | "neutral" =
     backlogDelta < 0 ? "positive" : backlogDelta > 0 ? "negative" : "neutral";
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 print:grid-cols-5 print:gap-3">
+    <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 print:grid-cols-3 print:gap-3">
       <StatCard
         title="Completed"
         value={tasksCompleted}
@@ -102,6 +104,14 @@ export function ReportSummary({ data }: { data: ReportSummaryData }) {
         sub="completed after due date"
         highlight={missedDeadlines > 0 ? "negative" : "positive"}
       />
+      {(activeBoulderCount ?? 0) > 0 && (
+        <StatCard
+          title="Boulders"
+          value={`${activeBoulderCount} active`}
+          icon={<span className="text-sm">🪨</span>}
+          sub={`${totalBoulderAllocation}% total time allocated`}
+        />
+      )}
     </div>
   );
 }

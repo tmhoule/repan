@@ -25,7 +25,15 @@ export async function GET(request: NextRequest) {
   const missedDeadlines = completed.filter(t => t.dueDate && t.completedAt && t.completedAt > t.dueDate).length;
   const previousBacklogCount = await prisma.task.count({ where: { assignedToId: null, archivedAt: null, teamId, createdAt: { lte: since } } });
 
-  const summary = { tasksCompleted: completed.length, tasksCreated: created, backlogSize: backlogCount, backlogDelta: backlogCount - previousBacklogCount, missedDeadlines, period };
+  // Boulder utilization
+  const boulders = await prisma.task.findMany({
+    where: { status: "boulder", archivedAt: null, teamId, assignedToId: { not: null } },
+    select: { assignedToId: true, timeAllocation: true },
+  });
+  const totalBoulderAllocation = boulders.reduce((sum, b) => sum + (b.timeAllocation ?? 0), 0);
+  const activeBoulderCount = boulders.length;
+
+  const summary = { tasksCompleted: completed.length, tasksCreated: created, backlogSize: backlogCount, backlogDelta: backlogCount - previousBacklogCount, missedDeadlines, activeBoulderCount, totalBoulderAllocation, period };
 
   // Build weekly throughput series (last 8 weeks)
   const weeklyThroughput: { week: string; points: number }[] = [];
@@ -55,7 +63,9 @@ export async function GET(request: NextRequest) {
         prisma.task.count({ where: { assignedToId: u.id, status: "done", completedAt: { gte: since }, teamId } }),
         prisma.pointsLedger.aggregate({ where: { userId: u.id, timestamp: { gte: since } }, _sum: { points: true } }),
       ]);
-      return { user: u, tasksCompleted: tasksDone, pointsEarned: points._sum.points || 0 };
+      const userBoulders = boulders.filter((b) => b.assignedToId === u.id);
+      const boulderAllocation = userBoulders.reduce((sum, b) => sum + (b.timeAllocation ?? 0), 0);
+      return { user: u, tasksCompleted: tasksDone, pointsEarned: points._sum.points || 0, boulderAllocation };
     }));
   }
 
