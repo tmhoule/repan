@@ -77,7 +77,7 @@ export function WorkloadChart({ data }: WorkloadChartProps) {
     <Card className="bg-card border-border h-full">
       <CardHeader>
         <CardTitle className="text-sm font-semibold text-foreground tracking-wide uppercase">
-          Team Workload
+          Task Workload
         </CardTitle>
       </CardHeader>
       <CardContent className="pb-2">
