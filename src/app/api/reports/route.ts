@@ -31,7 +31,10 @@ export async function GET(request: NextRequest) {
     where: { status: "boulder", archivedAt: null, teamId, assignedToId: { not: null } },
     select: { assignedToId: true, timeAllocation: true },
   });
-  const totalBoulderAllocation = boulders.reduce((sum, b) => sum + (b.timeAllocation ?? 0), 0);
+  const teamMemberCount = await prisma.teamMembership.count({ where: { teamId } });
+  const totalBoulderAllocation = teamMemberCount > 0
+    ? Math.round(boulders.reduce((sum, b) => sum + (b.timeAllocation ?? 0), 0) / teamMemberCount)
+    : 0;
   const activeBoulderCount = boulders.length;
 
   // Risk detection: stale + behind schedule counts
