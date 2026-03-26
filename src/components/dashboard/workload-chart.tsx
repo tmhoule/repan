@@ -67,9 +67,9 @@ const CustomTooltip = ({
 export function WorkloadChart({ data }: WorkloadChartProps) {
   const chartData = data.map((d) => ({
     name: d.user.name.split(" ")[0],
-    High: d.byPriority.high,
-    Medium: d.byPriority.medium,
-    Low: d.byPriority.low,
+    High: d.byPriority.high * 2.5,
+    Medium: d.byPriority.medium * 1.5,
+    Low: d.byPriority.low * 0.5,
     boulderAllocation: d.boulderAllocation ?? 0,
   }));
 
@@ -100,9 +100,8 @@ export function WorkloadChart({ data }: WorkloadChartProps) {
               />
               <XAxis
                 type="number"
-                allowDecimals={false}
-                tick={{ fontSize: 11, fill: "#71717a" }}
-                axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
+                tick={false}
+                axisLine={false}
                 tickLine={false}
               />
               <YAxis
