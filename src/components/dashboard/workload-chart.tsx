@@ -17,7 +17,6 @@ interface WorkloadUser {
   taskCount: number;
   byPriority: { high: number; medium: number; low: number };
   boulderAllocation?: number;
-  boulderCount?: number;
 }
 
 interface WorkloadChartProps {
@@ -34,28 +33,33 @@ const CustomTooltip = ({
   label?: string;
 }) => {
   if (!active || !payload?.length) return null;
-  const total = payload.reduce((sum, p) => sum + p.value, 0);
+  const taskEntries = payload.filter((p) => p.dataKey !== "boulderAllocation");
+  const boulderEntry = payload.find((p) => p.dataKey === "boulderAllocation");
+  const total = taskEntries.reduce((sum, p) => sum + p.value, 0);
   return (
     <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-md text-xs">
       <p className="font-semibold mb-1.5">{label}</p>
-      {payload.map((p) => (
+      {taskEntries.map((p) => (
         <div key={p.name} className="flex items-center gap-2 mb-0.5">
           <span
             className="inline-block h-2 w-2 rounded-sm"
             style={{ backgroundColor: p.color }}
           />
-          <span className="text-muted-foreground">{p.name}:</span>
-          <span className="font-medium">
-            {p.dataKey === "Boulders" && p.value > 0
-              ? `${p.value} (${payload.find((x) => x.dataKey === "__boulderPct")?.value ?? 0}% time)`
-              : p.value}
-          </span>
+          <span className="text-muted-foreground capitalize">{p.name}:</span>
+          <span className="font-medium">{p.value}</span>
         </div>
       ))}
       <div className="border-t border-border mt-1.5 pt-1 flex justify-between gap-4">
-        <span className="text-muted-foreground">Total items</span>
-        <span className="font-semibold">{total - (payload.find((x) => x.dataKey === "__boulderPct")?.value ?? 0)}</span>
+        <span className="text-muted-foreground">Total tasks</span>
+        <span className="font-semibold">{total}</span>
       </div>
+      {boulderEntry && boulderEntry.value > 0 && (
+        <div className="border-t border-border mt-1 pt-1 flex items-center gap-2">
+          <span className="inline-block h-2 w-2 rounded-sm" style={{ backgroundColor: "#8B5CF6" }} />
+          <span className="text-muted-foreground">Boulder time:</span>
+          <span className="font-semibold text-purple-500">{boulderEntry.value}%</span>
+        </div>
+      )}
     </div>
   );
 };
@@ -66,11 +70,8 @@ export function WorkloadChart({ data }: WorkloadChartProps) {
     High: d.byPriority.high,
     Medium: d.byPriority.medium,
     Low: d.byPriority.low,
-    Boulders: d.boulderCount ?? 0,
-    __boulderPct: d.boulderAllocation ?? 0,
+    boulderAllocation: d.boulderAllocation ?? 0,
   }));
-
-  const hasBoulders = data.some((d) => (d.boulderCount ?? 0) > 0);
 
   return (
     <Card className="bg-card border-border h-full">
@@ -121,15 +122,38 @@ export function WorkloadChart({ data }: WorkloadChartProps) {
                   { value: "High", type: "square", color: "#dc2626" },
                   { value: "Medium", type: "square", color: "#f59e0b" },
                   { value: "Low", type: "square", color: "#166534" },
-                  ...(hasBoulders ? [{ value: "Boulders", type: "square", color: "#8B5CF6" }] : []),
                 ] } as any}
               />
               <Bar dataKey="High" stackId="a" fill="#dc2626" radius={[0, 0, 0, 0]} />
               <Bar dataKey="Medium" stackId="a" fill="#f59e0b" radius={[0, 0, 0, 0]} />
-              <Bar dataKey="Low" stackId="a" fill="#166534" radius={[0, 0, 0, 0]} />
-              <Bar dataKey="Boulders" stackId="a" fill="#8B5CF6" radius={[2, 2, 0, 0]} />
+              <Bar dataKey="Low" stackId="a" fill="#166534" radius={[2, 2, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
+        )}
+
+        {/* Boulder utilization */}
+        {data.some((d) => (d.boulderAllocation ?? 0) > 0) && (
+          <div className="mt-4 pt-3 border-t border-border">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              🪨 Boulder Utilization
+            </p>
+            <div className="space-y-2">
+              {data.filter((d) => (d.boulderAllocation ?? 0) > 0).map((d) => (
+                <div key={d.user.id} className="flex items-center gap-3">
+                  <span className="text-xs text-muted-foreground w-16 truncate">{d.user.name.split(" ")[0]}</span>
+                  <div className="flex-1 h-3 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-purple-500"
+                      style={{ width: `${d.boulderAllocation}%` }}
+                    />
+                  </div>
+                  <span className="text-xs font-semibold text-purple-400 tabular-nums w-10 text-right">
+                    {d.boulderAllocation}%
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
       </CardContent>
     </Card>
