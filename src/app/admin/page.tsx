@@ -147,6 +147,9 @@ export default function AdminPage() {
     managingTeam ? `/api/teams/${managingTeam.id}/members` : null
   );
 
+  const [deleteTeamId, setDeleteTeamId] = useState<string | null>(null);
+  const [deletingTeam, setDeletingTeam] = useState(false);
+
   const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [addMemberUserId, setAddMemberUserId] = useState("");
   const [addMemberRole, setAddMemberRole] = useState<"manager" | "member">("member");
@@ -197,6 +200,23 @@ export default function AdminPage() {
       mutateTeams();
     } finally {
       setCreatingTeam(false);
+    }
+  };
+
+  const handleDeleteTeam = async () => {
+    if (!deleteTeamId) return;
+    setDeletingTeam(true);
+    try {
+      const res = await fetch(`/api/teams/${deleteTeamId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        alert(data?.error ?? "Failed to delete team. It may still have tasks assigned to it.");
+        return;
+      }
+      setDeleteTeamId(null);
+      mutateTeams();
+    } finally {
+      setDeletingTeam(false);
     }
   };
 
@@ -645,14 +665,26 @@ export default function AdminPage() {
                               {formatDate(t.createdAt)}
                             </TableCell>
                             <TableCell className="text-right pr-4">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setManagingTeam(t)}
-                                className="text-xs"
-                              >
-                                Manage
-                              </Button>
+                              <div className="flex items-center justify-end gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setManagingTeam(t)}
+                                  className="text-xs"
+                                >
+                                  Manage
+                                </Button>
+                                {isSuperAdmin && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="size-8 text-red-400 hover:text-red-300 hover:bg-red-950/30"
+                                    onClick={() => setDeleteTeamId(t.id)}
+                                  >
+                                    <Trash2 className="size-3.5" />
+                                  </Button>
+                                )}
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -718,6 +750,24 @@ export default function AdminPage() {
             <Button variant="ghost" onClick={() => setCreateTeamOpen(false)}>Cancel</Button>
             <Button onClick={handleCreateTeam} disabled={creatingTeam || !newTeamName.trim()}>
               {creatingTeam ? "Creating..." : "Create"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete team confirmation dialog */}
+      <Dialog open={!!deleteTeamId} onOpenChange={(open) => { if (!open) setDeleteTeamId(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Team</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground py-2">
+            Are you sure you want to delete this team? This will remove all memberships. Tasks assigned to this team may become inaccessible.
+          </p>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDeleteTeamId(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteTeam} disabled={deletingTeam}>
+              {deletingTeam ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>

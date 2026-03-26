@@ -56,6 +56,18 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     if (!user.isSuperAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const { id } = await params;
+
+    // Check for tasks still assigned to this team
+    const taskCount = await prisma.task.count({ where: { teamId: id } });
+    if (taskCount > 0) {
+      return NextResponse.json(
+        { error: `Cannot delete team — it still has ${taskCount} task${taskCount !== 1 ? "s" : ""}. Reassign or archive them first.` },
+        { status: 409 },
+      );
+    }
+
+    // Remove memberships first, then delete the team
+    await prisma.teamMembership.deleteMany({ where: { teamId: id } });
     await prisma.team.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error) {
