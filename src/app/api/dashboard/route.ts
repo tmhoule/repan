@@ -39,8 +39,9 @@ export async function GET() {
   ]);
 
   const workload = teamUsers.map((u) => ({
-    user: u, taskCount: tasks.filter((t) => t.assignedTo?.id === u.id).length,
-    byPriority: { high: tasks.filter(t => t.assignedTo?.id === u.id && t.priority === "high").length, medium: tasks.filter(t => t.assignedTo?.id === u.id && t.priority === "medium").length, low: tasks.filter(t => t.assignedTo?.id === u.id && t.priority === "low").length },
+    user: u, taskCount: tasks.filter((t) => t.assignedTo?.id === u.id && t.status !== "boulder").length,
+    byPriority: { high: tasks.filter(t => t.assignedTo?.id === u.id && t.status !== "boulder" && t.priority === "high").length, medium: tasks.filter(t => t.assignedTo?.id === u.id && t.status !== "boulder" && t.priority === "medium").length, low: tasks.filter(t => t.assignedTo?.id === u.id && t.status !== "boulder" && t.priority === "low").length },
+    boulderAllocation: tasks.filter(t => t.assignedTo?.id === u.id && t.status === "boulder").reduce((sum, t) => sum + (t.timeAllocation ?? 0), 0),
   }));
 
   const atRisk = tasks.filter((t) => t.status === "blocked" || t.status === "stalled" || (t.dueDate && t.dueDate < now));

@@ -78,6 +78,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       updateData.assignedToId = body.assignedToId;
       updateData.backlogPosition = body.assignedToId ? null : task.backlogPosition;
     }
+    if (body.timeAllocation !== undefined) updateData.timeAllocation = body.timeAllocation;
     if (body.status === "done") {
       updateData.completedAt = new Date();
       updateData.percentComplete = 100;

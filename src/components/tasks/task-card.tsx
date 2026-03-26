@@ -26,7 +26,7 @@ import { CelebrationBurst, useCelebration } from "@/components/gamification/cele
 import { PointsPopup } from "@/components/gamification/points-popup";
 import { cn } from "@/lib/utils";
 
-type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "done";
+type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "done" | "boulder";
 type TaskPriority = "high" | "medium" | "low";
 
 interface Task {
@@ -36,6 +36,7 @@ interface Task {
   priority: TaskPriority;
   effortEstimate: "small" | "medium" | "large";
   percentComplete: number;
+  timeAllocation: number;
   dueDate: string | null;
   blockerReason?: string | null;
   createdBy: { id: string; name: string; avatarColor: string };
@@ -50,6 +51,7 @@ const STATUS_BORDER_COLORS: Record<TaskStatus, string> = {
   blocked: "#EF4444",
   stalled: "#F97316",
   done: "#10B981",
+  boulder: "#8B5CF6",
 };
 
 interface TaskCardProps {
@@ -92,6 +94,8 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
   const [showPointsPopup, setShowPointsPopup] = useState(false);
   const [currentTask, setCurrentTask] = useState(task);
   const [liveProgress, setLiveProgress] = useState(task.percentComplete);
+  const [liveAllocation, setLiveAllocation] = useState(task.timeAllocation ?? 0);
+  const isBoulder = currentTask.status === "boulder";
   const { celebrationRef, triggerCelebration } = useCelebration();
 
   const patchTask = useCallback(
@@ -142,7 +146,7 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
   const dueDateInfo = formatDueDate(currentTask.dueDate);
   const isDone = currentTask.status === "done";
 
-  const statusBorderColor = STATUS_BORDER_COLORS[currentTask.status];
+  const statusBorderColor = STATUS_BORDER_COLORS[currentTask.status] ?? "#8B90A0";
 
   return (
     <Card
@@ -203,29 +207,59 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
         )}
 
         {/* Interactive progress slider (doubles as the progress bar) */}
-        <div className="space-y-1">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>Progress</span>
-            <span className="tabular-nums">{liveProgress}%</span>
-          </div>
-          {isDone ? (
-            <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-              <div className="h-full rounded-full bg-green-500 w-full" />
+        {isBoulder ? (
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Time Allocation</span>
+              <span className="tabular-nums text-purple-600 dark:text-purple-400">{liveAllocation}% of time</span>
             </div>
-          ) : (
-            <ProgressSlider
-              taskId={currentTask.id}
-              initialValue={currentTask.percentComplete}
-              onChange={(v) => setLiveProgress(v)}
-              onUpdate={(v) => {
-                setLiveProgress(v);
-                setCurrentTask((t) => ({ ...t, percentComplete: v }));
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={5}
+              value={liveAllocation}
+              onChange={(e) => setLiveAllocation(Number(e.target.value))}
+              onMouseUp={async (e) => {
+                const v = Number((e.target as HTMLInputElement).value);
+                try {
+                  await patchTask({ timeAllocation: v } as any);
+                } catch { /* ignore */ }
               }}
-              className="!gap-0"
-              compact
+              onTouchEnd={async (e) => {
+                const v = Number((e.target as HTMLInputElement).value);
+                try {
+                  await patchTask({ timeAllocation: v } as any);
+                } catch { /* ignore */ }
+              }}
+              className="w-full h-2 rounded-full appearance-none cursor-pointer accent-purple-500"
             />
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Progress</span>
+              <span className="tabular-nums">{liveProgress}%</span>
+            </div>
+            {isDone ? (
+              <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                <div className="h-full rounded-full bg-green-500 w-full" />
+              </div>
+            ) : (
+              <ProgressSlider
+                taskId={currentTask.id}
+                initialValue={currentTask.percentComplete}
+                onChange={(v) => setLiveProgress(v)}
+                onUpdate={(v) => {
+                  setLiveProgress(v);
+                  setCurrentTask((t) => ({ ...t, percentComplete: v }));
+                }}
+                className="!gap-0"
+                compact
+              />
+            )}
+          </div>
+        )}
 
         {/* Blocker reason */}
         {currentTask.status === "blocked" && currentTask.blockerReason && (
@@ -239,51 +273,64 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
         {!isDone && (
           <div className="space-y-2 pt-1">
             <div className="flex items-center gap-2">
-              {/* Flag (left) */}
-              <DropdownMenu>
-                <DropdownMenuTrigger className="inline-flex h-7 items-center gap-1 rounded-lg border border-input bg-transparent px-2 text-xs hover:bg-muted transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
-                  Flag
-                  <ChevronDown className="size-3" />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" side="bottom">
-                  <DropdownMenuItem
-                    onClick={() => handleStatusChange("blocked")}
-                    className="text-red-600 dark:text-red-400"
-                  >
-                    Mark Blocked
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => handleStatusChange("stalled")}
-                    className="text-orange-600 dark:text-orange-400"
-                  >
-                    Mark Stalled
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => handleStatusChange("in_progress")}
-                  >
-                    Mark In Progress
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => handleStatusChange("not_started")}
-                  >
-                    Reset to Not Started
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {/* Flag (left) — hidden for boulders */}
+              {!isBoulder && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger className="inline-flex h-7 items-center gap-1 rounded-lg border border-input bg-transparent px-2 text-xs hover:bg-muted transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
+                    Flag
+                    <ChevronDown className="size-3" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" side="bottom">
+                    <DropdownMenuItem
+                      onClick={() => handleStatusChange("blocked")}
+                      className="text-red-600 dark:text-red-400"
+                    >
+                      Mark Blocked
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleStatusChange("stalled")}
+                      className="text-orange-600 dark:text-orange-400"
+                    >
+                      Mark Stalled
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleStatusChange("in_progress")}
+                    >
+                      Mark In Progress
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleStatusChange("not_started")}
+                    >
+                      Reset to Not Started
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
 
               {/* Inline comment (middle, expands) */}
               <InlineComment taskId={currentTask.id} onSubmit={onUpdate} />
 
-              {/* Done (right) */}
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 gap-1.5 text-xs shrink-0 text-green-700 border-green-200 hover:bg-green-50 hover:border-green-300 dark:text-green-400 dark:border-green-800 dark:hover:bg-green-950"
-                onClick={handleMarkDone}
-              >
-                <CheckCircle className="size-3.5" />
-                Done
-              </Button>
+              {/* Done (right) — boulders show "Close" instead */}
+              {isBoulder ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 gap-1.5 text-xs shrink-0 text-purple-700 border-purple-200 hover:bg-purple-50 hover:border-purple-300 dark:text-purple-400 dark:border-purple-800 dark:hover:bg-purple-950"
+                  onClick={handleMarkDone}
+                >
+                  Close
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 gap-1.5 text-xs shrink-0 text-green-700 border-green-200 hover:bg-green-50 hover:border-green-300 dark:text-green-400 dark:border-green-800 dark:hover:bg-green-950"
+                  onClick={handleMarkDone}
+                >
+                  <CheckCircle className="size-3.5" />
+                  Done
+                </Button>
+              )}
             </div>
           </div>
         )}

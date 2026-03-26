@@ -61,8 +61,10 @@ function TeamMemberSection({ user }: { user: UserSummary }) {
   const { data: tasksData } = useSWR<{ tasks: Task[] }>(`/api/tasks?assignedTo=${user.id}`);
 
   const tasks = tasksData?.tasks ?? [];
-  const activeTasks = tasks.filter((t) => t.status !== "done");
+  const boulderTasks = tasks.filter((t) => t.status === "boulder");
+  const activeTasks = tasks.filter((t) => t.status !== "done" && t.status !== "boulder");
   const doneTasks = tasks.filter((t) => t.status === "done");
+  const totalBoulderAllocation = boulderTasks.reduce((sum, t) => sum + ((t as any).timeAllocation ?? 0), 0);
   const streaks = detail?.streaks ?? [];
   const dailyStreak = streaks.find((s) => s.streakType === "daily_checkin");
   const totalPoints = detail?.totalPoints ?? 0;
@@ -95,8 +97,13 @@ function TeamMemberSection({ user }: { user: UserSummary }) {
               {user.role}
             </Badge>
           </div>
-          <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
+          <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground flex-wrap">
             <span>{activeTasks.length} active task{activeTasks.length !== 1 ? "s" : ""}</span>
+            {totalBoulderAllocation > 0 && (
+              <span className="text-purple-600 dark:text-purple-400">
+                🪨 {totalBoulderAllocation}% allocated
+              </span>
+            )}
             {totalPoints > 0 && <span>★ {totalPoints} pts</span>}
           </div>
         </div>
@@ -150,7 +157,7 @@ function TeamMemberSection({ user }: { user: UserSummary }) {
 
                 {/* Badges */}
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <StatusBadge status={task.status as "not_started" | "in_progress" | "blocked" | "stalled" | "done"} />
+                  <StatusBadge status={task.status as "not_started" | "in_progress" | "blocked" | "stalled" | "done" | "boulder"} />
                   <PriorityBadge priority={task.priority as "high" | "medium" | "low"} />
                 </div>
               </div>
@@ -165,6 +172,53 @@ function TeamMemberSection({ user }: { user: UserSummary }) {
       ) : (
         <div className="ml-6 border-l-2 border-border pl-4 py-2">
           <p className="text-xs text-muted-foreground/50 italic">No active tasks</p>
+        </div>
+      )}
+
+      {/* Boulder tasks */}
+      {boulderTasks.length > 0 && (
+        <div className="ml-6 border-l-2 border-purple-300 dark:border-purple-700 pl-4 space-y-1.5 mt-1.5">
+          <p className="text-[11px] font-medium text-purple-600 dark:text-purple-400 pb-0.5">Boulders</p>
+          {boulderTasks.map((task) => (
+            <div
+              key={task.id}
+              className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-purple-50/50 dark:hover:bg-purple-950/20 transition-colors"
+            >
+              {/* Time allocation circle */}
+              <div className="relative size-8 shrink-0">
+                <svg className="size-8 -rotate-90" viewBox="0 0 32 32">
+                  <circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted/50" />
+                  <circle
+                    cx="16" cy="16" r="13" fill="none" strokeWidth="2"
+                    stroke="#8B5CF6"
+                    strokeDasharray={`${((task as any).timeAllocation ?? 0) / 100 * 81.68} 81.68`}
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold tabular-nums text-purple-600 dark:text-purple-400">
+                  {(task as any).timeAllocation ?? 0}
+                </span>
+              </div>
+
+              {/* Title */}
+              <div className="flex-1 min-w-0">
+                <Link
+                  href={`/tasks/${task.id}`}
+                  className="text-sm font-medium hover:text-primary hover:underline transition-colors line-clamp-1"
+                >
+                  {task.title}
+                </Link>
+                <p className="text-[11px] text-purple-500 dark:text-purple-400 mt-0.5">
+                  {(task as any).timeAllocation ?? 0}% of time
+                </p>
+              </div>
+
+              {/* Badge */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                <StatusBadge status="boulder" />
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>

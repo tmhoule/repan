@@ -9,6 +9,7 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  LabelList,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -16,6 +17,7 @@ interface WorkloadUser {
   user: { id: string; name: string; avatarColor: string };
   taskCount: number;
   byPriority: { high: number; medium: number; low: number };
+  boulderAllocation?: number;
 }
 
 interface WorkloadChartProps {
@@ -28,15 +30,17 @@ const CustomTooltip = ({
   label,
 }: {
   active?: boolean;
-  payload?: Array<{ name: string; value: number; color: string }>;
+  payload?: Array<{ name: string; value: number; color: string; dataKey?: string }>;
   label?: string;
 }) => {
   if (!active || !payload?.length) return null;
-  const total = payload.reduce((sum, p) => sum + p.value, 0);
+  const taskEntries = payload.filter((p) => p.dataKey !== "boulderAllocation");
+  const boulderEntry = payload.find((p) => p.dataKey === "boulderAllocation");
+  const total = taskEntries.reduce((sum, p) => sum + p.value, 0);
   return (
     <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-md text-xs">
       <p className="font-semibold mb-1.5">{label}</p>
-      {payload.map((p) => (
+      {taskEntries.map((p) => (
         <div key={p.name} className="flex items-center gap-2 mb-0.5">
           <span
             className="inline-block h-2 w-2 rounded-sm"
@@ -47,9 +51,16 @@ const CustomTooltip = ({
         </div>
       ))}
       <div className="border-t border-border mt-1.5 pt-1 flex justify-between gap-4">
-        <span className="text-muted-foreground">Total</span>
+        <span className="text-muted-foreground">Total tasks</span>
         <span className="font-semibold">{total}</span>
       </div>
+      {boulderEntry && boulderEntry.value > 0 && (
+        <div className="border-t border-border mt-1 pt-1 flex items-center gap-2">
+          <span className="inline-block h-2 w-2 rounded-sm" style={{ backgroundColor: "#8B5CF6" }} />
+          <span className="text-muted-foreground">Boulder time:</span>
+          <span className="font-semibold text-purple-500">{boulderEntry.value}%</span>
+        </div>
+      )}
     </div>
   );
 };
@@ -60,6 +71,7 @@ export function WorkloadChart({ data }: WorkloadChartProps) {
     High: d.byPriority.high,
     Medium: d.byPriority.medium,
     Low: d.byPriority.low,
+    boulderAllocation: d.boulderAllocation ?? 0,
   }));
 
   return (
@@ -115,7 +127,14 @@ export function WorkloadChart({ data }: WorkloadChartProps) {
               />
               <Bar dataKey="High" stackId="a" fill="#dc2626" radius={[0, 0, 0, 0]} />
               <Bar dataKey="Medium" stackId="a" fill="#f59e0b" radius={[0, 0, 0, 0]} />
-              <Bar dataKey="Low" stackId="a" fill="#166534" radius={[2, 2, 0, 0]} />
+              <Bar dataKey="Low" stackId="a" fill="#166534" radius={[2, 2, 0, 0]}>
+                <LabelList
+                  dataKey="boulderAllocation"
+                  position="right"
+                  formatter={(v: any) => v > 0 ? `${v}% boulder` : ""}
+                  style={{ fontSize: 10, fill: "#8B5CF6", fontWeight: 500 }}
+                />
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         )}

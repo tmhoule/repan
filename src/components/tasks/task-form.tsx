@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import { useUser } from "@/components/user-context";
 
-type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "done";
+type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "done" | "boulder";
 type TaskPriority = "high" | "medium" | "low";
 type EffortEstimate = "small" | "medium" | "large";
 
@@ -27,6 +27,7 @@ export interface TaskFormData {
   effortEstimate: EffortEstimate;
   dueDate: string;
   status?: TaskStatus;
+  timeAllocation?: number;
   assignedToId?: string | null;
   blockerReason?: string;
 }
@@ -56,6 +57,7 @@ const STATUS_LABELS: Record<string, string> = {
   blocked: "Blocked",
   stalled: "Stalled",
   done: "Done",
+  boulder: "Boulder",
 };
 
 const PRIORITY_LABELS: Record<string, string> = {
@@ -87,6 +89,7 @@ export function TaskForm({ mode, initialData, onSubmit }: TaskFormProps) {
     initialData?.assignedToId !== undefined ? initialData.assignedToId ?? null : null
   );
   const [blockerReason, setBlockerReason] = useState(initialData?.blockerReason ?? "");
+  const [timeAllocation, setTimeAllocation] = useState<number>((initialData as any)?.timeAllocation ?? 0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
@@ -98,6 +101,7 @@ export function TaskForm({ mode, initialData, onSubmit }: TaskFormProps) {
 
   // Sync status changes for blockerReason visibility
   const showBlockerReason = mode === "edit" && status === "blocked";
+  const isBoulder = status === "boulder";
 
   // Auto-save for edit mode: debounce PATCH on any field change
   const autoSave = useCallback(async () => {
@@ -112,8 +116,9 @@ export function TaskForm({ mode, initialData, onSubmit }: TaskFormProps) {
           description: description.trim(),
           priority,
           effortEstimate,
-          dueDate: dueDate || null,
+          dueDate: isBoulder ? null : (dueDate || null),
           status,
+          timeAllocation: isBoulder ? timeAllocation : undefined,
           assignedToId,
           ...(status === "blocked" ? { blockerReason: blockerReason.trim() } : {}),
         }),
@@ -125,7 +130,7 @@ export function TaskForm({ mode, initialData, onSubmit }: TaskFormProps) {
       setErrors({ form: "Auto-save failed. Try again." });
       setSaveStatus("idle");
     }
-  }, [mode, initialData?.id, title, description, priority, effortEstimate, dueDate, status, assignedToId, blockerReason]);
+  }, [mode, initialData?.id, title, description, priority, effortEstimate, dueDate, status, assignedToId, blockerReason, timeAllocation, isBoulder]);
 
   // Trigger auto-save on field changes (edit mode only)
   useEffect(() => {
@@ -138,7 +143,7 @@ export function TaskForm({ mode, initialData, onSubmit }: TaskFormProps) {
     if (autoSaveRef.current) clearTimeout(autoSaveRef.current);
     autoSaveRef.current = setTimeout(autoSave, 800);
     return () => { if (autoSaveRef.current) clearTimeout(autoSaveRef.current); };
-  }, [title, description, priority, effortEstimate, dueDate, status, assignedToId, blockerReason, mode, initialData?.id, autoSave]);
+  }, [title, description, priority, effortEstimate, dueDate, status, assignedToId, blockerReason, timeAllocation, mode, initialData?.id, autoSave]);
 
   // Sync initial data if it changes (e.g. after fetch)
   useEffect(() => {
@@ -176,8 +181,9 @@ export function TaskForm({ mode, initialData, onSubmit }: TaskFormProps) {
       description: description.trim(),
       priority,
       effortEstimate,
-      dueDate,
-      ...(mode === "edit" && { status }),
+      dueDate: isBoulder ? "" : dueDate,
+      ...(mode === "edit" ? { status } : (isBoulder ? { status: "boulder" } : {})),
+      ...(isBoulder && { timeAllocation }),
       assignedToId,
       ...(showBlockerReason && { blockerReason: blockerReason.trim() }),
     };
@@ -258,51 +264,78 @@ export function TaskForm({ mode, initialData, onSubmit }: TaskFormProps) {
         />
       </div>
 
-      {/* Priority + Effort row */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <Label htmlFor="task-priority">Priority</Label>
-          <Select value={priority} onValueChange={(v) => setPriority(v as TaskPriority)}>
-            <SelectTrigger id="task-priority">
-              <SelectValue>{PRIORITY_LABELS[priority]}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="high">High</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="low">Low</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+      {/* Priority + Effort row — hidden for boulders */}
+      {!isBoulder && (
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="task-priority">Priority</Label>
+            <Select value={priority} onValueChange={(v) => setPriority(v as TaskPriority)}>
+              <SelectTrigger id="task-priority">
+                <SelectValue>{PRIORITY_LABELS[priority]}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="high">High</SelectItem>
+                <SelectItem value="medium">Medium</SelectItem>
+                <SelectItem value="low">Low</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="task-effort">Effort Estimate</Label>
-          <Select
-            value={effortEstimate}
-            onValueChange={(v) => setEffortEstimate(v as EffortEstimate)}
-          >
-            <SelectTrigger id="task-effort">
-              <SelectValue>{EFFORT_LABELS[effortEstimate]}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="small">Small</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="large">Large</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="space-y-1.5">
+            <Label htmlFor="task-effort">Effort Estimate</Label>
+            <Select
+              value={effortEstimate}
+              onValueChange={(v) => setEffortEstimate(v as EffortEstimate)}
+            >
+              <SelectTrigger id="task-effort">
+                <SelectValue>{EFFORT_LABELS[effortEstimate]}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="small">Small</SelectItem>
+                <SelectItem value="medium">Medium</SelectItem>
+                <SelectItem value="large">Large</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Due Date */}
-      <div className="space-y-1.5">
-        <Label htmlFor="task-due-date">Due Date</Label>
-        <Input
-          id="task-due-date"
-          type="date"
-          value={dueDate}
-          onChange={(e) => setDueDate(e.target.value)}
-          className="w-full"
-        />
-      </div>
+      {/* Due Date — hidden for boulders */}
+      {!isBoulder && (
+        <div className="space-y-1.5">
+          <Label htmlFor="task-due-date">Due Date</Label>
+          <Input
+            id="task-due-date"
+            type="date"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+            className="w-full"
+          />
+        </div>
+      )}
+
+      {/* Time Allocation — shown for boulders */}
+      {isBoulder && (
+        <div className="space-y-1.5">
+          <Label htmlFor="task-time-allocation">
+            Time Allocation
+            <span className="ml-2 text-purple-600 dark:text-purple-400 font-semibold">{timeAllocation}% of time</span>
+          </Label>
+          <input
+            id="task-time-allocation"
+            type="range"
+            min={0}
+            max={100}
+            step={5}
+            value={timeAllocation}
+            onChange={(e) => setTimeAllocation(Number(e.target.value))}
+            className="w-full h-2 rounded-full appearance-none cursor-pointer accent-purple-500"
+          />
+          <p className="text-xs text-muted-foreground">
+            Percentage of working time this boulder consumes (0–100%, in 5% steps)
+          </p>
+        </div>
+      )}
 
       {/* Status — edit only */}
       {mode === "edit" && (
@@ -318,6 +351,7 @@ export function TaskForm({ mode, initialData, onSubmit }: TaskFormProps) {
               <SelectItem value="blocked">Blocked</SelectItem>
               <SelectItem value="stalled">Stalled</SelectItem>
               <SelectItem value="done">Done</SelectItem>
+              <SelectItem value="boulder">Boulder</SelectItem>
             </SelectContent>
           </Select>
         </div>

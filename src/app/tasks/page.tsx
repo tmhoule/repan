@@ -12,7 +12,7 @@ import { BacklogSummary } from "@/components/backlog/backlog-summary";
 import { BacklogList } from "@/components/backlog/backlog-list";
 import { Separator } from "@/components/ui/separator";
 
-type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "done";
+type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "done" | "boulder";
 type TaskPriority = "high" | "medium" | "low";
 
 interface Task {
@@ -22,6 +22,7 @@ interface Task {
   priority: TaskPriority;
   effortEstimate: "small" | "medium" | "large";
   percentComplete: number;
+  timeAllocation: number;
   dueDate: string | null;
   blockerReason?: string | null;
   createdBy: { id: string; name: string; avatarColor: string };
@@ -49,8 +50,10 @@ export default function MyTasksPage() {
   );
 
   const tasks = data?.tasks ?? [];
-  const activeTasks = tasks.filter((t) => t.status !== "done");
+  const boulderTasks = tasks.filter((t) => t.status === "boulder");
+  const activeTasks = tasks.filter((t) => t.status !== "done" && t.status !== "boulder");
   const completedTasks = tasks.filter((t) => t.status === "done");
+  const totalBoulderAllocation = boulderTasks.reduce((sum, t) => sum + (t.timeAllocation ?? 0), 0);
   const [showCompleted, setShowCompleted] = useState(false);
 
   return (
@@ -65,12 +68,20 @@ export default function MyTasksPage() {
               : `${activeTasks.length} active task${activeTasks.length !== 1 ? "s" : ""}${completedTasks.length > 0 ? ` · ${completedTasks.length} completed` : ""}`}
           </p>
         </div>
-        <Link href="/tasks/new">
-          <Button className="gap-2">
-            <Plus className="size-4" />
-            Create Task
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/tasks/new?type=boulder">
+            <Button variant="outline" className="gap-2 border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-400 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-950">
+              <Plus className="size-4" />
+              Create Boulder
+            </Button>
+          </Link>
+          <Link href="/tasks/new">
+            <Button className="gap-2">
+              <Plus className="size-4" />
+              Create Task
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Points & streaks summary */}
@@ -89,7 +100,7 @@ export default function MyTasksPage() {
             />
           ))}
         </div>
-      ) : activeTasks.length === 0 && completedTasks.length === 0 ? (
+      ) : activeTasks.length === 0 && completedTasks.length === 0 && boulderTasks.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-border py-16 text-center">
           <ClipboardList className="size-12 text-muted-foreground/40" />
           <div className="space-y-1">
@@ -130,6 +141,28 @@ export default function MyTasksPage() {
             </div>
           ) : (
             <p className="text-sm text-muted-foreground text-center py-6">No active tasks</p>
+          )}
+
+          {/* Boulders section */}
+          {boulderTasks.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-base font-semibold text-purple-700 dark:text-purple-400">Boulders</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">Ongoing operational efforts</p>
+                </div>
+                <span className="text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950 border border-purple-200 dark:border-purple-800 rounded-full px-2.5 py-1">
+                  {totalBoulderAllocation}% of time allocated
+                </span>
+              </div>
+              <div className="rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50/40 dark:bg-purple-950/20 p-3">
+                <div className="grid gap-3 sm:grid-cols-1 md:grid-cols-2">
+                  {boulderTasks.map((task) => (
+                    <TaskCard key={task.id} task={task} onUpdate={() => mutate()} />
+                  ))}
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Completed tasks — collapsed section */}

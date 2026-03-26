@@ -77,6 +77,8 @@ export async function POST(request: NextRequest) {
         priority: body.priority || "medium",
         effortEstimate: body.effortEstimate || "medium",
         dueDate: body.dueDate ? new Date(body.dueDate) : null,
+        status: body.status || "not_started",
+        timeAllocation: body.timeAllocation ?? 0,
         createdById: user.id,
         assignedToId,
         backlogPosition: assignedToId ? null : body.backlogPosition,
