@@ -3,6 +3,7 @@
 import Link from "next/link";
 import useSWR from "swr";
 import { Users, Clock, AlertTriangle } from "lucide-react";
+
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { StreakFlame } from "@/components/gamification/streak-flame";
@@ -25,6 +26,8 @@ interface Task {
   dueDate: string | null;
   effortEstimate: string;
   blockerReason?: string | null;
+  updatedAt?: string;
+  createdAt?: string;
 }
 
 interface Streak {
@@ -56,6 +59,33 @@ function formatDue(dateStr: string | null): { label: string; className: string }
   return { label: `Due ${formatted}`, className: "text-muted-foreground" };
 }
 
+function countRisks(tasks: Task[]): { stale: number; behind: number; blocked: number; overdue: number } {
+  const now = new Date();
+  let stale = 0, behind = 0, blocked = 0, overdue = 0;
+  for (const t of tasks) {
+    if (t.status === "done" || t.status === "boulder") continue;
+    if (t.status === "blocked") { blocked++; continue; }
+    if (t.dueDate && new Date(t.dueDate) < now) { overdue++; continue; }
+    // Stale: no update in 3+ days for in_progress
+    const lastUpdate = t.updatedAt ? new Date(t.updatedAt) : (t.createdAt ? new Date(t.createdAt) : now);
+    const daysSince = (now.getTime() - lastUpdate.getTime()) / 86400000;
+    if (t.status === "in_progress" && daysSince >= 3) { stale++; continue; }
+    if (t.status === "not_started" && t.dueDate && daysSince >= 5) { stale++; continue; }
+    // Behind schedule
+    if (t.dueDate && t.createdAt) {
+      const created = new Date(t.createdAt);
+      const due = new Date(t.dueDate);
+      const total = due.getTime() - created.getTime();
+      if (total > 0) {
+        const elapsed = now.getTime() - created.getTime();
+        const expected = Math.min(100, (elapsed / total) * 100);
+        if (t.percentComplete < expected - 25) { behind++; }
+      }
+    }
+  }
+  return { stale, behind, blocked, overdue };
+}
+
 function TeamMemberSection({ user }: { user: UserSummary }) {
   const { data: detail } = useSWR<UserDetail>(`/api/users/${user.id}`);
   const { data: tasksData } = useSWR<{ tasks: Task[] }>(`/api/tasks?assignedTo=${user.id}`);
@@ -65,6 +95,8 @@ function TeamMemberSection({ user }: { user: UserSummary }) {
   const activeTasks = tasks.filter((t) => t.status !== "done" && t.status !== "boulder");
   const doneTasks = tasks.filter((t) => t.status === "done");
   const totalBoulderAllocation = boulderTasks.reduce((sum, t) => sum + ((t as any).timeAllocation ?? 0), 0);
+  const risks = countRisks(tasks);
+  const totalRisks = risks.stale + risks.behind + risks.blocked + risks.overdue;
   const streaks = detail?.streaks ?? [];
   const dailyStreak = streaks.find((s) => s.streakType === "daily_checkin");
   const totalPoints = detail?.totalPoints ?? 0;
@@ -96,6 +128,24 @@ function TeamMemberSection({ user }: { user: UserSummary }) {
             >
               {user.role}
             </Badge>
+            {totalRisks > 0 && (
+              <span
+                className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+                  risks.blocked > 0 || risks.overdue > 0
+                    ? "bg-red-500/15 text-red-400"
+                    : "bg-amber-500/15 text-amber-400"
+                }`}
+                title={[
+                  risks.blocked > 0 && `${risks.blocked} blocked`,
+                  risks.overdue > 0 && `${risks.overdue} overdue`,
+                  risks.behind > 0 && `${risks.behind} behind schedule`,
+                  risks.stale > 0 && `${risks.stale} stale`,
+                ].filter(Boolean).join(", ")}
+              >
+                <AlertTriangle className="size-2.5" />
+                {totalRisks} at risk
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground flex-wrap">
             <span>{activeTasks.length} active task{activeTasks.length !== 1 ? "s" : ""}</span>

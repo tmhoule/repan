@@ -39,6 +39,8 @@ interface Task {
   percentComplete: number;
   timeAllocation: number;
   dueDate: string | null;
+  updatedAt?: string;
+  createdAt?: string;
   blockerReason?: string | null;
   createdBy: { id: string; name: string; avatarColor: string };
   assignedTo?: { id: string; name: string; avatarColor: string } | null;
@@ -156,9 +158,26 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
     }
   }, [task.id, mutate, onUpdate]);
 
+  const handleMoveToBacklog = useCallback(async () => {
+    try {
+      await patchTask({ assignedToId: null, status: "not_started" } as any);
+    } catch (error) {
+      console.error("Failed to move task to backlog:", error);
+    }
+  }, [patchTask]);
+
   const isManager = user?.role === "manager";
   const dueDateInfo = formatDueDate(currentTask.dueDate);
   const isDone = currentTask.status === "done";
+
+  // Staleness detection (client-side using updatedAt)
+  const daysSinceUpdate = (() => {
+    if (isDone || isBoulder) return 0;
+    const ref = currentTask.updatedAt ? new Date(currentTask.updatedAt) : (currentTask.createdAt ? new Date(currentTask.createdAt) : null);
+    if (!ref) return 0;
+    return Math.floor((Date.now() - ref.getTime()) / 86400000);
+  })();
+  const isStale = currentTask.status === "in_progress" ? daysSinceUpdate >= 3 : (currentTask.dueDate && daysSinceUpdate >= 5);
 
   const statusBorderColor = STATUS_BORDER_COLORS[currentTask.status] ?? "#8B90A0";
 
@@ -202,6 +221,11 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
           <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
             <StatusBadge status={currentTask.status} />
             <PriorityBadge priority={currentTask.priority} />
+            {isStale && (
+              <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-500/15 text-amber-400 text-[10px] font-semibold px-1.5 py-0.5" title={`No activity for ${daysSinceUpdate} days`}>
+                {daysSinceUpdate}d idle
+              </span>
+            )}
           </div>
         </div>
       </CardHeader>
@@ -316,6 +340,9 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
                       onClick={() => handleStatusChange("not_started")}
                     >
                       Reset to Not Started
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleMoveToBacklog}>
+                      Move to Backlog
                     </DropdownMenuItem>
                     {isManager && (
                       <DropdownMenuItem

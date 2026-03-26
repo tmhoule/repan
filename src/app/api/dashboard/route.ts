@@ -3,6 +3,7 @@ import { requireSession, handleApiError, requireTeam } from "@/lib/session";
 import { getTeamRole } from "@/lib/team-auth";
 import { prisma } from "@/lib/db";
 import { getWeeklyThroughput, getBacklogHealth } from "@/lib/forecasting";
+import { getLastActivityMap, getRiskFlags } from "@/lib/risk-detection";
 
 export async function GET() {
   try {
@@ -45,7 +46,39 @@ export async function GET() {
     boulderAllocation: tasks.filter(t => t.assignedTo?.id === u.id && t.status === "boulder").reduce((sum, t) => sum + (t.timeAllocation ?? 0), 0),
   }));
 
-  const atRisk = tasks.filter((t) => t.status === "blocked" || t.status === "stalled" || (t.dueDate && t.dueDate < now));
+  // Build at-risk list with risk detection
+  const allTaskIds = tasks.map((t) => t.id);
+  const lastActivityMap = await getLastActivityMap(allTaskIds);
+
+  // Also fetch unassigned backlog tasks with due dates for risk detection
+  const oneWeekFromNow = new Date(now.getTime() + 7 * 86400000);
+  const backlogAtRisk = await prisma.task.findMany({
+    where: { assignedToId: null, archivedAt: null, teamId, status: { not: "done" }, dueDate: { lte: oneWeekFromNow } },
+    include: { assignedTo: { select: { id: true, name: true } } },
+  });
+
+  const backlogIds = backlogAtRisk.map((t) => t.id);
+  const backlogActivityMap = await getLastActivityMap(backlogIds);
+
+  const allCandidates = [...tasks, ...backlogAtRisk];
+  const combinedActivityMap = new Map([...lastActivityMap, ...backlogActivityMap]);
+
+  const atRisk = allCandidates
+    .map((t) => {
+      const flags = getRiskFlags(t, combinedActivityMap.get(t.id), now);
+      if (flags.length === 0) return null;
+      return {
+        id: t.id,
+        title: t.title,
+        status: t.status,
+        priority: t.priority,
+        percentComplete: t.percentComplete,
+        dueDate: t.dueDate,
+        assignedTo: t.assignedTo,
+        riskFlags: flags,
+      };
+    })
+    .filter(Boolean);
 
   const throughput = getWeeklyThroughput(completedRecent.map((t) => ({ effortEstimate: t.effortEstimate, completedAt: t.completedAt! })), now);
   const health = getBacklogHealth(backlogTasks.map((t) => ({ id: t.id, effortEstimate: t.effortEstimate, backlogPosition: t.backlogPosition! })), throughput, previousBacklogSize);

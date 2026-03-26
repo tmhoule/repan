@@ -8,6 +8,7 @@ import {
   TrendingDown,
   Minus,
   AlertTriangle,
+  Pause,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -17,6 +18,8 @@ interface ReportSummaryData {
   backlogSize: number;
   backlogDelta: number;
   missedDeadlines: number;
+  staleTasks?: number;
+  behindScheduleTasks?: number;
   activeBoulderCount?: number;
   totalBoulderAllocation?: number;
   period: string;
@@ -63,7 +66,7 @@ function BacklogDeltaIcon({ delta }: { delta: number }) {
 }
 
 export function ReportSummary({ data }: { data: ReportSummaryData }) {
-  const { tasksCompleted, tasksCreated, backlogSize, backlogDelta, missedDeadlines, activeBoulderCount, totalBoulderAllocation } = data;
+  const { tasksCompleted, tasksCreated, backlogSize, backlogDelta, missedDeadlines, staleTasks, behindScheduleTasks, activeBoulderCount, totalBoulderAllocation } = data;
 
   const deltaSign = backlogDelta > 0 ? "+" : "";
   const deltaHighlight: "positive" | "negative" | "neutral" =
@@ -104,6 +107,24 @@ export function ReportSummary({ data }: { data: ReportSummaryData }) {
         sub="completed after due date"
         highlight={missedDeadlines > 0 ? "negative" : "positive"}
       />
+      {(staleTasks ?? 0) > 0 && (
+        <StatCard
+          title="Stale Tasks"
+          value={staleTasks!}
+          icon={<Pause className="size-3.5 text-amber-400" />}
+          sub="no activity in 3+ days"
+          highlight={staleTasks! > 0 ? "negative" : "neutral"}
+        />
+      )}
+      {(behindScheduleTasks ?? 0) > 0 && (
+        <StatCard
+          title="Behind Schedule"
+          value={behindScheduleTasks!}
+          icon={<TrendingDown className="size-3.5 text-red-400" />}
+          sub="progress below expected pace"
+          highlight={behindScheduleTasks! > 0 ? "negative" : "neutral"}
+        />
+      )}
       {(activeBoulderCount ?? 0) > 0 && (
         <StatCard
           title="Boulders"

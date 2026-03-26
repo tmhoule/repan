@@ -25,8 +25,10 @@ interface DashboardData {
     title: string;
     status: TaskStatus;
     priority: TaskPriority;
+    percentComplete?: number;
     dueDate?: string | null;
     assignedTo?: { id: string; name: string } | null;
+    riskFlags?: Array<{ riskType: string; label: string }>;
   }>;
   backlogHealth: {
     totalItems: number;

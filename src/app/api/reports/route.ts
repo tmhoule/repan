@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireSession, handleApiError, requireTeam } from "@/lib/session";
 import { getTeamRole } from "@/lib/team-auth";
+import { getLastActivityMap, isStale, isBehindSchedule } from "@/lib/risk-detection";
 
 export async function GET(request: NextRequest) {
   try {
@@ -33,7 +34,21 @@ export async function GET(request: NextRequest) {
   const totalBoulderAllocation = boulders.reduce((sum, b) => sum + (b.timeAllocation ?? 0), 0);
   const activeBoulderCount = boulders.length;
 
-  const summary = { tasksCompleted: completed.length, tasksCreated: created, backlogSize: backlogCount, backlogDelta: backlogCount - previousBacklogCount, missedDeadlines, activeBoulderCount, totalBoulderAllocation, period };
+  // Risk detection: stale + behind schedule counts
+  const activeTasks = await prisma.task.findMany({
+    where: { teamId, archivedAt: null, status: { notIn: ["done", "boulder"] }, assignedToId: { not: null } },
+  });
+  const activeTaskIds = activeTasks.map((t) => t.id);
+  const activityMap = await getLastActivityMap(activeTaskIds);
+
+  let staleTasks = 0;
+  let behindScheduleTasks = 0;
+  for (const t of activeTasks) {
+    if (isStale(t, activityMap.get(t.id), now)) staleTasks++;
+    if (isBehindSchedule(t, now)) behindScheduleTasks++;
+  }
+
+  const summary = { tasksCompleted: completed.length, tasksCreated: created, backlogSize: backlogCount, backlogDelta: backlogCount - previousBacklogCount, missedDeadlines, activeBoulderCount, totalBoulderAllocation, staleTasks, behindScheduleTasks, period };
 
   // Build weekly throughput series (last 8 weeks)
   const weeklyThroughput: { week: string; points: number }[] = [];

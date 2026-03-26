@@ -18,6 +18,8 @@ interface ReportData {
     backlogSize: number;
     backlogDelta: number;
     missedDeadlines: number;
+    staleTasks?: number;
+    behindScheduleTasks?: number;
     period: string;
   };
   perPerson: Array<{
