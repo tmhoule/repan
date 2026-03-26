@@ -22,7 +22,7 @@ import { ProgressSlider } from "@/components/tasks/progress-slider";
 import { useUser } from "@/components/user-context";
 import { canEditTask } from "@/lib/permissions";
 
-type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "done";
+type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "done" | "boulder";
 type TaskPriority = "high" | "medium" | "low";
 type EffortEstimate = "small" | "medium" | "large";
 
@@ -34,6 +34,7 @@ interface Task {
   priority: TaskPriority;
   effortEstimate: EffortEstimate;
   percentComplete: number;
+  timeAllocation: number;
   dueDate: string | null;
   blockerReason: string | null;
   createdAt: string;
@@ -142,6 +143,7 @@ export default function TaskDetailPage({
     effortEstimate: task.effortEstimate,
     dueDate: formatDueDateInput(task.dueDate),
     status: task.status,
+    timeAllocation: task.timeAllocation ?? 0,
     assignedToId: task.assignedTo?.id ?? null,
     blockerReason: task.blockerReason ?? "",
   };
