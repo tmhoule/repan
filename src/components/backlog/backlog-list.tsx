@@ -158,8 +158,8 @@ export function BacklogList({ tasks, onMutate }: BacklogListProps) {
               )}
             </div>
 
-            {/* Claim button */}
-            {user?.role !== "manager" && (
+            {/* Claim button — everyone can claim */}
+            {user && (
               <Button
                 size="sm"
                 variant="default"
