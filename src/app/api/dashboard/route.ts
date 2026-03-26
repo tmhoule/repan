@@ -41,6 +41,7 @@ export async function GET() {
   const workload = teamUsers.map((u) => ({
     user: u, taskCount: tasks.filter((t) => t.assignedTo?.id === u.id && t.status !== "boulder").length,
     byPriority: { high: tasks.filter(t => t.assignedTo?.id === u.id && t.status !== "boulder" && t.priority === "high").length, medium: tasks.filter(t => t.assignedTo?.id === u.id && t.status !== "boulder" && t.priority === "medium").length, low: tasks.filter(t => t.assignedTo?.id === u.id && t.status !== "boulder" && t.priority === "low").length },
+    boulders: tasks.filter(t => t.assignedTo?.id === u.id && t.status === "boulder").map(t => ({ title: t.title, timeAllocation: t.timeAllocation ?? 0 })),
     boulderAllocation: tasks.filter(t => t.assignedTo?.id === u.id && t.status === "boulder").reduce((sum, t) => sum + (t.timeAllocation ?? 0), 0),
   }));
 

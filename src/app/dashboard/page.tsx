@@ -18,6 +18,7 @@ interface DashboardData {
     user: { id: string; name: string; avatarColor: string };
     taskCount: number;
     byPriority: { high: number; medium: number; low: number };
+    boulders?: Array<{ title: string; timeAllocation: number }>;
   }>;
   atRisk: Array<{
     id: string;

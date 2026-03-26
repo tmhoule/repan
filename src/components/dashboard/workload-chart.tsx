@@ -16,6 +16,7 @@ interface WorkloadUser {
   user: { id: string; name: string; avatarColor: string };
   taskCount: number;
   byPriority: { high: number; medium: number; low: number };
+  boulders?: Array<{ title: string; timeAllocation: number }>;
   boulderAllocation?: number;
 }
 
@@ -140,7 +141,10 @@ export function WorkloadChart({ data }: WorkloadChartProps) {
               {data.filter((d) => (d.boulderAllocation ?? 0) > 0).map((d) => (
                 <div key={d.user.id} className="flex items-center gap-3">
                   <span className="text-xs text-muted-foreground w-16 truncate">{d.user.name.split(" ")[0]}</span>
-                  <div className="flex-1 h-3 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="flex-1 h-3 rounded-full bg-muted overflow-hidden"
+                    title={d.boulders?.map((b) => `${b.title} (${b.timeAllocation}%)`).join(", ")}
+                  >
                     <div
                       className="h-full rounded-full bg-purple-500"
                       style={{ width: `${d.boulderAllocation}%` }}
