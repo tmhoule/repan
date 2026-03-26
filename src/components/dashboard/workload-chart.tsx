@@ -115,14 +115,20 @@ export function WorkloadChart({ data }: WorkloadChartProps) {
               />
               <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
               <Legend
-                wrapperStyle={{ fontSize: 11, color: "#71717a", paddingTop: 8 }}
-                iconSize={8}
-                iconType="square"
-                {...{ payload: [
-                  { value: "High", type: "square", color: "#dc2626" },
-                  { value: "Medium", type: "square", color: "#f59e0b" },
-                  { value: "Low", type: "square", color: "#166534" },
-                ] } as any}
+                content={() => (
+                  <div className="flex items-center justify-center gap-4 pt-2 text-[11px] text-zinc-500">
+                    {[
+                      { label: "High", color: "#dc2626" },
+                      { label: "Medium", color: "#f59e0b" },
+                      { label: "Low", color: "#166534" },
+                    ].map((item) => (
+                      <span key={item.label} className="flex items-center gap-1.5">
+                        <span className="inline-block size-2 rounded-sm" style={{ backgroundColor: item.color }} />
+                        {item.label}
+                      </span>
+                    ))}
+                  </div>
+                )}
               />
               <Bar dataKey="High" stackId="a" fill="#dc2626" radius={[0, 0, 0, 0]} />
               <Bar dataKey="Medium" stackId="a" fill="#f59e0b" radius={[0, 0, 0, 0]} />

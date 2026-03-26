@@ -10,6 +10,7 @@ import {
   AlertTriangle,
   Clock,
   Send,
+  Trash2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -143,6 +144,19 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
     [patchTask]
   );
 
+  const handleDelete = useCallback(async () => {
+    if (!confirm("Delete this task? This cannot be undone.")) return;
+    try {
+      const res = await fetch(`/api/tasks/${task.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete task");
+      mutate("/api/tasks");
+      onUpdate?.();
+    } catch (error) {
+      console.error("Failed to delete task:", error);
+    }
+  }, [task.id, mutate, onUpdate]);
+
+  const isManager = user?.role === "manager";
   const dueDateInfo = formatDueDate(currentTask.dueDate);
   const isDone = currentTask.status === "done";
 
@@ -303,6 +317,15 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
                     >
                       Reset to Not Started
                     </DropdownMenuItem>
+                    {isManager && (
+                      <DropdownMenuItem
+                        onClick={handleDelete}
+                        className="text-red-600 dark:text-red-400"
+                      >
+                        <Trash2 className="size-3.5 mr-1.5" />
+                        Delete Task
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
@@ -332,6 +355,21 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
                 </Button>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Delete button for completed tasks (managers only) */}
+        {isDone && isManager && (
+          <div className="pt-1">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 gap-1.5 text-xs text-red-400 hover:text-red-300 hover:bg-red-950/30"
+              onClick={handleDelete}
+            >
+              <Trash2 className="size-3.5" />
+              Delete
+            </Button>
           </div>
         )}
       </CardContent>

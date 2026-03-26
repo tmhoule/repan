@@ -14,14 +14,13 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search");
     const requestedAssignedTo = searchParams.get("assignedTo");
 
-    // Only managers and super admins may view tasks assigned to other users
+    // Allow any team member to view tasks assigned to other team members (read-only view)
     let assignedTo = user.id;
     if (requestedAssignedTo && requestedAssignedTo !== user.id) {
-      const membership = await prisma.teamMembership.findUnique({
-        where: { userId_teamId: { userId: user.id, teamId } },
+      const targetMembership = await prisma.teamMembership.findUnique({
+        where: { userId_teamId: { userId: requestedAssignedTo, teamId } },
       });
-      const isManager = user.isSuperAdmin || membership?.role === "manager";
-      if (isManager) {
+      if (targetMembership) {
         assignedTo = requestedAssignedTo;
       }
     } else if (requestedAssignedTo) {
