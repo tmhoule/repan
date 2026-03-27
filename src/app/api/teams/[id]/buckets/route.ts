@@ -5,11 +5,11 @@ import { isValidColorKey } from "@/lib/bucket-colors";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ teamId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await requireTeam();
-    const { teamId } = await params;
+    const { id: teamId } = await params;
 
     const buckets = await prisma.bucket.findMany({
       where: { teamId },
@@ -25,11 +25,11 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ teamId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await requireManager();
-    const { teamId } = await params;
+    const { id: teamId } = await params;
     const body = await request.json();
 
     const name = body.name?.trim();

@@ -5,14 +5,14 @@ import { isValidColorKey } from "@/lib/bucket-colors";
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ teamId: string; id: string }> }
+  { params }: { params: Promise<{ id: string; bucketId: string }> }
 ) {
   try {
     await requireManager();
-    const { teamId, id } = await params;
+    const { id: teamId, bucketId } = await params;
     const body = await request.json();
 
-    const bucket = await prisma.bucket.findUnique({ where: { id } });
+    const bucket = await prisma.bucket.findUnique({ where: { id: bucketId } });
     if (!bucket || bucket.teamId !== teamId) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
@@ -34,7 +34,7 @@ export async function PATCH(
     }
 
     const updated = await prisma.bucket.update({
-      where: { id },
+      where: { id: bucketId },
       data,
       select: { id: true, name: true, colorKey: true, displayOrder: true },
     });
@@ -50,18 +50,18 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ teamId: string; id: string }> }
+  { params }: { params: Promise<{ id: string; bucketId: string }> }
 ) {
   try {
     await requireManager();
-    const { teamId, id } = await params;
+    const { id: teamId, bucketId } = await params;
 
-    const bucket = await prisma.bucket.findUnique({ where: { id } });
+    const bucket = await prisma.bucket.findUnique({ where: { id: bucketId } });
     if (!bucket || bucket.teamId !== teamId) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    await prisma.bucket.delete({ where: { id } });
+    await prisma.bucket.delete({ where: { id: bucketId } });
 
     return NextResponse.json({ success: true });
   } catch (error) {
