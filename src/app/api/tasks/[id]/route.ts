@@ -15,6 +15,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       include: {
         createdBy: { select: { id: true, name: true, avatarColor: true } },
         assignedTo: { select: { id: true, name: true, avatarColor: true } },
+        bucket: { select: { id: true, name: true, colorKey: true } },
       },
     });
     if (!task) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -79,6 +80,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       updateData.backlogPosition = body.assignedToId ? null : task.backlogPosition;
     }
     if (body.timeAllocation !== undefined) updateData.timeAllocation = body.timeAllocation;
+    if (body.bucketId !== undefined) updateData.bucketId = body.bucketId || null;
     if (body.status === "done") {
       updateData.completedAt = new Date();
       updateData.percentComplete = 100;
@@ -91,6 +93,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         include: {
           createdBy: { select: { id: true, name: true, avatarColor: true } },
           assignedTo: { select: { id: true, name: true, avatarColor: true } },
+          bucket: { select: { id: true, name: true, colorKey: true } },
         },
       }),
       activities.length > 0 ? prisma.taskActivity.createMany({ data: activities }) : Promise.resolve(),

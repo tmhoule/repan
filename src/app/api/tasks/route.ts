@@ -42,6 +42,7 @@ export async function GET(request: NextRequest) {
       include: {
         createdBy: { select: { id: true, name: true, avatarColor: true } },
         assignedTo: { select: { id: true, name: true, avatarColor: true } },
+        bucket: { select: { id: true, name: true, colorKey: true } },
       },
     });
 
@@ -82,10 +83,12 @@ export async function POST(request: NextRequest) {
         assignedToId,
         backlogPosition: assignedToId ? null : body.backlogPosition,
         teamId,
+        bucketId: body.bucketId || null,
       },
       include: {
         createdBy: { select: { id: true, name: true, avatarColor: true } },
         assignedTo: { select: { id: true, name: true, avatarColor: true } },
+        bucket: { select: { id: true, name: true, colorKey: true } },
       },
     });
 
