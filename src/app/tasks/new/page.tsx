@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Suspense } from "react";
+import useSWR from "swr";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +13,9 @@ function NewTaskForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isBoulderType = searchParams.get("type") === "boulder";
+
+  const { data: bucketsData } = useSWR<{ buckets: any[]; teamId: string }>("/api/buckets");
+  const teamId = bucketsData?.teamId;
 
   const handleSubmit = async (data: TaskFormData) => {
     const res = await fetch("/api/tasks", {
@@ -63,6 +67,7 @@ function NewTaskForm() {
             mode="create"
             initialData={isBoulderType ? { status: "boulder" } : undefined}
             onSubmit={handleSubmit}
+            teamId={teamId}
           />
         </CardContent>
       </Card>

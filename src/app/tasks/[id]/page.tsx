@@ -18,6 +18,7 @@ import { ActivityLog } from "@/components/tasks/activity-log";
 import { CommentBox } from "@/components/tasks/comment-box";
 import { StatusBadge } from "@/components/tasks/status-badge";
 import { PriorityBadge } from "@/components/tasks/priority-badge";
+import { BucketBadge } from "@/components/buckets/bucket-badge";
 import { ProgressSlider } from "@/components/tasks/progress-slider";
 import { useUser } from "@/components/user-context";
 import { canEditTask } from "@/lib/permissions";
@@ -41,6 +42,8 @@ interface Task {
   updatedAt: string;
   createdBy: { id: string; name: string; avatarColor: string };
   assignedTo: { id: string; name: string; avatarColor: string } | null;
+  teamId: string;
+  bucket: { id: string; name: string; colorKey: string } | null;
 }
 
 function formatDate(dateStr: string) {
@@ -146,6 +149,7 @@ export default function TaskDetailPage({
     timeAllocation: task.timeAllocation ?? 0,
     assignedToId: task.assignedTo?.id ?? null,
     blockerReason: task.blockerReason ?? "",
+    bucketId: task.bucket?.id ?? null,
   };
 
   const handleFormSubmit = async (data: TaskFormData) => {
@@ -175,6 +179,9 @@ export default function TaskDetailPage({
           <div className="flex items-center gap-2 shrink-0">
             <StatusBadge status={task.status} />
             <PriorityBadge priority={task.priority} />
+            {task.bucket && (
+              <BucketBadge name={task.bucket.name} colorKey={task.bucket.colorKey} />
+            )}
           </div>
         </div>
 
@@ -240,6 +247,7 @@ export default function TaskDetailPage({
                 mode="edit"
                 initialData={initialData}
                 onSubmit={handleFormSubmit}
+                teamId={task.teamId}
               />
             ) : (
               <ReadOnlyView task={task} />
