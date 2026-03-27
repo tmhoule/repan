@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { NotificationBell } from "@/components/notifications/notification-bell";
+import { GlobalSearch } from "@/components/layout/search";
 import { useUser } from "@/components/user-context";
 
 const staffNavLinks = [
@@ -113,6 +114,7 @@ export function Header() {
 
         {/* Right side */}
         <div className="flex items-center gap-2 ml-auto">
+          {user && <GlobalSearch />}
           {user && <NotificationBell />}
 
           {user && (
