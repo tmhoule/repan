@@ -10,7 +10,7 @@ export async function GET() {
     const buckets = await prisma.bucket.findMany({
       where: { teamId },
       orderBy: { displayOrder: "asc" },
-      select: { id: true, name: true, colorKey: true, displayOrder: true },
+      select: { id: true, name: true, colorKey: true, displayOrder: true, _count: { select: { tasks: true } } },
     });
 
     return NextResponse.json({ buckets, teamId });
