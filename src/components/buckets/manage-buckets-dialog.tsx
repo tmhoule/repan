@@ -24,6 +24,7 @@ interface Bucket {
   id: string;
   name: string;
   colorKey: string;
+  _count?: { tasks: number };
 }
 
 interface ManageBucketsDialogProps {
@@ -226,6 +227,11 @@ export function ManageBucketsDialog({ teamId, onMutate }: ManageBucketsDialogPro
                   >
                     {bucket.name}
                   </button>
+                  {bucket._count && (
+                    <span className="text-xs text-muted-foreground tabular-nums">
+                      {bucket._count.tasks}
+                    </span>
+                  )}
                   <Button
                     size="sm"
                     variant="ghost"

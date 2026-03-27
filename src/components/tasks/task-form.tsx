@@ -271,6 +271,14 @@ export function TaskForm({ mode, initialData, onSubmit, teamId }: TaskFormProps)
         />
       </div>
 
+      {/* Bucket */}
+      {teamId && (
+        <div className="space-y-1.5">
+          <Label>Bucket</Label>
+          <BucketSelect teamId={teamId} value={bucketId} onChange={setBucketId} />
+        </div>
+      )}
+
       {/* Priority + Effort row — hidden for boulders */}
       {!isBoulder && (
         <div className="grid grid-cols-2 gap-4">
@@ -403,14 +411,6 @@ export function TaskForm({ mode, initialData, onSubmit, teamId }: TaskFormProps)
               ))}
             </SelectContent>
           </Select>
-        </div>
-      )}
-
-      {/* Bucket */}
-      {teamId && (
-        <div className="space-y-1.5">
-          <Label>Bucket</Label>
-          <BucketSelect teamId={teamId} value={bucketId} onChange={setBucketId} />
         </div>
       )}
 
