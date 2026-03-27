@@ -89,6 +89,7 @@ model Team {
 
   memberships TeamMembership[]
   tasks       Task[]
+  buckets     Bucket[]
 
   @@map("teams")
 }
@@ -104,6 +105,22 @@ model TeamMembership {
 
   @@unique([userId, teamId])
   @@map("team_memberships")
+}
+
+model Bucket {
+  id           String   @id @default(uuid())
+  name         String
+  colorKey     String   @map("color_key")
+  displayOrder Int      @default(0) @map("display_order")
+  teamId       String   @map("team_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  team  Team   @relation(fields: [teamId], references: [id])
+  tasks Task[]
+
+  @@unique([name, teamId])
+  @@map("buckets")
 }
 
 model Task {
@@ -126,7 +143,9 @@ model Task {
   teamId          String        @map("team_id")
 
   timeAllocation  Int           @default(0) @map("time_allocation")
+  bucketId        String?       @map("bucket_id")
 
+  bucket          Bucket?       @relation(fields: [bucketId], references: [id], onDelete: SetNull)
   createdBy       User          @relation("CreatedTasks", fields: [createdById], references: [id])
   assignedTo      User?         @relation("AssignedTasks", fields: [assignedToId], references: [id])
   team            Team          @relation(fields: [teamId], references: [id])
