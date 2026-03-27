@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useUser } from "@/components/user-context";
+import { BucketSelect } from "@/components/buckets/bucket-select";
 
 type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "done" | "boulder";
 type TaskPriority = "high" | "medium" | "low";
@@ -30,6 +31,7 @@ export interface TaskFormData {
   timeAllocation?: number;
   assignedToId?: string | null;
   blockerReason?: string;
+  bucketId?: string | null;
 }
 
 interface TaskFormInitialData extends Partial<TaskFormData> {
@@ -47,6 +49,7 @@ interface TaskFormProps {
   mode: "create" | "edit";
   initialData?: TaskFormInitialData;
   onSubmit?: (data: TaskFormData) => void | Promise<void>;
+  teamId?: string;
 }
 
 const UNASSIGNED_VALUE = "__unassigned__";
@@ -72,7 +75,7 @@ const EFFORT_LABELS: Record<string, string> = {
   large: "Large",
 };
 
-export function TaskForm({ mode, initialData, onSubmit }: TaskFormProps) {
+export function TaskForm({ mode, initialData, onSubmit, teamId }: TaskFormProps) {
   const router = useRouter();
   const { user } = useUser();
   const isManager = user?.role === "manager";
@@ -90,6 +93,7 @@ export function TaskForm({ mode, initialData, onSubmit }: TaskFormProps) {
   );
   const [blockerReason, setBlockerReason] = useState(initialData?.blockerReason ?? "");
   const [timeAllocation, setTimeAllocation] = useState<number>((initialData as any)?.timeAllocation ?? 0);
+  const [bucketId, setBucketId] = useState<string | null>(initialData?.bucketId ?? null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
@@ -120,6 +124,7 @@ export function TaskForm({ mode, initialData, onSubmit }: TaskFormProps) {
           status,
           timeAllocation: isBoulder ? timeAllocation : undefined,
           assignedToId,
+          bucketId,
           ...(status === "blocked" ? { blockerReason: blockerReason.trim() } : {}),
         }),
       });
@@ -130,7 +135,7 @@ export function TaskForm({ mode, initialData, onSubmit }: TaskFormProps) {
       setErrors({ form: "Auto-save failed. Try again." });
       setSaveStatus("idle");
     }
-  }, [mode, initialData?.id, title, description, priority, effortEstimate, dueDate, status, assignedToId, blockerReason, timeAllocation, isBoulder]);
+  }, [mode, initialData?.id, title, description, priority, effortEstimate, dueDate, status, assignedToId, blockerReason, timeAllocation, bucketId, isBoulder]);
 
   // Trigger auto-save on field changes (edit mode only)
   useEffect(() => {
@@ -143,7 +148,7 @@ export function TaskForm({ mode, initialData, onSubmit }: TaskFormProps) {
     if (autoSaveRef.current) clearTimeout(autoSaveRef.current);
     autoSaveRef.current = setTimeout(autoSave, 800);
     return () => { if (autoSaveRef.current) clearTimeout(autoSaveRef.current); };
-  }, [title, description, priority, effortEstimate, dueDate, status, assignedToId, blockerReason, timeAllocation, mode, initialData?.id, autoSave]);
+  }, [title, description, priority, effortEstimate, dueDate, status, assignedToId, blockerReason, timeAllocation, bucketId, mode, initialData?.id, autoSave]);
 
   // Sync initial data if it changes (e.g. after fetch)
   useEffect(() => {
@@ -157,6 +162,7 @@ export function TaskForm({ mode, initialData, onSubmit }: TaskFormProps) {
     if (initialData?.assignedToId !== undefined)
       setAssignedToId(initialData.assignedToId ?? null);
     if (initialData?.blockerReason !== undefined) setBlockerReason(initialData.blockerReason ?? "");
+    if (initialData?.bucketId !== undefined) setBucketId(initialData.bucketId ?? null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialData?.id]);
 
@@ -185,6 +191,7 @@ export function TaskForm({ mode, initialData, onSubmit }: TaskFormProps) {
       ...(mode === "edit" ? { status } : (isBoulder ? { status: "boulder" } : {})),
       ...(isBoulder && { timeAllocation }),
       assignedToId,
+      bucketId,
       ...(showBlockerReason && { blockerReason: blockerReason.trim() }),
     };
 
@@ -396,6 +403,14 @@ export function TaskForm({ mode, initialData, onSubmit }: TaskFormProps) {
               ))}
             </SelectContent>
           </Select>
+        </div>
+      )}
+
+      {/* Bucket */}
+      {teamId && (
+        <div className="space-y-1.5">
+          <Label>Bucket</Label>
+          <BucketSelect teamId={teamId} value={bucketId} onChange={setBucketId} />
         </div>
       )}
 
