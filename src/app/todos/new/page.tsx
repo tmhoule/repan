@@ -3,19 +3,27 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useSWRConfig } from "swr";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CelebrationBurst, useCelebration } from "@/components/gamification/celebration";
+import { PointsPopup } from "@/components/gamification/points-popup";
+import { useUser } from "@/components/user-context";
 
 export default function NewTodoPage() {
   const router = useRouter();
+  const { user } = useUser();
+  const { mutate } = useSWRConfig();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [showPoints, setShowPoints] = useState(false);
+  const { celebrationRef, triggerCelebration } = useCelebration();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,16 +40,23 @@ export default function NewTodoPage() {
         body: JSON.stringify({ title: title.trim(), description: description.trim() || null }),
       });
       if (!res.ok) throw new Error("Failed to create to do");
-      router.push("/tasks");
+      triggerCelebration();
+      setShowPoints(true);
+      if (user) {
+        mutate(`/api/points?userId=${user.id}`);
+      }
+      setTimeout(() => router.push("/tasks"), 800);
     } catch {
       setError("Something went wrong. Please try again.");
-    } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-6 space-y-6">
+    <div className="mx-auto max-w-lg px-4 py-6 space-y-6 relative">
+      <CelebrationBurst ref={celebrationRef} />
+      <PointsPopup points={1} show={showPoints} />
+
       <div className="space-y-2">
         <Link href="/tasks">
           <Button variant="ghost" size="sm" className="gap-1.5 -ml-2 text-muted-foreground hover:text-foreground">

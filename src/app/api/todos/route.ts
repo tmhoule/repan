@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireSession, handleApiError, requireTeam } from "@/lib/session";
+import { awardAction } from "@/lib/gamification";
 
 export async function GET() {
   try {
@@ -35,6 +36,8 @@ export async function POST(request: NextRequest) {
       },
       select: { id: true, title: true, description: true, createdAt: true },
     });
+    try { await awardAction(user.id, { action: "create_todo" }); } catch {}
+
     return NextResponse.json(todo, { status: 201 });
   } catch (error) {
     return handleApiError(error);

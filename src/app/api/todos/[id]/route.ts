@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireSession, handleApiError } from "@/lib/session";
+import { awardAction } from "@/lib/gamification";
 
 export async function GET(
   request: NextRequest,
@@ -59,6 +60,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
     await prisma.todo.delete({ where: { id } });
+    try { await awardAction(user.id, { action: "complete_todo" }); } catch {}
     return NextResponse.json({ success: true });
   } catch (error) {
     return handleApiError(error);

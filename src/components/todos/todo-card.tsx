@@ -2,8 +2,12 @@
 
 import { useState, useCallback } from "react";
 import Link from "next/link";
+import { useSWRConfig } from "swr";
 import { CheckCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { CelebrationBurst, useCelebration } from "@/components/gamification/celebration";
+import { PointsPopup } from "@/components/gamification/points-popup";
+import { useUser } from "@/components/user-context";
 import { toast } from "sonner";
 
 interface Todo {
@@ -19,31 +23,46 @@ interface TodoCardProps {
 }
 
 export function TodoCard({ todo, onDone }: TodoCardProps) {
+  const { user } = useUser();
+  const { mutate } = useSWRConfig();
   const [deleting, setDeleting] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const [showPoints, setShowPoints] = useState(false);
+  const { celebrationRef, triggerCelebration } = useCelebration();
 
   const handleDone = useCallback(async () => {
     setDeleting(true);
     try {
       const res = await fetch(`/api/todos/${todo.id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed");
-      setDismissed(true);
-      setTimeout(() => onDone(), 300);
+      triggerCelebration();
+      setShowPoints(true);
+      setTimeout(() => setShowPoints(false), 1200);
+      if (user) {
+        mutate(`/api/points?userId=${user.id}`);
+      }
+      setTimeout(() => {
+        setDismissed(true);
+        setTimeout(() => onDone(), 300);
+      }, 600);
     } catch {
       toast.error("Failed to complete to do");
       setDeleting(false);
     }
-  }, [todo.id, onDone]);
+  }, [todo.id, onDone, triggerCelebration, user, mutate]);
 
   return (
     <div
-      className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2 transition-all duration-300"
+      className="relative flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2 transition-all duration-300"
       style={
         dismissed
           ? { opacity: 0, transform: "translateX(20px)", maxHeight: 0, marginBottom: 0, padding: 0, overflow: "hidden" }
           : undefined
       }
     >
+      <CelebrationBurst ref={celebrationRef} />
+      <PointsPopup points={1} show={showPoints} />
+
       <div className="flex-1 min-w-0">
         <Link
           href={`/todos/${todo.id}`}
