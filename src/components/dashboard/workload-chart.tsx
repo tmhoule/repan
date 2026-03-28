@@ -161,10 +161,10 @@ export function WorkloadChart({ data }: WorkloadChartProps) {
                 content={() => (
                   <div className="flex items-center justify-center gap-4 pt-2 text-[11px] text-zinc-500">
                     {[
+                      { label: "Boulder", color: "#8B5CF6" },
                       { label: "High (60%)", color: "#dc2626" },
                       { label: "Med (35%)", color: "#f59e0b" },
                       { label: "Low (10%)", color: "#166534" },
-                      { label: "Boulder", color: "#8B5CF6" },
                     ].map((item) => (
                       <span key={item.label} className="flex items-center gap-1.5">
                         <span className="inline-block size-2 rounded-sm" style={{ backgroundColor: item.color }} />
@@ -174,10 +174,10 @@ export function WorkloadChart({ data }: WorkloadChartProps) {
                   </div>
                 )}
               />
+              <Bar dataKey="Boulder" stackId="a" fill="#8B5CF6" radius={[0, 0, 0, 0]} />
               <Bar dataKey="High" stackId="a" fill="#dc2626" radius={[0, 0, 0, 0]} />
               <Bar dataKey="Medium" stackId="a" fill="#f59e0b" radius={[0, 0, 0, 0]} />
-              <Bar dataKey="Low" stackId="a" fill="#166534" radius={[0, 0, 0, 0]} />
-              <Bar dataKey="Boulder" stackId="a" fill="#8B5CF6" radius={[2, 2, 0, 0]} />
+              <Bar dataKey="Low" stackId="a" fill="#166534" radius={[2, 2, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         )}
