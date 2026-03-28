@@ -7,6 +7,7 @@ import { Plus, ClipboardList, Package, ChevronDown, ChevronRight, CheckCircle2 }
 import { BucketFilterBar } from "@/components/buckets/bucket-filter-bar";
 import { Button } from "@/components/ui/button";
 import { TaskCard } from "@/components/tasks/task-card";
+import { TodoCard } from "@/components/todos/todo-card";
 
 import { PointsSummary } from "@/components/gamification/points-summary";
 import { BacklogSummary } from "@/components/backlog/backlog-summary";
@@ -32,6 +33,10 @@ interface Task {
 
 export default function MyTasksPage() {
   const { data, isLoading, mutate } = useSWR<{ tasks: Task[] }>("/api/tasks");
+  const { data: todosData, mutate: mutateTodos } = useSWR<{
+    todos: { id: string; title: string; description: string | null; createdAt: string }[];
+  }>("/api/todos");
+  const todos = todosData?.todos ?? [];
 
   const tasks = data?.tasks ?? [];
   const boulderTasks = tasks.filter((t) => t.status === "boulder");
@@ -53,6 +58,12 @@ export default function MyTasksPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Link href="/todos/new">
+            <Button variant="outline" className="gap-2">
+              <Plus className="size-4" />
+              Create To Do
+            </Button>
+          </Link>
           <Link href="/tasks/new?type=boulder">
             <Button variant="outline" className="gap-2 border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-400 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-950">
               <Plus className="size-4" />
@@ -108,6 +119,15 @@ export default function MyTasksPage() {
             </div>
           ) : (
             <p className="text-sm text-muted-foreground text-center py-6">No active tasks</p>
+          )}
+
+          {/* To Dos */}
+          {todos.length > 0 && (
+            <div className="space-y-1.5">
+              {todos.map((todo) => (
+                <TodoCard key={todo.id} todo={todo} onDone={() => mutateTodos()} />
+              ))}
+            </div>
           )}
 
           {/* Boulders section */}
