@@ -39,14 +39,57 @@ export async function GET() {
     prisma.task.count({ where: { assignedToId: null, archivedAt: null, teamId, createdAt: { lte: oneWeekAgo } } }),
   ]);
 
+  // 30-day historical tasks for rolling average (completed + currently active)
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000);
+  const historicalTasks = await prisma.task.findMany({
+    where: {
+      teamId,
+      archivedAt: null,
+      OR: [
+        { status: { not: "done" } },
+        { status: "done", completedAt: { gte: thirtyDaysAgo } },
+      ],
+    },
+    select: { assignedToId: true, priority: true, status: true, timeAllocation: true, createdAt: true, completedAt: true },
+  });
+
   const workload = teamUsers.map((u) => {
     const userTasks = tasks.filter((t) => t.assignedTo?.id === u.id && t.status !== "boulder");
+
+    // Calculate current workload %
+    const currentHigh = userTasks.filter(t => t.priority === "high").length * 60;
+    const currentMed = userTasks.filter(t => t.priority === "medium").length * 35;
+    const currentLow = userTasks.filter(t => t.priority === "low").length * 10;
+    const currentBoulder = tasks.filter(t => t.assignedTo?.id === u.id && t.status === "boulder").reduce((sum, t) => sum + (t.timeAllocation ?? 0), 0);
+    const currentTotal = currentHigh + currentMed + currentLow + currentBoulder;
+
+    // 30-day rolling average: sample workload at each day over the last 30 days
+    // For each day, count tasks that were active on that day (created before, not completed before)
+    let totalDailyLoad = 0;
+    const userHistorical = historicalTasks.filter((t) => t.assignedToId === u.id);
+    for (let d = 0; d < 30; d++) {
+      const day = new Date(Date.now() - d * 86400000);
+      let dayLoad = 0;
+      for (const t of userHistorical) {
+        if (t.createdAt > day) continue;
+        if (t.status === "done" && t.completedAt && t.completedAt < day) continue;
+        if (t.status === "boulder") {
+          dayLoad += t.timeAllocation ?? 0;
+        } else {
+          dayLoad += t.priority === "high" ? 60 : t.priority === "medium" ? 35 : 10;
+        }
+      }
+      totalDailyLoad += dayLoad;
+    }
+    const avg30d = Math.round(totalDailyLoad / 30);
+
     return {
       user: u, taskCount: userTasks.length,
       byPriority: { high: userTasks.filter(t => t.priority === "high").length, medium: userTasks.filter(t => t.priority === "medium").length, low: userTasks.filter(t => t.priority === "low").length },
       tasks: userTasks.map(t => ({ title: t.title, priority: t.priority })),
       boulders: tasks.filter(t => t.assignedTo?.id === u.id && t.status === "boulder").map(t => ({ title: t.title, timeAllocation: t.timeAllocation ?? 0 })),
-      boulderAllocation: tasks.filter(t => t.assignedTo?.id === u.id && t.status === "boulder").reduce((sum, t) => sum + (t.timeAllocation ?? 0), 0),
+      boulderAllocation: currentBoulder,
+      avg30d,
     };
   });
 
