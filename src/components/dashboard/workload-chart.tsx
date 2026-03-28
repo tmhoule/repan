@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   BarChart,
   Bar,
@@ -70,9 +71,36 @@ const CustomTooltip = ({
         <p className="text-muted-foreground">No active tasks</p>
       )}
 
-      {boulders.length > 0 && (
-        <div className="border-t border-border mt-1.5 pt-1.5">
-          <p className="text-muted-foreground mb-1">Boulders</p>
+    </div>
+  );
+};
+
+function BoulderRow({
+  user,
+  boulders,
+  allocation,
+}: {
+  user: { id: string; name: string };
+  boulders: Array<{ title: string; timeAllocation: number }>;
+  allocation: number;
+}) {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <div
+      className="relative flex items-center gap-3"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <span className="text-xs text-muted-foreground w-16 truncate">{user.name.split(" ")[0]}</span>
+      <div className="flex-1 h-3 rounded-full bg-muted overflow-hidden">
+        <div className="h-full rounded-full bg-purple-500" style={{ width: `${allocation}%` }} />
+      </div>
+      <span className="text-xs font-semibold text-purple-400 tabular-nums w-10 text-right">{allocation}%</span>
+
+      {hovered && boulders.length > 0 && (
+        <div className="absolute bottom-full left-16 mb-2 z-50 rounded-lg border border-border bg-card px-3 py-2 shadow-md text-xs max-w-[260px]">
+          <p className="font-semibold mb-1.5">{user.name.split(" ")[0]}&apos;s Boulders</p>
           {boulders.map((b) => (
             <div key={b.title} className="flex items-start gap-2 mb-0.5">
               <span className="inline-block h-2 w-2 rounded-sm mt-0.5 shrink-0" style={{ backgroundColor: "#8B5CF6" }} />
@@ -84,7 +112,7 @@ const CustomTooltip = ({
       )}
     </div>
   );
-};
+}
 
 export function WorkloadChart({ data }: WorkloadChartProps) {
   const chartData = data.map((d) => ({
@@ -168,21 +196,7 @@ export function WorkloadChart({ data }: WorkloadChartProps) {
             </p>
             <div className="space-y-2">
               {data.filter((d) => (d.boulderAllocation ?? 0) > 0).map((d) => (
-                <div key={d.user.id} className="flex items-center gap-3">
-                  <span className="text-xs text-muted-foreground w-16 truncate">{d.user.name.split(" ")[0]}</span>
-                  <div
-                    className="flex-1 h-3 rounded-full bg-muted overflow-hidden"
-                    title={d.boulders?.map((b) => `${b.title} (${b.timeAllocation}%)`).join(", ")}
-                  >
-                    <div
-                      className="h-full rounded-full bg-purple-500"
-                      style={{ width: `${d.boulderAllocation}%` }}
-                    />
-                  </div>
-                  <span className="text-xs font-semibold text-purple-400 tabular-nums w-10 text-right">
-                    {d.boulderAllocation}%
-                  </span>
-                </div>
+                <BoulderRow key={d.user.id} user={d.user} boulders={d.boulders ?? []} allocation={d.boulderAllocation ?? 0} />
               ))}
             </div>
           </div>
