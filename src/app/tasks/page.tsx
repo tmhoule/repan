@@ -4,8 +4,7 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import useSWR, { useSWRConfig } from "swr";
 import { Plus, ClipboardList, Package, ChevronDown, ChevronRight, CheckCircle2 } from "lucide-react";
-import { BUCKET_COLORS, type BucketColorKey } from "@/lib/bucket-colors";
-import { cn } from "@/lib/utils";
+import { BucketFilterBar } from "@/components/buckets/bucket-filter-bar";
 import { Button } from "@/components/ui/button";
 import { TaskCard } from "@/components/tasks/task-card";
 import { TaskFilters, TaskFiltersState } from "@/components/tasks/task-filters";
@@ -29,7 +28,6 @@ interface Task {
   blockerReason?: string | null;
   createdBy: { id: string; name: string; avatarColor: string };
   assignedTo?: { id: string; name: string; avatarColor: string } | null;
-  bucket?: { id: string; name: string; colorKey: string } | null;
 }
 
 export default function MyTasksPage() {
@@ -58,41 +56,6 @@ export default function MyTasksPage() {
   const completedTasks = tasks.filter((t) => t.status === "done");
   const totalBoulderAllocation = boulderTasks.reduce((sum, t) => sum + (t.timeAllocation ?? 0), 0);
   const [showCompleted, setShowCompleted] = useState(false);
-  const [collapsedBuckets, setCollapsedBuckets] = useState<Set<string>>(new Set());
-
-  const toggleBucket = (bucketId: string) => {
-    setCollapsedBuckets((prev) => {
-      const next = new Set(prev);
-      if (next.has(bucketId)) next.delete(bucketId);
-      else next.add(bucketId);
-      return next;
-    });
-  };
-
-  // Group active tasks by bucket
-  const activeTaskGroups = useMemo(() => {
-    const uncategorized = activeTasks.filter((t) => !t.bucket);
-    const byBucket = new Map<string, { bucket: Task["bucket"]; tasks: Task[] }>();
-    for (const task of activeTasks) {
-      if (!task.bucket) continue;
-      const existing = byBucket.get(task.bucket.id);
-      if (existing) {
-        existing.tasks.push(task);
-      } else {
-        byBucket.set(task.bucket.id, { bucket: task.bucket, tasks: [task] });
-      }
-    }
-    const groups: { id: string; name: string; colorKey: string | null; tasks: Task[] }[] = [];
-    if (uncategorized.length > 0) {
-      groups.push({ id: "uncategorized", name: "Uncategorized", colorKey: null, tasks: uncategorized });
-    }
-    for (const [bucketId, { bucket, tasks: bucketTasks }] of byBucket) {
-      groups.push({ id: bucketId, name: bucket!.name, colorKey: bucket!.colorKey, tasks: bucketTasks });
-    }
-    return groups;
-  }, [activeTasks]);
-
-  const hasBuckets = activeTasks.some((t) => t.bucket);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 space-y-6">
@@ -170,53 +133,13 @@ export default function MyTasksPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {/* Active tasks — grouped by bucket if buckets exist */}
+          {/* Active tasks */}
           {activeTasks.length > 0 ? (
-            hasBuckets ? (
-              <div className="space-y-4">
-                {activeTaskGroups.map((group) => {
-                  const isCollapsed = collapsedBuckets.has(group.id);
-                  const color = group.colorKey ? BUCKET_COLORS[group.colorKey as BucketColorKey] : null;
-                  return (
-                    <div key={group.id}>
-                      <button
-                        onClick={() => toggleBucket(group.id)}
-                        className="flex items-center gap-2 w-full py-1.5 text-left mb-2"
-                      >
-                        {isCollapsed ? (
-                          <ChevronRight className="size-4 text-muted-foreground" />
-                        ) : (
-                          <ChevronDown className="size-4 text-muted-foreground" />
-                        )}
-                        <span
-                          className={cn(
-                            "size-2.5 rounded-full shrink-0",
-                            color?.dotColor ?? "bg-gray-400"
-                          )}
-                        />
-                        <span className="text-sm font-semibold">{group.name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {group.tasks.length} task{group.tasks.length !== 1 ? "s" : ""}
-                        </span>
-                      </button>
-                      {!isCollapsed && (
-                        <div className="grid gap-3 sm:grid-cols-1 md:grid-cols-2 pl-4">
-                          {group.tasks.map((task) => (
-                            <TaskCard key={task.id} task={task} onUpdate={() => mutate()} />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="grid gap-3 sm:grid-cols-1 md:grid-cols-2">
-                {activeTasks.map((task) => (
-                  <TaskCard key={task.id} task={task} onUpdate={() => mutate()} />
-                ))}
-              </div>
-            )
+            <div className="grid gap-3 sm:grid-cols-1 md:grid-cols-2">
+              {activeTasks.map((task) => (
+                <TaskCard key={task.id} task={task} onUpdate={() => mutate()} />
+              ))}
+            </div>
           ) : (
             <p className="text-sm text-muted-foreground text-center py-6">No active tasks</p>
           )}
@@ -275,14 +198,30 @@ export default function MyTasksPage() {
 
 function BacklogSection() {
   const { mutate: mutateGlobal } = useSWRConfig();
+  const [selectedBucket, setSelectedBucket] = useState<string | null>(null);
+
   const { data, isLoading } = useSWR<{
     tasks: any[];
     health: { totalItems: number; totalEffort: number; estimatedWeeks: number | null; trend: "growing" | "shrinking" | "stable" };
     weeklyThroughput: number;
   }>("/api/backlog");
 
+  const { data: bucketsData } = useSWR<{
+    buckets: { id: string; name: string; colorKey: string }[];
+  }>("/api/buckets");
+
   const backlogTasks = data?.tasks ?? [];
   const health = data?.health;
+  const buckets = bucketsData?.buckets ?? [];
+
+  const uncategorizedCount = backlogTasks.filter((t: any) => !t.bucket).length;
+  const filteredTasks =
+    selectedBucket === null
+      ? backlogTasks
+      : selectedBucket === "uncategorized"
+        ? backlogTasks.filter((t: any) => !t.bucket)
+        : backlogTasks.filter((t: any) => t.bucket?.id === selectedBucket);
+  const showGrouped = selectedBucket === null && buckets.length > 0;
 
   return (
     <div className="space-y-4">
@@ -295,19 +234,30 @@ function BacklogSection() {
 
       {health && <BacklogSummary health={health} weeklyThroughput={data?.weeklyThroughput ?? 0} />}
 
+      {buckets.length > 0 && (
+        <BucketFilterBar
+          buckets={buckets}
+          selected={selectedBucket}
+          onSelect={setSelectedBucket}
+          uncategorizedCount={uncategorizedCount}
+        />
+      )}
+
       {isLoading ? (
         <div className="space-y-2">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="h-16 rounded-xl bg-muted/50 animate-pulse" />
           ))}
         </div>
-      ) : backlogTasks.length === 0 ? (
+      ) : filteredTasks.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border py-12 text-center">
           <Package className="size-10 text-muted-foreground/40" />
-          <p className="text-sm text-muted-foreground">Backlog is empty</p>
+          <p className="text-sm text-muted-foreground">
+            {backlogTasks.length === 0 ? "Backlog is empty" : "No tasks in this bucket"}
+          </p>
         </div>
       ) : (
-        <BacklogList tasks={backlogTasks} onMutate={() => { mutateGlobal("/api/backlog"); mutateGlobal("/api/tasks"); }} />
+        <BacklogList tasks={filteredTasks} onMutate={() => { mutateGlobal("/api/backlog"); mutateGlobal("/api/tasks"); }} groupByBucket={showGrouped} />
       )}
     </div>
   );
