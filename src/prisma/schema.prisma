@@ -78,6 +78,7 @@ model User {
   userAwards      UserAward[]
   streaks         Streak[]
   teamMemberships TeamMembership[]
+  todos           Todo[]
 
   @@map("users")
 }
@@ -90,6 +91,7 @@ model Team {
   memberships TeamMembership[]
   tasks       Task[]
   buckets     Bucket[]
+  todos       Todo[]
 
   @@map("teams")
 }
@@ -121,6 +123,21 @@ model Bucket {
 
   @@unique([name, teamId])
   @@map("buckets")
+}
+
+model Todo {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  userId      String   @map("user_id")
+  teamId      String   @map("team_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+  team Team @relation(fields: [teamId], references: [id])
+
+  @@map("todos")
 }
 
 model Task {
