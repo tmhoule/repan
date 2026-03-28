@@ -16,6 +16,7 @@ interface WorkloadUser {
   user: { id: string; name: string; avatarColor: string };
   taskCount: number;
   byPriority: { high: number; medium: number; low: number };
+  tasks?: Array<{ title: string; priority: string }>;
   boulders?: Array<{ title: string; timeAllocation: number }>;
   boulderAllocation?: number;
 }
@@ -24,41 +25,61 @@ interface WorkloadChartProps {
   data: WorkloadUser[];
 }
 
+const PRIORITY_COLORS: Record<string, string> = { high: "#dc2626", medium: "#f59e0b", low: "#166534" };
+const PRIORITY_ORDER = ["high", "medium", "low"] as const;
+
 const CustomTooltip = ({
   active,
   payload,
   label,
 }: {
   active?: boolean;
-  payload?: Array<{ name: string; value: number; color: string; dataKey?: string }>;
+  payload?: Array<{ name: string; value: number; color: string; dataKey?: string; payload?: any }>;
   label?: string;
 }) => {
   if (!active || !payload?.length) return null;
-  const taskEntries = payload.filter((p) => p.dataKey !== "boulderAllocation");
-  const boulderEntry = payload.find((p) => p.dataKey === "boulderAllocation");
-  const total = taskEntries.reduce((sum, p) => sum + p.value, 0);
+  const row = payload[0]?.payload;
+  const tasks: Array<{ title: string; priority: string }> = row?._tasks ?? [];
+  const boulders: Array<{ title: string; timeAllocation: number }> = row?._boulders ?? [];
+
   return (
-    <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-md text-xs">
+    <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-md text-xs max-w-[280px]">
       <p className="font-semibold mb-1.5">{label}</p>
-      {taskEntries.map((p) => (
-        <div key={p.name} className="flex items-center gap-2 mb-0.5">
-          <span
-            className="inline-block h-2 w-2 rounded-sm"
-            style={{ backgroundColor: p.color }}
-          />
-          <span className="text-muted-foreground capitalize">{p.name}:</span>
-          <span className="font-medium">{p.value}</span>
-        </div>
-      ))}
-      <div className="border-t border-border mt-1.5 pt-1 flex justify-between gap-4">
-        <span className="text-muted-foreground">Total tasks</span>
-        <span className="font-semibold">{total}</span>
-      </div>
-      {boulderEntry && boulderEntry.value > 0 && (
-        <div className="border-t border-border mt-1 pt-1 flex items-center gap-2">
-          <span className="inline-block h-2 w-2 rounded-sm" style={{ backgroundColor: "#8B5CF6" }} />
-          <span className="text-muted-foreground">Boulder time:</span>
-          <span className="font-semibold text-purple-500">{boulderEntry.value}%</span>
+
+      {tasks.length > 0 ? (
+        <>
+          {PRIORITY_ORDER.map((priority) => {
+            const priorityTasks = tasks.filter((t) => t.priority === priority);
+            if (priorityTasks.length === 0) return null;
+            return priorityTasks.map((t) => (
+              <div key={t.title} className="flex items-start gap-2 mb-0.5">
+                <span
+                  className="inline-block h-2 w-2 rounded-sm mt-0.5 shrink-0"
+                  style={{ backgroundColor: PRIORITY_COLORS[priority] }}
+                />
+                <span className="text-foreground line-clamp-1">{t.title}</span>
+              </div>
+            ));
+          })}
+          <div className="border-t border-border mt-1.5 pt-1 flex justify-between gap-4">
+            <span className="text-muted-foreground">Total tasks</span>
+            <span className="font-semibold">{tasks.length}</span>
+          </div>
+        </>
+      ) : (
+        <p className="text-muted-foreground">No active tasks</p>
+      )}
+
+      {boulders.length > 0 && (
+        <div className="border-t border-border mt-1.5 pt-1.5">
+          <p className="text-muted-foreground mb-1">Boulders</p>
+          {boulders.map((b) => (
+            <div key={b.title} className="flex items-start gap-2 mb-0.5">
+              <span className="inline-block h-2 w-2 rounded-sm mt-0.5 shrink-0" style={{ backgroundColor: "#8B5CF6" }} />
+              <span className="text-foreground line-clamp-1 flex-1">{b.title}</span>
+              <span className="text-purple-400 shrink-0">{b.timeAllocation}%</span>
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -72,6 +93,8 @@ export function WorkloadChart({ data }: WorkloadChartProps) {
     Medium: d.byPriority.medium * 1.5,
     Low: d.byPriority.low * 0.5,
     boulderAllocation: d.boulderAllocation ?? 0,
+    _tasks: d.tasks ?? [],
+    _boulders: d.boulders ?? [],
   }));
 
   return (

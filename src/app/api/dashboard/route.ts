@@ -39,12 +39,16 @@ export async function GET() {
     prisma.task.count({ where: { assignedToId: null, archivedAt: null, teamId, createdAt: { lte: oneWeekAgo } } }),
   ]);
 
-  const workload = teamUsers.map((u) => ({
-    user: u, taskCount: tasks.filter((t) => t.assignedTo?.id === u.id && t.status !== "boulder").length,
-    byPriority: { high: tasks.filter(t => t.assignedTo?.id === u.id && t.status !== "boulder" && t.priority === "high").length, medium: tasks.filter(t => t.assignedTo?.id === u.id && t.status !== "boulder" && t.priority === "medium").length, low: tasks.filter(t => t.assignedTo?.id === u.id && t.status !== "boulder" && t.priority === "low").length },
-    boulders: tasks.filter(t => t.assignedTo?.id === u.id && t.status === "boulder").map(t => ({ title: t.title, timeAllocation: t.timeAllocation ?? 0 })),
-    boulderAllocation: tasks.filter(t => t.assignedTo?.id === u.id && t.status === "boulder").reduce((sum, t) => sum + (t.timeAllocation ?? 0), 0),
-  }));
+  const workload = teamUsers.map((u) => {
+    const userTasks = tasks.filter((t) => t.assignedTo?.id === u.id && t.status !== "boulder");
+    return {
+      user: u, taskCount: userTasks.length,
+      byPriority: { high: userTasks.filter(t => t.priority === "high").length, medium: userTasks.filter(t => t.priority === "medium").length, low: userTasks.filter(t => t.priority === "low").length },
+      tasks: userTasks.map(t => ({ title: t.title, priority: t.priority })),
+      boulders: tasks.filter(t => t.assignedTo?.id === u.id && t.status === "boulder").map(t => ({ title: t.title, timeAllocation: t.timeAllocation ?? 0 })),
+      boulderAllocation: tasks.filter(t => t.assignedTo?.id === u.id && t.status === "boulder").reduce((sum, t) => sum + (t.timeAllocation ?? 0), 0),
+    };
+  });
 
   // Build at-risk list with risk detection
   const allTaskIds = tasks.map((t) => t.id);
