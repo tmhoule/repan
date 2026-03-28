@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import useSWR, { useSWRConfig } from "swr";
 import { Plus, ClipboardList, Package, ChevronDown, ChevronRight, CheckCircle2 } from "lucide-react";
 import { BucketFilterBar } from "@/components/buckets/bucket-filter-bar";
 import { Button } from "@/components/ui/button";
 import { TaskCard } from "@/components/tasks/task-card";
-import { TaskFilters, TaskFiltersState } from "@/components/tasks/task-filters";
+
 import { PointsSummary } from "@/components/gamification/points-summary";
 import { BacklogSummary } from "@/components/backlog/backlog-summary";
 import { BacklogList } from "@/components/backlog/backlog-list";
@@ -31,24 +31,7 @@ interface Task {
 }
 
 export default function MyTasksPage() {
-  const [filters, setFilters] = useState<TaskFiltersState>({
-    statuses: [],
-    priority: "",
-    search: "",
-  });
-
-  // Build query string for API
-  const queryString = useMemo(() => {
-    const params = new URLSearchParams();
-    filters.statuses.forEach((s) => params.append("status", s));
-    if (filters.priority) params.set("priority", filters.priority);
-    if (filters.search) params.set("search", filters.search);
-    return params.toString();
-  }, [filters]);
-
-  const { data, isLoading, mutate } = useSWR<{ tasks: Task[] }>(
-    `/api/tasks${queryString ? `?${queryString}` : ""}`
-  );
+  const { data, isLoading, mutate } = useSWR<{ tasks: Task[] }>("/api/tasks");
 
   const tasks = data?.tasks ?? [];
   const boulderTasks = tasks.filter((t) => t.status === "boulder");
@@ -88,9 +71,6 @@ export default function MyTasksPage() {
       {/* Points & streaks summary */}
       <PointsSummary />
 
-      {/* Filters */}
-      <TaskFilters filters={filters} onChange={setFilters} />
-
       {/* Task list */}
       {isLoading ? (
         <div className="grid gap-3 sm:grid-cols-1 md:grid-cols-2">
@@ -105,29 +85,15 @@ export default function MyTasksPage() {
         <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-border py-16 text-center">
           <ClipboardList className="size-12 text-muted-foreground/40" />
           <div className="space-y-1">
-            <p className="font-medium text-muted-foreground">
-              {filters.statuses.length > 0 ||
-              filters.priority ||
-              filters.search
-                ? "No tasks match your filters"
-                : "No tasks yet"}
-            </p>
+            <p className="font-medium text-muted-foreground">No tasks yet</p>
             <p className="text-sm text-muted-foreground/70">
-              {filters.statuses.length > 0 ||
-              filters.priority ||
-              filters.search ? (
-                "Try adjusting your filters"
-              ) : (
-                <>
-                  Get started by{" "}
-                  <Link
-                    href="/tasks/new"
-                    className="text-primary hover:underline"
-                  >
-                    creating your first task
-                  </Link>
-                </>
-              )}
+              Get started by{" "}
+              <Link
+                href="/tasks/new"
+                className="text-primary hover:underline"
+              >
+                creating your first task
+              </Link>
             </p>
           </div>
         </div>
