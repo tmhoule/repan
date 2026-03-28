@@ -167,7 +167,7 @@ function WorkloadRow({
 
       {/* Tooltip */}
       {hovered && (
-        <div className="absolute bottom-full left-16 mb-2 z-50">
+        <div className="absolute top-full left-16 mt-1 z-50">
           <WorkloadTooltip
             user={user.name.split(" ")[0]}
             tasks={tasks}
