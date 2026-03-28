@@ -44,6 +44,7 @@ export default function MyTasksPage() {
   const completedTasks = tasks.filter((t) => t.status === "done");
   const totalBoulderAllocation = boulderTasks.reduce((sum, t) => sum + (t.timeAllocation ?? 0), 0);
   const [showCompleted, setShowCompleted] = useState(false);
+  const [showTodos, setShowTodos] = useState(true);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 space-y-6">
@@ -123,10 +124,21 @@ export default function MyTasksPage() {
 
           {/* To Dos */}
           {todos.length > 0 && (
-            <div className="space-y-1.5">
-              {todos.map((todo) => (
-                <TodoCard key={todo.id} todo={todo} onDone={() => mutateTodos()} />
-              ))}
+            <div>
+              <button
+                onClick={() => setShowTodos((v) => !v)}
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
+              >
+                {showTodos ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+                <span>{todos.length} to do{todos.length !== 1 ? "s" : ""}</span>
+              </button>
+              {showTodos && (
+                <div className="space-y-1.5 mt-1">
+                  {todos.map((todo) => (
+                    <TodoCard key={todo.id} todo={todo} onDone={() => mutateTodos()} />
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
