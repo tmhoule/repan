@@ -59,19 +59,19 @@ export default function MyTasksPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Link href="/todos/new">
+          <Link href="/todos/new" title="Quick personal reminder — no tracking or due dates">
             <Button variant="outline" className="gap-2">
               <Plus className="size-4" />
               Create To Do
             </Button>
           </Link>
-          <Link href="/tasks/new?type=boulder">
+          <Link href="/tasks/new?type=boulder" title="Ongoing effort with no end date — tracked by time allocation">
             <Button variant="outline" className="gap-2 border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-400 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-950">
               <Plus className="size-4" />
               Create Boulder
             </Button>
           </Link>
-          <Link href="/tasks/new">
+          <Link href="/tasks/new" title="Trackable work item with priority, effort, and due date">
             <Button className="gap-2">
               <Plus className="size-4" />
               Create Task
