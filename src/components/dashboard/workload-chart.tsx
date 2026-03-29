@@ -101,7 +101,7 @@ function WorkloadRow({
   maxValue,
   tasks,
   boulders,
-  isFirst,
+  isNearTop,
 }: {
   user: WorkloadUser["user"];
   segments: Array<{ color: string; value: number }>;
@@ -110,7 +110,7 @@ function WorkloadRow({
   maxValue: number;
   tasks: Array<{ title: string; priority: string }>;
   boulders: Array<{ title: string; timeAllocation: number }>;
-  isFirst: boolean;
+  isNearTop: boolean;
 }) {
   const [hovered, setHovered] = useState(false);
   const scale = (v: number) => `${(v / maxValue) * 100}%`;
@@ -169,7 +169,7 @@ function WorkloadRow({
 
       {/* Tooltip */}
       {hovered && (
-        <div className={`absolute left-16 z-50 ${isFirst ? "top-full mt-1" : "bottom-full mb-2"}`}>
+        <div className={`absolute left-16 z-50 ${isNearTop ? "top-full mt-1" : "bottom-full mb-2"}`}>
           <WorkloadTooltip
             user={user.name.split(" ")[0]}
             tasks={tasks}
@@ -222,7 +222,7 @@ export function WorkloadChart({ data }: WorkloadChartProps) {
         ) : (
           <div className="space-y-3">
             {rows.map((row, i) => (
-              <WorkloadRow key={row.user.id} maxValue={maxValue} isFirst={i === 0} {...row} />
+              <WorkloadRow key={row.user.id} maxValue={maxValue} isNearTop={i < 2} {...row} />
             ))}
 
             {/* Legend */}
