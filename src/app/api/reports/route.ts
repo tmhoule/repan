@@ -191,7 +191,19 @@ export async function GET(request: NextRequest) {
       ]);
       const userBoulders = boulders.filter((b) => b.assignedToId === u.id);
       const boulderAllocation = userBoulders.reduce((sum, b) => sum + (b.timeAllocation ?? 0), 0);
-      return { user: u, tasksCompleted: tasksDone, pointsEarned: points._sum.points || 0, boulderAllocation };
+
+      // Weekly completion counts for sparkline (last 8 weeks)
+      const weekly: number[] = [];
+      for (let i = 7; i >= 0; i--) {
+        const weekStart = new Date(now.getTime() - (i + 1) * 7 * 86400000);
+        const weekEnd = new Date(now.getTime() - i * 7 * 86400000);
+        const count = await prisma.task.count({
+          where: { assignedToId: u.id, status: "done", completedAt: { gte: weekStart, lt: weekEnd }, teamId },
+        });
+        weekly.push(count);
+      }
+
+      return { user: u, tasksCompleted: tasksDone, pointsEarned: points._sum.points || 0, boulderAllocation, weekly };
     }));
   }
 

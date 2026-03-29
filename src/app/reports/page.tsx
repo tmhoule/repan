@@ -33,6 +33,7 @@ interface ReportData {
     user: { id: string; name: string };
     tasksCompleted: number;
     pointsEarned: number;
+    weekly?: number[];
   }> | null;
   weeklyThroughput: Array<{ week: string; points: number }>;
   cycleTime?: Record<string, { avg: number | null; count: number }>;
