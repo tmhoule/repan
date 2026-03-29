@@ -162,6 +162,7 @@ model Task {
 
   timeAllocation  Int           @default(0) @map("time_allocation")
   bucketId        String?       @map("bucket_id")
+  triaged         Boolean       @default(false)
 
   bucket          Bucket?       @relation(fields: [bucketId], references: [id], onDelete: SetNull)
   createdBy       User          @relation("CreatedTasks", fields: [createdById], references: [id])

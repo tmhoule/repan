@@ -27,6 +27,7 @@ interface BacklogTask {
   createdBy: { id: string; name: string; avatarColor: string };
   forecast?: ForecastResult;
   bucket: { id: string; name: string; colorKey: string } | null;
+  triaged?: boolean;
 }
 
 interface BacklogHealth {
@@ -60,6 +61,7 @@ export default function BacklogPage() {
   const weeklyThroughput = data?.weeklyThroughput ?? 0;
 
   const uncategorizedCount = tasks.filter((t) => !t.bucket).length;
+  const untriagedCount = tasks.filter((t) => !t.triaged).length;
   const filteredTasks =
     selectedBucket === null
       ? tasks
@@ -77,7 +79,7 @@ export default function BacklogPage() {
           <p className="text-sm text-muted-foreground mt-0.5">
             {isLoading
               ? "Loading..."
-              : `${tasks.length} unclaimed task${tasks.length !== 1 ? "s" : ""} in the queue`}
+              : `${tasks.length} unclaimed task${tasks.length !== 1 ? "s" : ""} in the queue${untriagedCount > 0 ? ` \u00b7 ${untriagedCount} need triage` : ""}`}
           </p>
         </div>
         {isManager && teamId && (

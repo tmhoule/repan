@@ -87,7 +87,14 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       updateData.backlogPosition = body.assignedToId ? null : task.backlogPosition;
     }
     if (body.timeAllocation !== undefined) updateData.timeAllocation = body.timeAllocation;
-    if (body.bucketId !== undefined) updateData.bucketId = body.bucketId || null;
+    if (body.triaged !== undefined) updateData.triaged = Boolean(body.triaged);
+    if (body.bucketId !== undefined) {
+      updateData.bucketId = body.bucketId || null;
+      // Auto-triage when a bucket is assigned
+      if (body.bucketId && !task.triaged) {
+        updateData.triaged = true;
+      }
+    }
     if (body.status === "done" && task.status !== "done") {
       updateData.completedAt = new Date();
       updateData.percentComplete = 100;

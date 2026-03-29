@@ -31,6 +31,7 @@ interface BacklogTask {
   createdBy: { id: string; name: string; avatarColor: string };
   forecast?: ForecastResult;
   bucket: { id: string; name: string; colorKey: string } | null;
+  triaged?: boolean;
 }
 
 interface BacklogListProps {
@@ -100,12 +101,20 @@ function TaskRow({
 
       {/* Title */}
       <div className="flex-1 min-w-0">
-        <Link
-          href={`/tasks/${task.id}`}
-          className="text-sm font-medium leading-snug line-clamp-2 hover:text-primary hover:underline transition-colors"
-        >
-          {task.title}
-        </Link>
+        <div className="flex items-center gap-1.5">
+          {!task.triaged && (
+            <span
+              className="size-2 rounded-full bg-amber-400 shrink-0"
+              title="Needs triage"
+            />
+          )}
+          <Link
+            href={`/tasks/${task.id}`}
+            className="text-sm font-medium leading-snug line-clamp-2 hover:text-primary hover:underline transition-colors"
+          >
+            {task.title}
+          </Link>
+        </div>
         <p className="text-xs text-muted-foreground/60 mt-0.5">
           by {task.createdBy.name}
         </p>
