@@ -94,6 +94,14 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     } else if (body.status && body.status !== "done" && task.status === "done") {
       updateData.completedAt = null;
     }
+    // Set startedAt when task first moves to in_progress
+    if (body.status === "in_progress" && task.status !== "in_progress" && !task.startedAt) {
+      updateData.startedAt = new Date();
+    }
+    // Clear startedAt if moved back to not_started
+    if (body.status === "not_started") {
+      updateData.startedAt = null;
+    }
 
     const [updatedTask] = await Promise.all([
       prisma.task.update({
