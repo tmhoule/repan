@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ReportSummary } from "@/components/reports/report-summary";
 import { ThroughputTrend } from "@/components/reports/throughput-trend";
+import { CycleTimeCard } from "@/components/reports/cycle-time-card";
 import { ContributionTable } from "@/components/reports/contribution-table";
 
 interface ReportData {
@@ -28,6 +29,7 @@ interface ReportData {
     pointsEarned: number;
   }> | null;
   weeklyThroughput: Array<{ week: string; points: number }>;
+  cycleTime?: Record<string, { avg: number | null; count: number }>;
 }
 
 function SkeletonBlock({ className = "" }: { className?: string }) {
@@ -131,6 +133,7 @@ export default function ReportsPage() {
                     data={weeklyData.weeklyThroughput}
                     period="weekly"
                   />
+                  <CycleTimeCard data={weeklyData.cycleTime} />
                   <ContributionTable
                     data={weeklyData.perPerson}
                     isManager={isManager}
@@ -158,6 +161,7 @@ export default function ReportsPage() {
                     data={monthlyData.weeklyThroughput}
                     period="monthly"
                   />
+                  <CycleTimeCard data={monthlyData.cycleTime} />
                   <ContributionTable
                     data={monthlyData.perPerson}
                     isManager={isManager}

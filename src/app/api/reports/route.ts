@@ -51,6 +51,25 @@ export async function GET(request: NextRequest) {
     if (isBehindSchedule(t, now)) behindScheduleTasks++;
   }
 
+  // Cycle time: startedAt → completedAt, grouped by effort size
+  const cycleTimeByEffort: Record<string, { total: number; count: number }> = { small: { total: 0, count: 0 }, medium: { total: 0, count: 0 }, large: { total: 0, count: 0 } };
+  for (const t of completed) {
+    if (t.startedAt && t.completedAt) {
+      const days = (t.completedAt.getTime() - t.startedAt.getTime()) / 86400000;
+      const effort = t.effortEstimate as string;
+      if (cycleTimeByEffort[effort]) {
+        cycleTimeByEffort[effort].total += days;
+        cycleTimeByEffort[effort].count++;
+      }
+    }
+  }
+  const cycleTime = Object.fromEntries(
+    Object.entries(cycleTimeByEffort).map(([effort, { total, count }]) => [
+      effort,
+      { avg: count > 0 ? Math.round((total / count) * 10) / 10 : null, count },
+    ])
+  );
+
   const summary = { tasksCompleted: completed.length, tasksCreated: created, backlogSize: backlogCount, backlogDelta: backlogCount - previousBacklogCount, missedDeadlines, activeBoulderCount, totalBoulderAllocation, staleTasks, behindScheduleTasks, period };
 
   // Build weekly throughput series (last 8 weeks)
@@ -87,7 +106,7 @@ export async function GET(request: NextRequest) {
     }));
   }
 
-  return NextResponse.json({ summary, perPerson, weeklyThroughput });
+  return NextResponse.json({ summary, perPerson, weeklyThroughput, cycleTime });
   } catch (error) {
     return handleApiError(error);
   }
