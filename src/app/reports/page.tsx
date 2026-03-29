@@ -11,6 +11,7 @@ import { ReportSummary } from "@/components/reports/report-summary";
 import { ThroughputTrend } from "@/components/reports/throughput-trend";
 import { CycleTimeCard } from "@/components/reports/cycle-time-card";
 import { EstimationAccuracyCard } from "@/components/reports/estimation-accuracy-card";
+import { BlockerStatsCard } from "@/components/reports/blocker-stats-card";
 import { ContributionTable } from "@/components/reports/contribution-table";
 
 interface ReportData {
@@ -38,6 +39,12 @@ interface ReportData {
     small: { avgDays: number | null; count: number };
     medium: { avgDays: number | null; count: number; ratioToSmall: number | null };
     large: { avgDays: number | null; count: number; ratioToSmall: number | null };
+  };
+  blockerStats?: {
+    count: number;
+    avgDays: number | null;
+    maxDays: number | null;
+    currentlyBlocked: number;
   };
 }
 
@@ -144,6 +151,7 @@ export default function ReportsPage() {
                   />
                   <CycleTimeCard data={weeklyData.cycleTime} />
                   <EstimationAccuracyCard data={weeklyData.estimationAccuracy} />
+                  <BlockerStatsCard data={weeklyData.blockerStats} />
                   <ContributionTable
                     data={weeklyData.perPerson}
                     isManager={isManager}
@@ -173,6 +181,7 @@ export default function ReportsPage() {
                   />
                   <CycleTimeCard data={monthlyData.cycleTime} />
                   <EstimationAccuracyCard data={monthlyData.estimationAccuracy} />
+                  <BlockerStatsCard data={monthlyData.blockerStats} />
                   <ContributionTable
                     data={monthlyData.perPerson}
                     isManager={isManager}

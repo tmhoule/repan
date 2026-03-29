@@ -51,6 +51,50 @@ export async function GET(request: NextRequest) {
     if (isBehindSchedule(t, now)) behindScheduleTasks++;
   }
 
+  // Blocker duration: compute from activity log
+  const blockerActivities = await prisma.taskActivity.findMany({
+    where: {
+      task: { teamId },
+      type: { in: ["blocker_added", "blocker_resolved"] },
+      timestamp: { gte: since },
+    },
+    orderBy: { timestamp: "asc" },
+    select: { taskId: true, type: true, timestamp: true },
+  });
+
+  // Group by task and compute durations
+  const blockersByTask = new Map<string, Date[]>();
+  const resolvedByTask = new Map<string, Date[]>();
+  for (const a of blockerActivities) {
+    if (a.type === "blocker_added") {
+      const arr = blockersByTask.get(a.taskId) ?? [];
+      arr.push(a.timestamp);
+      blockersByTask.set(a.taskId, arr);
+    } else {
+      const arr = resolvedByTask.get(a.taskId) ?? [];
+      arr.push(a.timestamp);
+      resolvedByTask.set(a.taskId, arr);
+    }
+  }
+
+  const blockerDurations: number[] = [];
+  for (const [taskId, addedDates] of blockersByTask) {
+    const resolvedDates = resolvedByTask.get(taskId) ?? [];
+    for (let i = 0; i < addedDates.length; i++) {
+      const resolved = resolvedDates[i];
+      if (resolved) {
+        blockerDurations.push((resolved.getTime() - addedDates[i].getTime()) / 86400000);
+      }
+    }
+  }
+
+  const blockerStats = {
+    count: blockerDurations.length,
+    avgDays: blockerDurations.length > 0 ? Math.round((blockerDurations.reduce((s, d) => s + d, 0) / blockerDurations.length) * 10) / 10 : null,
+    maxDays: blockerDurations.length > 0 ? Math.round(Math.max(...blockerDurations) * 10) / 10 : null,
+    currentlyBlocked: activeTasks.filter((t) => t.status === "blocked").length,
+  };
+
   // Cycle time: startedAt → completedAt, grouped by effort size
   const cycleTimeByEffort: Record<string, { total: number; count: number }> = { small: { total: 0, count: 0 }, medium: { total: 0, count: 0 }, large: { total: 0, count: 0 } };
   for (const t of completed) {
@@ -129,7 +173,7 @@ export async function GET(request: NextRequest) {
     }));
   }
 
-  return NextResponse.json({ summary, perPerson, weeklyThroughput, cycleTime, estimationAccuracy });
+  return NextResponse.json({ summary, perPerson, weeklyThroughput, cycleTime, estimationAccuracy, blockerStats });
   } catch (error) {
     return handleApiError(error);
   }
