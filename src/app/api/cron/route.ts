@@ -4,8 +4,8 @@ import { createNotification } from "@/lib/notifications";
 import { getLastActivityMap, isStale, isBehindSchedule } from "@/lib/risk-detection";
 
 export async function POST(request: NextRequest) {
-  const secret = request.nextUrl.searchParams.get("secret");
-  if (secret !== process.env.CRON_SECRET) {
+  const secret = request.headers.get("authorization")?.replace("Bearer ", "");
+  if (!process.env.CRON_SECRET || !secret || secret !== process.env.CRON_SECRET) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
