@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireSession, handleApiError, requireTeam } from "@/lib/session";
 import { sortByUrgency } from "@/lib/urgency";
+import { validateTaskFields, clampTaskFields } from "@/lib/task-validation";
 import { createNotification } from "@/lib/notifications";
 
 export async function GET(request: NextRequest) {
@@ -61,6 +62,10 @@ export async function POST(request: NextRequest) {
     const user = await requireSession();
     const teamId = await requireTeam();
     const body = await request.json();
+
+    const validationError = validateTaskFields(body);
+    if (validationError) return NextResponse.json({ error: validationError }, { status: 400 });
+    clampTaskFields(body);
 
     let assignedToId = body.assignedToId !== undefined ? body.assignedToId : null;
     if (user.role === "staff") {

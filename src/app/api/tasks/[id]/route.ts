@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireSession, handleApiError, requireTeam } from "@/lib/session";
 import { canEditTask, canDeleteTask } from "@/lib/permissions";
+import { getTeamRole } from "@/lib/team-auth";
+import { validateTaskFields, clampTaskFields } from "@/lib/task-validation";
 import { createNotification } from "@/lib/notifications";
 import { awardAction, updateOnTimeStreak } from "@/lib/gamification";
 
@@ -36,7 +38,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const task = await prisma.task.findUnique({ where: { id } });
     if (!task) return NextResponse.json({ error: "Not found" }, { status: 404 });
     if (task.teamId !== teamId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    if (!canEditTask({ id: user.id, role: user.role }, { createdById: task.createdById, assignedToId: task.assignedToId })) {
+    const teamRole = await getTeamRole(user.id, teamId) ?? undefined;
+    if (!canEditTask({ id: user.id, role: user.role, teamRole }, { createdById: task.createdById, assignedToId: task.assignedToId })) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -66,6 +69,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       }
     }
 
+    const validationError = validateTaskFields(body);
+    if (validationError) return NextResponse.json({ error: validationError }, { status: 400 });
+    clampTaskFields(body);
+
     const updateData: any = {};
     if (body.title !== undefined) updateData.title = body.title;
     if (body.description !== undefined) updateData.description = body.description;
@@ -81,9 +88,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
     if (body.timeAllocation !== undefined) updateData.timeAllocation = body.timeAllocation;
     if (body.bucketId !== undefined) updateData.bucketId = body.bucketId || null;
-    if (body.status === "done") {
+    if (body.status === "done" && task.status !== "done") {
       updateData.completedAt = new Date();
       updateData.percentComplete = 100;
+    } else if (body.status && body.status !== "done" && task.status === "done") {
+      updateData.completedAt = null;
     }
 
     const [updatedTask] = await Promise.all([
@@ -135,12 +144,13 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const user = await requireSession();
     const teamId = await requireTeam();
     const { id } = await params;
-    if (!canDeleteTask({ id: user.id, role: user.role })) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
     const task = await prisma.task.findUnique({ where: { id } });
     if (!task) return NextResponse.json({ error: "Not found" }, { status: 404 });
     if (task.teamId !== teamId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    const deleteTeamRole = await getTeamRole(user.id, teamId) ?? undefined;
+    if (!canDeleteTask({ id: user.id, role: user.role, teamRole: deleteTeamRole })) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
     // Soft delete: archive the task instead of hard-deleting to preserve related records
     await prisma.task.update({ where: { id }, data: { archivedAt: new Date(), status: "done" } });
     return NextResponse.json({ success: true });
