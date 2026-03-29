@@ -38,6 +38,22 @@ export async function GET(request: NextRequest) {
       ? {}
       : { isActive: true };
 
+    if (allTeams) {
+      const usersWithTeams = await prisma.user.findMany({
+        where,
+        select: {
+          id: true, name: true, role: true, avatarColor: true, isActive: true, isSuperAdmin: true, createdAt: true,
+          teamMemberships: { select: { team: { select: { id: true, name: true } } } },
+        },
+        orderBy: { name: "asc" },
+      });
+      return NextResponse.json(usersWithTeams.map((u) => ({
+        id: u.id, name: u.name, role: u.role, avatarColor: u.avatarColor,
+        isActive: u.isActive, isSuperAdmin: u.isSuperAdmin, createdAt: u.createdAt,
+        teams: u.teamMemberships.map((m) => m.team),
+      })));
+    }
+
     const users = await prisma.user.findMany({
       where,
       select: { id: true, name: true, role: true, avatarColor: true, isActive: true, isSuperAdmin: true, createdAt: true },

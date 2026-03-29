@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { UserPlus, PlusCircle, Pencil, Archive, ArchiveRestore, Users, Trash2, Plus, Palette } from "lucide-react";
+import { TeamIcon } from "@/lib/team-icons";
 import { useUser } from "@/components/user-context";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +40,7 @@ interface UserRow {
   isActive: boolean;
   isSuperAdmin: boolean;
   createdAt: string;
+  teams?: { id: string; name: string }[];
 }
 
 interface AwardRow {
@@ -400,6 +402,7 @@ export default function AdminPage() {
                     <TableHeader>
                       <TableRow className="border-zinc-800 hover:bg-transparent">
                         <TableHead className="text-zinc-400 pl-4">Name</TableHead>
+                        <TableHead className="text-zinc-400">Team</TableHead>
                         <TableHead className="text-zinc-400">Role</TableHead>
                         <TableHead className="text-zinc-400">Status</TableHead>
                         <TableHead className="text-zinc-400">Created</TableHead>
@@ -428,6 +431,18 @@ export default function AdminPage() {
                                   You
                                 </Badge>
                               )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1.5">
+                              {(u.teams ?? []).map((t) => (
+                                <span key={t.id} title={t.name}>
+                                  <TeamIcon
+                                    teamName={t.name}
+                                    className="size-4 text-zinc-400"
+                                  />
+                                </span>
+                              ))}
                             </div>
                           </TableCell>
                           <TableCell>
