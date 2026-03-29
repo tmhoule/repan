@@ -26,6 +26,7 @@ const staffNavLinks = [
 
 const managerNavLinks = [
   { href: "/dashboard", label: "Dashboard" },
+  { href: "/standup", label: "Standup" },
   { href: "/reports", label: "Reports" },
   { href: "/history", label: "History" },
   { href: "/admin", label: "Admin" },
