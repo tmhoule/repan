@@ -10,6 +10,7 @@ import { BacklogHealth } from "@/components/dashboard/backlog-health";
 import { ThroughputChart } from "@/components/dashboard/throughput-chart";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { KeyProjects } from "@/components/dashboard/key-projects";
+import { RecentAchievements } from "@/components/dashboard/recent-achievements";
 
 type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "done";
 type TaskPriority = "high" | "medium" | "low";
@@ -54,6 +55,12 @@ interface DashboardData {
     timestamp: string;
     user: { name: string; avatarColor: string };
     task: { id: string; title: string };
+  }>;
+  recentBadges: Array<{
+    id: string;
+    earnedAt: string;
+    user: { id: string; name: string; avatarColor: string };
+    award: { name: string; icon: string; description: string };
   }>;
 }
 
@@ -143,6 +150,13 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
+
+        {/* Recent achievements (only shown when there are badges) */}
+        {data?.recentBadges && data.recentBadges.length > 0 && (
+          <div>
+            <RecentAchievements badges={data.recentBadges} />
+          </div>
+        )}
 
         {/* Bottom row: Activity feed (full width) */}
         <div>

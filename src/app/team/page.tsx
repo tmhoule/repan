@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { StreakFlame } from "@/components/gamification/streak-flame";
 import { StatusBadge } from "@/components/tasks/status-badge";
 import { PriorityBadge } from "@/components/tasks/priority-badge";
+import { resolveIcon } from "@/lib/badge-icons";
 
 interface UserSummary {
   id: string;
@@ -35,6 +36,12 @@ interface Streak {
   currentCount: number;
 }
 
+interface UserAwardEntry {
+  id: string;
+  earnedAt: string;
+  award: { name: string; icon: string; description: string };
+}
+
 interface UserDetail {
   id: string;
   name: string;
@@ -42,6 +49,7 @@ interface UserDetail {
   avatarColor: string;
   totalPoints: number;
   streaks: Streak[];
+  userAwards: UserAwardEntry[];
 }
 
 function getInitials(name: string): string {
@@ -100,6 +108,7 @@ function TeamMemberSection({ user }: { user: UserSummary }) {
   const streaks = detail?.streaks ?? [];
   const dailyStreak = streaks.find((s) => s.streakType === "daily_checkin");
   const totalPoints = detail?.totalPoints ?? 0;
+  const recentAwards = (detail?.userAwards ?? []).slice(0, 3);
 
   return (
     <div className="space-y-2">
@@ -155,6 +164,22 @@ function TeamMemberSection({ user }: { user: UserSummary }) {
               </span>
             )}
             {totalPoints > 0 && <span>★ {totalPoints} pts</span>}
+            {recentAwards.length > 0 && (
+              <span className="inline-flex items-center gap-1">
+                {recentAwards.map((ua) => (
+                  <span
+                    key={ua.id}
+                    className="inline-flex items-center gap-0.5 rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[11px] text-amber-500 dark:text-amber-400"
+                    title={`${ua.award.name} — ${ua.award.description}`}
+                  >
+                    <span className="text-xs leading-none" role="img" aria-hidden="true">
+                      {resolveIcon(ua.award.icon)}
+                    </span>
+                    {ua.award.name}
+                  </span>
+                ))}
+              </span>
+            )}
           </div>
         </div>
 

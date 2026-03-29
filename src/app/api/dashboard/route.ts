@@ -163,7 +163,21 @@ export async function GET() {
       };
     });
 
-  return NextResponse.json({ workload, atRisk, keyProjects, backlogHealth: health, weeklyThroughput: weeklyData, recentActivity });
+  // Recent badge achievements across the team (last 7 days)
+  const recentBadges = await prisma.userAward.findMany({
+    where: {
+      user: { teamMemberships: { some: { teamId } } },
+      earnedAt: { gte: new Date(Date.now() - 7 * 86400000) },
+    },
+    include: {
+      user: { select: { id: true, name: true, avatarColor: true } },
+      award: { select: { name: true, icon: true, description: true } },
+    },
+    orderBy: { earnedAt: "desc" },
+    take: 10,
+  });
+
+  return NextResponse.json({ workload, atRisk, keyProjects, backlogHealth: health, weeklyThroughput: weeklyData, recentActivity, recentBadges });
   } catch (error) {
     return handleApiError(error);
   }
