@@ -70,6 +70,17 @@ export async function GET(request: NextRequest) {
     ])
   );
 
+  // Estimation accuracy: compare actual cycle time ratios to expected ratios
+  // If estimates are calibrated, large should take ~5x small and medium ~3x small
+  const smallAvg = cycleTime.small?.avg ?? null;
+  const medAvg = cycleTime.medium?.avg ?? null;
+  const largeAvg = cycleTime.large?.avg ?? null;
+  const estimationAccuracy = {
+    small: { avgDays: smallAvg, count: cycleTimeByEffort.small.count },
+    medium: { avgDays: medAvg, count: cycleTimeByEffort.medium.count, ratioToSmall: smallAvg && medAvg ? Math.round((medAvg / smallAvg) * 10) / 10 : null },
+    large: { avgDays: largeAvg, count: cycleTimeByEffort.large.count, ratioToSmall: smallAvg && largeAvg ? Math.round((largeAvg / smallAvg) * 10) / 10 : null },
+  };
+
   // Previous period for comparison
   const prevStart = new Date(since.getTime() - daysBack * 86400000);
   const [prevCompleted, prevCreated] = await Promise.all([
@@ -118,7 +129,7 @@ export async function GET(request: NextRequest) {
     }));
   }
 
-  return NextResponse.json({ summary, perPerson, weeklyThroughput, cycleTime });
+  return NextResponse.json({ summary, perPerson, weeklyThroughput, cycleTime, estimationAccuracy });
   } catch (error) {
     return handleApiError(error);
   }

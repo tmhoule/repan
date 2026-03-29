@@ -10,6 +10,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ReportSummary } from "@/components/reports/report-summary";
 import { ThroughputTrend } from "@/components/reports/throughput-trend";
 import { CycleTimeCard } from "@/components/reports/cycle-time-card";
+import { EstimationAccuracyCard } from "@/components/reports/estimation-accuracy-card";
 import { ContributionTable } from "@/components/reports/contribution-table";
 
 interface ReportData {
@@ -33,6 +34,11 @@ interface ReportData {
   }> | null;
   weeklyThroughput: Array<{ week: string; points: number }>;
   cycleTime?: Record<string, { avg: number | null; count: number }>;
+  estimationAccuracy?: {
+    small: { avgDays: number | null; count: number };
+    medium: { avgDays: number | null; count: number; ratioToSmall: number | null };
+    large: { avgDays: number | null; count: number; ratioToSmall: number | null };
+  };
 }
 
 function SkeletonBlock({ className = "" }: { className?: string }) {
@@ -137,6 +143,7 @@ export default function ReportsPage() {
                     period="weekly"
                   />
                   <CycleTimeCard data={weeklyData.cycleTime} />
+                  <EstimationAccuracyCard data={weeklyData.estimationAccuracy} />
                   <ContributionTable
                     data={weeklyData.perPerson}
                     isManager={isManager}
@@ -165,6 +172,7 @@ export default function ReportsPage() {
                     period="monthly"
                   />
                   <CycleTimeCard data={monthlyData.cycleTime} />
+                  <EstimationAccuracyCard data={monthlyData.estimationAccuracy} />
                   <ContributionTable
                     data={monthlyData.perPerson}
                     isManager={isManager}
