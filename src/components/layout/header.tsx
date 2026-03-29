@@ -30,6 +30,7 @@ const managerNavLinks = [
   { href: "/reports", label: "Reports" },
   { href: "/history", label: "History" },
   { href: "/admin", label: "Admin" },
+  { href: "/capacity", label: "Capacity" },
 ];
 
 export function Header() {
