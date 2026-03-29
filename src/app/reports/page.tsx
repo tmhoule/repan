@@ -12,6 +12,7 @@ import { ThroughputTrend } from "@/components/reports/throughput-trend";
 import { CycleTimeCard } from "@/components/reports/cycle-time-card";
 import { EstimationAccuracyCard } from "@/components/reports/estimation-accuracy-card";
 import { BlockerStatsCard } from "@/components/reports/blocker-stats-card";
+import { BucketDistributionCard } from "@/components/reports/bucket-distribution-card";
 import { ContributionTable } from "@/components/reports/contribution-table";
 
 interface ReportData {
@@ -46,6 +47,11 @@ interface ReportData {
     maxDays: number | null;
     currentlyBlocked: number;
   };
+  bucketData?: Array<{
+    name: string;
+    colorKey: string | null;
+    count: number;
+  }>;
 }
 
 function SkeletonBlock({ className = "" }: { className?: string }) {
@@ -152,6 +158,7 @@ export default function ReportsPage() {
                   <CycleTimeCard data={weeklyData.cycleTime} />
                   <EstimationAccuracyCard data={weeklyData.estimationAccuracy} />
                   <BlockerStatsCard data={weeklyData.blockerStats} />
+                  <BucketDistributionCard data={weeklyData.bucketData} />
                   <ContributionTable
                     data={weeklyData.perPerson}
                     isManager={isManager}
@@ -182,6 +189,7 @@ export default function ReportsPage() {
                   <CycleTimeCard data={monthlyData.cycleTime} />
                   <EstimationAccuracyCard data={monthlyData.estimationAccuracy} />
                   <BlockerStatsCard data={monthlyData.blockerStats} />
+                  <BucketDistributionCard data={monthlyData.bucketData} />
                   <ContributionTable
                     data={monthlyData.perPerson}
                     isManager={isManager}

@@ -95,6 +95,28 @@ export async function GET(request: NextRequest) {
     currentlyBlocked: activeTasks.filter((t) => t.status === "blocked").length,
   };
 
+  // Bucket distribution: active + completed tasks by bucket
+  const bucketDistribution = await prisma.task.groupBy({
+    by: ["bucketId"],
+    where: { teamId, archivedAt: null, status: { not: "boulder" } },
+    _count: true,
+  });
+
+  const bucketIds = bucketDistribution.map((b) => b.bucketId).filter(Boolean) as string[];
+  const bucketDetails = bucketIds.length > 0
+    ? await prisma.bucket.findMany({
+        where: { id: { in: bucketIds } },
+        select: { id: true, name: true, colorKey: true },
+      })
+    : [];
+
+  const bucketMap = new Map(bucketDetails.map((b) => [b.id, b]));
+  const bucketData = bucketDistribution.map((b) => ({
+    name: b.bucketId ? (bucketMap.get(b.bucketId)?.name ?? "Unknown") : "Uncategorized",
+    colorKey: b.bucketId ? (bucketMap.get(b.bucketId)?.colorKey ?? null) : null,
+    count: b._count,
+  })).sort((a, b) => b.count - a.count);
+
   // Cycle time: startedAt → completedAt, grouped by effort size
   const cycleTimeByEffort: Record<string, { total: number; count: number }> = { small: { total: 0, count: 0 }, medium: { total: 0, count: 0 }, large: { total: 0, count: 0 } };
   for (const t of completed) {
@@ -173,7 +195,7 @@ export async function GET(request: NextRequest) {
     }));
   }
 
-  return NextResponse.json({ summary, perPerson, weeklyThroughput, cycleTime, estimationAccuracy, blockerStats });
+  return NextResponse.json({ summary, perPerson, weeklyThroughput, cycleTime, estimationAccuracy, blockerStats, bucketData });
   } catch (error) {
     return handleApiError(error);
   }
