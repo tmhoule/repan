@@ -22,6 +22,9 @@ interface ReportData {
     staleTasks?: number;
     behindScheduleTasks?: number;
     period: string;
+    prevTasksCompleted?: number;
+    prevTasksCreated?: number;
+    prevMissedDeadlines?: number;
   };
   perPerson: Array<{
     user: { id: string; name: string };

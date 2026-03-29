@@ -70,7 +70,19 @@ export async function GET(request: NextRequest) {
     ])
   );
 
-  const summary = { tasksCompleted: completed.length, tasksCreated: created, backlogSize: backlogCount, backlogDelta: backlogCount - previousBacklogCount, missedDeadlines, activeBoulderCount, totalBoulderAllocation, staleTasks, behindScheduleTasks, period };
+  // Previous period for comparison
+  const prevStart = new Date(since.getTime() - daysBack * 86400000);
+  const [prevCompleted, prevCreated] = await Promise.all([
+    prisma.task.count({ where: { status: "done", completedAt: { gte: prevStart, lt: since }, teamId } }),
+    prisma.task.count({ where: { createdAt: { gte: prevStart, lt: since }, teamId } }),
+  ]);
+  const prevCompletedTasks = await prisma.task.findMany({
+    where: { status: "done", completedAt: { gte: prevStart, lt: since }, teamId },
+    select: { dueDate: true, completedAt: true },
+  });
+  const prevMissedDeadlines = prevCompletedTasks.filter(t => t.dueDate && t.completedAt && t.completedAt > t.dueDate).length;
+
+  const summary = { tasksCompleted: completed.length, tasksCreated: created, backlogSize: backlogCount, backlogDelta: backlogCount - previousBacklogCount, missedDeadlines, activeBoulderCount, totalBoulderAllocation, staleTasks, behindScheduleTasks, period, prevTasksCompleted: prevCompleted, prevTasksCreated: prevCreated, prevMissedDeadlines };
 
   // Build weekly throughput series (last 8 weeks)
   const weeklyThroughput: { week: string; points: number }[] = [];
