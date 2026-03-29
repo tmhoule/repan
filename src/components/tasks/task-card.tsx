@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, KeyboardEvent } from "react";
+import { useState, useCallback, useEffect, useRef, KeyboardEvent } from "react";
 import Link from "next/link";
 import { useSWRConfig } from "swr";
 import { useUser } from "@/components/user-context";
@@ -98,6 +98,13 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
   const [currentTask, setCurrentTask] = useState(task);
   const [liveProgress, setLiveProgress] = useState(task.percentComplete);
   const [liveAllocation, setLiveAllocation] = useState(task.timeAllocation ?? 0);
+  // Re-sync from prop when SWR revalidates
+  useEffect(() => {
+    setCurrentTask(task);
+    setLiveProgress(task.percentComplete);
+    setLiveAllocation(task.timeAllocation ?? 0);
+  }, [task]);
+
   const isBoulder = currentTask.status === "boulder";
   const { celebrationRef, triggerCelebration } = useCelebration();
 
@@ -133,7 +140,7 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
     } catch (error) {
       console.error("Failed to mark task done:", error);
     }
-  }, [currentTask.status, patchTask, triggerCelebration]);
+  }, [currentTask.status, patchTask, triggerCelebration, user, mutate]);
 
   const handleStatusChange = useCallback(
     async (status: TaskStatus) => {

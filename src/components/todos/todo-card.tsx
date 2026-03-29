@@ -43,6 +43,7 @@ export function TodoCard({ todo, onDone }: TodoCardProps) {
       }
       setTimeout(() => {
         setDismissed(true);
+        setDeleting(false);
         setTimeout(() => onDone(), 300);
       }, 600);
     } catch {

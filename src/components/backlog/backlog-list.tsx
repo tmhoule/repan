@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { CheckCircle, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -164,9 +164,11 @@ export function BacklogList({ tasks, onMutate, groupByBucket }: BacklogListProps
   };
 
   // Keep in sync with props
-  if (tasks !== localTasks && !claimedId) {
-    setLocalTasks(tasks);
-  }
+  useEffect(() => {
+    if (!claimedId) {
+      setLocalTasks(tasks);
+    }
+  }, [tasks, claimedId]);
 
   const handleClaim = useCallback(
     async (taskId: string) => {
