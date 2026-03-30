@@ -61,12 +61,7 @@ export async function GET() {
   const workload = teamUsers.map((u) => {
     const userTasks = tasks.filter((t) => t.assignedTo?.id === u.id && t.status !== "boulder");
 
-    // Calculate current workload %
-    const currentHigh = userTasks.filter(t => t.priority === "high").length * team.weightHigh;
-    const currentMed = userTasks.filter(t => t.priority === "medium").length * team.weightMedium;
-    const currentLow = userTasks.filter(t => t.priority === "low").length * team.weightLow;
     const currentBoulder = tasks.filter(t => t.assignedTo?.id === u.id && t.status === "boulder").reduce((sum, t) => sum + (t.timeAllocation ?? 0), 0);
-    const currentTotal = currentHigh + currentMed + currentLow + currentBoulder;
 
     // 30-day rolling average: sample workload at each day over the last 30 days
     // For each day, count tasks that were active on that day (created before, not completed before)
