@@ -5,8 +5,6 @@ export type PointAction =
   | { action: "comment" }
   | { action: "resolve_blocker" }
   | { action: "claim_backlog" }
-  | { action: "create_todo" }
-  | { action: "complete_todo" }
   | { action: "streak_milestone"; streakCount: number };
 
 const COMPLETION_POINTS: Record<string, number> = { small: 10, medium: 15, large: 25 };
@@ -20,8 +18,6 @@ export function calculatePoints(input: PointAction): number {
     case "comment": return 1;
     case "resolve_blocker": return 5;
     case "claim_backlog": return 3;
-    case "create_todo": return 1;
-    case "complete_todo": return 1;
     case "streak_milestone": return STREAK_MILESTONES[input.streakCount] ?? 0;
   }
 }

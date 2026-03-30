@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import useSWRInfinite from "swr/infinite";
 import { MessageSquare, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -77,8 +76,7 @@ function formatValue(type: string, value: string | null): string {
   if (type === "progress_update") return `${value}%`;
   if (type === "due_date_change") {
     try {
-      const [y, m, d] = value.split("T")[0].split("-").map(Number);
-      return new Date(y, m - 1, d).toLocaleDateString(undefined, {
+      return new Date(value).toLocaleDateString(undefined, {
         month: "short",
         day: "numeric",
         year: "numeric",
@@ -141,20 +139,16 @@ function AvatarCircle({ user }: { user: ActivityUser }) {
   );
 }
 
-export function ActivityLog({ taskId, onMutateReady }: ActivityLogProps & { onMutateReady?: (mutate: () => void) => void }) {
+export function ActivityLog({ taskId }: ActivityLogProps) {
   const getKey = (pageIndex: number, previousPage: ActivityPage | null) => {
     if (previousPage && !previousPage.nextCursor) return null;
     if (pageIndex === 0) return `/api/tasks/${taskId}/activity`;
     return `/api/tasks/${taskId}/activity?cursor=${previousPage!.nextCursor}`;
   };
 
-  const { data, size, setSize, isLoading, mutate } = useSWRInfinite<ActivityPage>(getKey, {
+  const { data, size, setSize, isLoading } = useSWRInfinite<ActivityPage>(getKey, {
     revalidateFirstPage: true,
   });
-
-  useEffect(() => {
-    onMutateReady?.(() => { mutate(); });
-  }, [onMutateReady, mutate]);
 
   const pages = data ?? [];
   const allActivities = pages.flatMap((p) => p.activities);

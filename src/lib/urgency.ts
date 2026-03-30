@@ -2,7 +2,6 @@ type UrgencyInput = {
   priority: "high" | "medium" | "low";
   status: string;
   dueDate: Date | null;
-  createdAt: Date;
   effortEstimate?: "small" | "medium" | "large" | string;
 };
 
@@ -36,19 +35,10 @@ export function calculateUrgencyScore(task: UrgencyInput, now: Date = new Date()
     }
   }
 
-  // Backlog age modifier: tasks without due dates that have been sitting
-  // in the backlog get a gradual urgency bump so they don't rot forever.
-  // +1 per week aged, up to +10 (10 weeks). Only applies to tasks without due dates.
-  if (!task.dueDate && task.createdAt) {
-    const daysOld = Math.floor((now.getTime() - task.createdAt.getTime()) / 86400000);
-    const weeksOld = Math.floor(daysOld / 7);
-    score += Math.min(weeksOld, 10);
-  }
-
   return score;
 }
 
-export function sortByUrgency<T extends UrgencyInput>(tasks: T[], now: Date = new Date()): T[] {
+export function sortByUrgency<T extends UrgencyInput & { createdAt: Date }>(tasks: T[], now: Date = new Date()): T[] {
   return [...tasks].sort((a, b) => {
     const diff = calculateUrgencyScore(b, now) - calculateUrgencyScore(a, now);
     if (diff !== 0) return diff;

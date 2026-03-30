@@ -11,14 +11,11 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Sparkline } from "@/components/reports/sparkline";
 
 interface PersonRow {
   user: { id: string; name: string };
   tasksCompleted: number;
   pointsEarned: number;
-  boulderAllocation?: number;
-  weekly?: number[];
 }
 
 interface ContributionTableProps {
@@ -73,14 +70,8 @@ export function ContributionTable({ data, isManager }: ContributionTableProps) {
                 <TableHead className="text-zinc-400 text-right">
                   Tasks Completed
                 </TableHead>
-                <TableHead className="text-zinc-400 text-right">
+                <TableHead className="text-zinc-400 text-right pr-4">
                   Points Earned
-                </TableHead>
-                <TableHead className="text-zinc-400 text-right">
-                  Boulder %
-                </TableHead>
-                <TableHead className="text-zinc-400 text-center pr-4">
-                  Velocity (8w)
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -108,25 +99,13 @@ export function ContributionTable({ data, isManager }: ContributionTableProps) {
                   <TableCell className="text-right tabular-nums text-zinc-200">
                     {row.tasksCompleted}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">
+                  <TableCell className="text-right pr-4 tabular-nums">
                     <span className="inline-flex items-center gap-1">
                       <span className="text-amber-400 font-semibold">
                         {row.pointsEarned}
                       </span>
                       <span className="text-zinc-600 text-xs">pts</span>
                     </span>
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {(row.boulderAllocation ?? 0) > 0 ? (
-                      <span className="text-purple-400 font-semibold">{row.boulderAllocation}%</span>
-                    ) : (
-                      <span className="text-zinc-600">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-center pr-4">
-                    <div className="flex justify-center">
-                      <Sparkline data={row.weekly ?? []} />
-                    </div>
                   </TableCell>
                 </TableRow>
               ))}

@@ -38,7 +38,11 @@ COPY --from=builder /app/src/prisma ./src/prisma
 COPY --from=builder /app/src/scripts ./src/scripts
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 
-# Copy production dependencies (includes pg, prisma, generated client, etc.)
+# Copy generated Prisma Client
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+
+# Copy production dependencies (includes pg, prisma, etc.)
 COPY --from=prod-deps /app/node_modules ./node_modules
 
 # Copy entrypoint script

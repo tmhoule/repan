@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { useSWRConfig } from "swr";
 import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,13 +9,13 @@ import { Label } from "@/components/ui/label";
 
 interface CommentBoxProps {
   taskId: string;
-  onCommentPosted?: () => void;
 }
 
-export function CommentBox({ taskId, onCommentPosted }: CommentBoxProps) {
+export function CommentBox({ taskId }: CommentBoxProps) {
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const { mutate } = useSWRConfig();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -35,7 +36,8 @@ export function CommentBox({ taskId, onCommentPosted }: CommentBoxProps) {
       if (!res.ok) throw new Error("Failed to post comment");
 
       setComment("");
-      onCommentPosted?.();
+      // Revalidate activity log — matches the SWR key used in ActivityLog
+      mutate((key) => typeof key === "string" && key.startsWith(`/api/tasks/${taskId}/activity`), undefined, { revalidate: true });
       textareaRef.current?.focus();
     } catch (err) {
       console.error(err);

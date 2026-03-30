@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { ArrowLeft } from "lucide-react";
-import { TeamIcon } from "@/lib/team-icons";
+import { Building2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -119,8 +118,7 @@ export default function LoginPage() {
           >
             Repan
           </h1>
-          <p className="text-muted-foreground text-lg">Resource Planning</p>
-          <p className="text-muted-foreground text-sm mt-1">Team Task Tracker</p>
+          <p className="text-muted-foreground text-lg">Team Task Tracker</p>
           <p className="text-muted-foreground text-sm mt-3">{subtitle}</p>
         </div>
 
@@ -174,7 +172,7 @@ export default function LoginPage() {
 
             {/* Team header */}
             <div className="flex items-center justify-center gap-2 text-muted-foreground mb-2">
-              <TeamIcon teamName={selectedTeam.name} className="size-4" />
+              <Building2 className="size-4" />
               <span className="text-sm font-medium">{selectedTeam.name}</span>
             </div>
 
@@ -260,7 +258,7 @@ export default function LoginPage() {
                 }}
               >
                 <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center">
-                  <TeamIcon teamName={team.name} className="size-8 text-primary" />
+                  <Building2 className="size-8 text-primary" />
                 </div>
                 <span className="font-semibold text-sm text-center leading-tight">{team.name}</span>
                 <span className="text-xs text-muted-foreground">

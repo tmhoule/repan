@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { handleApiError } from "@/lib/session";
 
 const SESSION_COOKIE = "repan_session";
 const TEAM_COOKIE = "repan_team";
 const SESSION_MAX_AGE = 30 * 24 * 60 * 60;
 
 export async function POST(request: NextRequest) {
-  try {
   const { userId } = await request.json();
   const user = await prisma.user.findUnique({
     where: { id: userId, isActive: true },
@@ -56,7 +54,4 @@ export async function POST(request: NextRequest) {
   }
 
   return response;
-  } catch (error) {
-    return handleApiError(error);
-  }
 }

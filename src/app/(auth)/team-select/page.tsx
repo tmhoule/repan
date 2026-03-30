@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { TeamIcon } from "@/lib/team-icons";
+import { Users } from "lucide-react";
 
 type Team = {
   id: string;
@@ -152,7 +152,7 @@ export default function TeamSelectPage() {
                         />
                       </svg>
                     ) : (
-                      <TeamIcon teamName={team.name} className="h-8 w-8" />
+                      <Users className="h-8 w-8" />
                     )}
                   </div>
 

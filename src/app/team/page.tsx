@@ -3,13 +3,11 @@
 import Link from "next/link";
 import useSWR from "swr";
 import { Users, Clock, AlertTriangle } from "lucide-react";
-
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { StreakFlame } from "@/components/gamification/streak-flame";
 import { StatusBadge } from "@/components/tasks/status-badge";
 import { PriorityBadge } from "@/components/tasks/priority-badge";
-import { resolveIcon } from "@/lib/badge-icons";
 
 interface UserSummary {
   id: string;
@@ -27,19 +25,11 @@ interface Task {
   dueDate: string | null;
   effortEstimate: string;
   blockerReason?: string | null;
-  updatedAt?: string;
-  createdAt?: string;
 }
 
 interface Streak {
   streakType: string;
   currentCount: number;
-}
-
-interface UserAwardEntry {
-  id: string;
-  earnedAt: string;
-  award: { name: string; icon: string; description: string };
 }
 
 interface UserDetail {
@@ -49,7 +39,6 @@ interface UserDetail {
   avatarColor: string;
   totalPoints: number;
   streaks: Streak[];
-  userAwards: UserAwardEntry[];
 }
 
 function getInitials(name: string): string {
@@ -58,11 +47,8 @@ function getInitials(name: string): string {
 
 function formatDue(dateStr: string | null): { label: string; className: string } | null {
   if (!dateStr) return null;
-  // Parse as local date to avoid UTC→local timezone shift (off-by-one day)
-  const [y, m, d] = dateStr.split("T")[0].split("-").map(Number);
-  const due = new Date(y, m - 1, d);
+  const due = new Date(dateStr);
   const now = new Date();
-  now.setHours(0, 0, 0, 0);
   const diff = (due.getTime() - now.getTime()) / 86400000;
   const formatted = due.toLocaleDateString(undefined, { month: "short", day: "numeric" });
   if (diff < 0) return { label: `Overdue · ${formatted}`, className: "text-red-400" };
@@ -70,49 +56,16 @@ function formatDue(dateStr: string | null): { label: string; className: string }
   return { label: `Due ${formatted}`, className: "text-muted-foreground" };
 }
 
-function countRisks(tasks: Task[]): { stale: number; behind: number; blocked: number; overdue: number } {
-  const now = new Date();
-  let stale = 0, behind = 0, blocked = 0, overdue = 0;
-  for (const t of tasks) {
-    if (t.status === "done" || t.status === "boulder") continue;
-    if (t.status === "blocked") { blocked++; continue; }
-    if (t.dueDate) { const [dy, dm, dd] = t.dueDate.split("T")[0].split("-").map(Number); if (new Date(dy, dm - 1, dd) < now) { overdue++; continue; } }
-    // Stale: no update in 3+ days for in_progress
-    const lastUpdate = t.updatedAt ? new Date(t.updatedAt) : (t.createdAt ? new Date(t.createdAt) : now);
-    const daysSince = (now.getTime() - lastUpdate.getTime()) / 86400000;
-    if (t.status === "in_progress" && daysSince >= 3) { stale++; continue; }
-    if (t.status === "not_started" && t.dueDate && daysSince >= 5) { stale++; continue; }
-    // Behind schedule
-    if (t.dueDate && t.createdAt) {
-      const created = new Date(t.createdAt);
-      const [dy2, dm2, dd2] = t.dueDate.split("T")[0].split("-").map(Number);
-      const due = new Date(dy2, dm2 - 1, dd2);
-      const total = due.getTime() - created.getTime();
-      if (total > 0) {
-        const elapsed = now.getTime() - created.getTime();
-        const expected = Math.min(100, (elapsed / total) * 100);
-        if (t.percentComplete < expected - 25) { behind++; }
-      }
-    }
-  }
-  return { stale, behind, blocked, overdue };
-}
-
 function TeamMemberSection({ user }: { user: UserSummary }) {
   const { data: detail } = useSWR<UserDetail>(`/api/users/${user.id}`);
   const { data: tasksData } = useSWR<{ tasks: Task[] }>(`/api/tasks?assignedTo=${user.id}`);
 
   const tasks = tasksData?.tasks ?? [];
-  const boulderTasks = tasks.filter((t) => t.status === "boulder");
-  const activeTasks = tasks.filter((t) => t.status !== "done" && t.status !== "boulder");
+  const activeTasks = tasks.filter((t) => t.status !== "done");
   const doneTasks = tasks.filter((t) => t.status === "done");
-  const totalBoulderAllocation = boulderTasks.reduce((sum, t) => sum + ((t as any).timeAllocation ?? 0), 0);
-  const risks = countRisks(tasks);
-  const totalRisks = risks.stale + risks.behind + risks.blocked + risks.overdue;
   const streaks = detail?.streaks ?? [];
   const dailyStreak = streaks.find((s) => s.streakType === "daily_checkin");
   const totalPoints = detail?.totalPoints ?? 0;
-  const recentAwards = (detail?.userAwards ?? []).slice(0, 3);
 
   return (
     <div className="space-y-2">
@@ -141,49 +94,10 @@ function TeamMemberSection({ user }: { user: UserSummary }) {
             >
               {user.role}
             </Badge>
-            {totalRisks > 0 && (
-              <span
-                className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
-                  risks.blocked > 0 || risks.overdue > 0
-                    ? "bg-red-500/15 text-red-400"
-                    : "bg-amber-500/15 text-amber-400"
-                }`}
-                title={[
-                  risks.blocked > 0 && `${risks.blocked} blocked`,
-                  risks.overdue > 0 && `${risks.overdue} overdue`,
-                  risks.behind > 0 && `${risks.behind} behind schedule`,
-                  risks.stale > 0 && `${risks.stale} stale`,
-                ].filter(Boolean).join(", ")}
-              >
-                <AlertTriangle className="size-2.5" />
-                {totalRisks} at risk
-              </span>
-            )}
           </div>
-          <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground flex-wrap">
+          <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
             <span>{activeTasks.length} active task{activeTasks.length !== 1 ? "s" : ""}</span>
-            {totalBoulderAllocation > 0 && (
-              <span className="text-purple-600 dark:text-purple-400">
-                🪨 {totalBoulderAllocation}% allocated
-              </span>
-            )}
             {totalPoints > 0 && <span>★ {totalPoints} pts</span>}
-            {recentAwards.length > 0 && (
-              <span className="inline-flex items-center gap-1">
-                {recentAwards.map((ua) => (
-                  <span
-                    key={ua.id}
-                    className="inline-flex items-center gap-0.5 rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[11px] text-amber-500 dark:text-amber-400"
-                    title={`${ua.award.name} — ${ua.award.description}`}
-                  >
-                    <span className="text-xs leading-none" role="img" aria-hidden="true">
-                      {resolveIcon(ua.award.icon)}
-                    </span>
-                    {ua.award.name}
-                  </span>
-                ))}
-              </span>
-            )}
           </div>
         </div>
 
@@ -236,7 +150,7 @@ function TeamMemberSection({ user }: { user: UserSummary }) {
 
                 {/* Badges */}
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <StatusBadge status={task.status as "not_started" | "in_progress" | "blocked" | "stalled" | "done" | "boulder"} />
+                  <StatusBadge status={task.status as "not_started" | "in_progress" | "blocked" | "stalled" | "done"} />
                   <PriorityBadge priority={task.priority as "high" | "medium" | "low"} />
                 </div>
               </div>
@@ -253,53 +167,6 @@ function TeamMemberSection({ user }: { user: UserSummary }) {
           <p className="text-xs text-muted-foreground/50 italic">No active tasks</p>
         </div>
       )}
-
-      {/* Boulder tasks */}
-      {boulderTasks.length > 0 && (
-        <div className="ml-6 border-l-2 border-purple-300 dark:border-purple-700 pl-4 space-y-1.5 mt-1.5">
-          <p className="text-[11px] font-medium text-purple-600 dark:text-purple-400 pb-0.5">Boulders</p>
-          {boulderTasks.map((task) => (
-            <div
-              key={task.id}
-              className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-purple-50/50 dark:hover:bg-purple-950/20 transition-colors"
-            >
-              {/* Time allocation circle */}
-              <div className="relative size-8 shrink-0">
-                <svg className="size-8 -rotate-90" viewBox="0 0 32 32">
-                  <circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted/50" />
-                  <circle
-                    cx="16" cy="16" r="13" fill="none" strokeWidth="2"
-                    stroke="#8B5CF6"
-                    strokeDasharray={`${((task as any).timeAllocation ?? 0) / 100 * 81.68} 81.68`}
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold tabular-nums text-purple-600 dark:text-purple-400">
-                  {(task as any).timeAllocation ?? 0}
-                </span>
-              </div>
-
-              {/* Title */}
-              <div className="flex-1 min-w-0">
-                <Link
-                  href={`/tasks/${task.id}`}
-                  className="text-sm font-medium hover:text-primary hover:underline transition-colors line-clamp-1"
-                >
-                  {task.title}
-                </Link>
-                <p className="text-[11px] text-purple-500 dark:text-purple-400 mt-0.5">
-                  {(task as any).timeAllocation ?? 0}% of time
-                </p>
-              </div>
-
-              {/* Badge */}
-              <div className="flex items-center gap-1.5 shrink-0">
-                <StatusBadge status="boulder" />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -308,7 +175,7 @@ export default function TeamPage() {
   const { data: users, isLoading } = useSWR<UserSummary[]>("/api/users");
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 space-y-6">
+    <div className="mx-auto max-w-4xl px-4 py-6 space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Team</h1>
         <p className="text-sm text-muted-foreground mt-0.5">

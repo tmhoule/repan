@@ -74,8 +74,8 @@ export default async function RootLayout({
           <UserProvider initialUser={initialUser} initialTeam={initialTeam}>
             {initialUser && <Header />}
             <main className="flex-1">{children}</main>
-            <footer className="fixed bottom-2 left-3 text-[10px] text-muted-foreground/30">
-              {process.env.NEXT_PUBLIC_BUILD_ID ?? "dev"}
+            <footer className="py-3 text-center text-[10px] text-muted-foreground/40">
+              v0.1.0
             </footer>
           </UserProvider>
         </Providers>

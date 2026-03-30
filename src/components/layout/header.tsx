@@ -16,7 +16,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { NotificationBell } from "@/components/notifications/notification-bell";
-import { GlobalSearch } from "@/components/layout/search";
 import { useUser } from "@/components/user-context";
 
 const staffNavLinks = [
@@ -26,11 +25,8 @@ const staffNavLinks = [
 
 const managerNavLinks = [
   { href: "/dashboard", label: "Dashboard" },
-  { href: "/standup", label: "Standup" },
   { href: "/reports", label: "Reports" },
-  { href: "/history", label: "History" },
   { href: "/admin", label: "Admin" },
-  { href: "/capacity", label: "Capacity" },
 ];
 
 export function Header() {
@@ -117,7 +113,6 @@ export function Header() {
 
         {/* Right side */}
         <div className="flex items-center gap-2 ml-auto">
-          {user && <GlobalSearch />}
           {user && <NotificationBell />}
 
           {user && (

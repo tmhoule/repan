@@ -51,7 +51,7 @@ export function ProgressSlider({
         }
       }, 500);
     },
-    [taskId, onChange, onUpdate]
+    [taskId, onUpdate]
   );
 
   return (

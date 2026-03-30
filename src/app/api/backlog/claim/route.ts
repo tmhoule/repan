@@ -9,22 +9,14 @@ export async function POST(request: NextRequest) {
   const teamId = await requireTeam();
   const { taskId } = await request.json();
 
-  // Atomic claim: only succeeds if task is still unassigned and belongs to this team
-  const result = await prisma.task.updateMany({
-    where: { id: taskId, assignedToId: null, teamId },
-    data: { assignedToId: user.id, backlogPosition: null },
-  });
+  const task = await prisma.task.findUnique({ where: { id: taskId } });
+  if (!task) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (task.teamId !== teamId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (task.assignedToId) return NextResponse.json({ error: "Already claimed" }, { status: 409 });
 
-  if (result.count === 0) {
-    // Check why it failed: not found, wrong team, or already claimed
-    const task = await prisma.task.findUnique({ where: { id: taskId }, select: { teamId: true, assignedToId: true } });
-    if (!task) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    if (task.teamId !== teamId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    return NextResponse.json({ error: "Already claimed" }, { status: 409 });
-  }
-
-  const updatedTask = await prisma.task.findUnique({
+  const updatedTask = await prisma.task.update({
     where: { id: taskId },
+    data: { assignedToId: user.id, backlogPosition: null },
     include: {
       createdBy: { select: { id: true, name: true, avatarColor: true } },
       assignedTo: { select: { id: true, name: true, avatarColor: true } },

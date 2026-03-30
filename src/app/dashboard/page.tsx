@@ -9,8 +9,6 @@ import { AtRiskList } from "@/components/dashboard/at-risk-list";
 import { BacklogHealth } from "@/components/dashboard/backlog-health";
 import { ThroughputChart } from "@/components/dashboard/throughput-chart";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
-import { KeyProjects } from "@/components/dashboard/key-projects";
-import { RecentAchievements } from "@/components/dashboard/recent-achievements";
 
 type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "done";
 type TaskPriority = "high" | "medium" | "low";
@@ -20,17 +18,14 @@ interface DashboardData {
     user: { id: string; name: string; avatarColor: string };
     taskCount: number;
     byPriority: { high: number; medium: number; low: number };
-    boulders?: Array<{ title: string; timeAllocation: number }>;
   }>;
   atRisk: Array<{
     id: string;
     title: string;
     status: TaskStatus;
     priority: TaskPriority;
-    percentComplete?: number;
     dueDate?: string | null;
     assignedTo?: { id: string; name: string } | null;
-    riskFlags?: Array<{ riskType: string; label: string }>;
   }>;
   backlogHealth: {
     totalItems: number;
@@ -38,16 +33,6 @@ interface DashboardData {
     estimatedWeeks: number | null;
     trend: "growing" | "shrinking" | "stable";
   };
-  keyProjects: Array<{
-    id: string;
-    title: string;
-    status: string;
-    percentComplete: number;
-    dueDate?: string | null;
-    assignedTo?: { id: string; name: string } | null;
-    tracking: "on_track" | "behind" | "at_risk" | "blocked";
-    riskFlags?: Array<{ riskType: string; label: string }>;
-  }>;
   weeklyThroughput: Array<{ week: string; points: number }>;
   recentActivity: Array<{
     id: string;
@@ -56,13 +41,6 @@ interface DashboardData {
     user: { name: string; avatarColor: string };
     task: { id: string; title: string };
   }>;
-  recentBadges: Array<{
-    id: string;
-    earnedAt: string;
-    user: { id: string; name: string; avatarColor: string };
-    award: { name: string; icon: string; description: string };
-  }>;
-  priorityWeights?: { high: number; medium: number; low: number };
 }
 
 function SkeletonCard({ className = "" }: { className?: string }) {
@@ -113,7 +91,7 @@ export default function DashboardPage() {
             {isLoading || !data ? (
               <SkeletonCard className="h-64" />
             ) : (
-              <WorkloadChart data={data.workload} priorityWeights={data.priorityWeights} />
+              <WorkloadChart data={data.workload} />
             )}
           </div>
           <div>
@@ -123,15 +101,6 @@ export default function DashboardPage() {
               <BacklogHealth data={data.backlogHealth} />
             )}
           </div>
-        </div>
-
-        {/* Key Projects row */}
-        <div>
-          {isLoading || !data ? (
-            <SkeletonCard className="h-48" />
-          ) : (
-            <KeyProjects projects={data.keyProjects} />
-          )}
         </div>
 
         {/* Middle row: At-Risk (left) + Throughput (right) */}
@@ -151,13 +120,6 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
-
-        {/* Recent achievements (only shown when there are badges) */}
-        {data?.recentBadges && data.recentBadges.length > 0 && (
-          <div>
-            <RecentAchievements badges={data.recentBadges} />
-          </div>
-        )}
 
         {/* Bottom row: Activity feed (full width) */}
         <div>
