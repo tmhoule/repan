@@ -177,6 +177,25 @@ export default function AdminPage() {
   const [editBucketName, setEditBucketName] = useState("");
   const [editBucketColor, setEditBucketColor] = useState<BucketColorKey>("blue");
 
+  // Priority weights state
+  const [weightHigh, setWeightHigh] = useState(60);
+  const [weightMedium, setWeightMedium] = useState(35);
+  const [weightLow, setWeightLow] = useState(10);
+  const [savingWeights, setSavingWeights] = useState(false);
+
+  // Load team priority weights
+  const { data: teamWeights, mutate: mutateWeights } = useSWR<{ weightHigh: number; weightMedium: number; weightLow: number }>(
+    activeTeamId ? `/api/teams/${activeTeamId}` : null
+  );
+
+  useEffect(() => {
+    if (teamWeights) {
+      setWeightHigh(teamWeights.weightHigh);
+      setWeightMedium(teamWeights.weightMedium);
+      setWeightLow(teamWeights.weightLow);
+    }
+  }, [teamWeights]);
+
   if (!user || !isManager) return null;
 
   const openCreateUser = () => {
@@ -334,6 +353,28 @@ export default function AdminPage() {
       toast.success("Bucket deleted");
     } catch {
       toast.error("Failed to delete bucket");
+    }
+  };
+
+  const handleSaveWeights = async () => {
+    if (!activeTeamId) return;
+    setSavingWeights(true);
+    try {
+      const res = await fetch(`/api/teams/${activeTeamId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ weightHigh, weightMedium, weightLow }),
+      });
+      if (!res.ok) {
+        toast.error("Failed to save priority weights");
+        return;
+      }
+      mutateWeights();
+      toast.success("Priority weights saved");
+    } catch {
+      toast.error("Failed to save priority weights");
+    } finally {
+      setSavingWeights(false);
     }
   };
 
@@ -619,14 +660,63 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Placeholder for future settings */}
-              <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-                <h2 className="text-sm font-semibold text-zinc-200 mb-1">
-                  System Settings
-                </h2>
-                <p className="text-sm text-zinc-500">
-                  More settings coming soon: app name, default effort estimates, point values.
-                </p>
+              {/* System Settings */}
+              <div className="rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden">
+                <div className="px-4 py-3 border-b border-zinc-800">
+                  <h2 className="text-sm font-semibold text-zinc-200">System Settings</h2>
+                  <p className="text-xs text-zinc-500 mt-0.5">Configure how your team calculates workload</p>
+                </div>
+
+                <div className="p-4 space-y-4">
+                  <div>
+                    <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wide mb-3">Task Priority Weights</h3>
+                    <p className="text-xs text-zinc-500 mb-3">
+                      Each active task contributes this percentage to a person&apos;s workload based on its priority.
+                    </p>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-xs text-zinc-400 mb-1">High</label>
+                        <Input
+                          type="number"
+                          min={1}
+                          value={weightHigh}
+                          onChange={(e) => setWeightHigh(Math.max(1, parseInt(e.target.value) || 1))}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-zinc-400 mb-1">Medium</label>
+                        <Input
+                          type="number"
+                          min={1}
+                          value={weightMedium}
+                          onChange={(e) => setWeightMedium(Math.max(1, parseInt(e.target.value) || 1))}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-zinc-400 mb-1">Low</label>
+                        <Input
+                          type="number"
+                          min={1}
+                          value={weightLow}
+                          onChange={(e) => setWeightLow(Math.max(1, parseInt(e.target.value) || 1))}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-end pt-1">
+                    <Button
+                      size="sm"
+                      onClick={handleSaveWeights}
+                      disabled={savingWeights}
+                      className="h-8 text-xs"
+                    >
+                      {savingWeights ? "Saving..." : "Save Weights"}
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
           </TabsContent>
