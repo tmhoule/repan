@@ -1,14 +1,21 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { Suspense } from "react";
+import useSWR from "swr";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TaskForm, TaskFormData } from "@/components/tasks/task-form";
 
-export default function NewTaskPage() {
+function NewTaskForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isBoulderType = searchParams.get("type") === "boulder";
+
+  const { data: bucketsData } = useSWR<{ buckets: any[]; teamId: string }>("/api/buckets");
+  const teamId = bucketsData?.teamId;
 
   const handleSubmit = async (data: TaskFormData) => {
     const res = await fetch("/api/tasks", {
@@ -39,18 +46,29 @@ export default function NewTaskPage() {
             Back to tasks
           </Button>
         </Link>
-        <h1 className="text-2xl font-bold tracking-tight">Create Task</h1>
+        <h1 className="text-2xl font-bold tracking-tight">
+          {isBoulderType ? "Create Boulder" : "Create Task"}
+        </h1>
         <p className="text-sm text-muted-foreground">
-          Fill in the details below to create a new task.
+          {isBoulderType
+            ? "Boulders are ongoing operational efforts with no end date."
+            : "Fill in the details below to create a new task."}
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Task Details</CardTitle>
+          <CardTitle className="text-base">
+            {isBoulderType ? "Boulder Details" : "Task Details"}
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <TaskForm mode="create" onSubmit={handleSubmit} />
+          <TaskForm
+            mode="create"
+            initialData={isBoulderType ? { status: "boulder" } : undefined}
+            onSubmit={handleSubmit}
+            teamId={teamId}
+          />
         </CardContent>
       </Card>
 
@@ -63,5 +81,13 @@ export default function NewTaskPage() {
         </Link>
       </div>
     </div>
+  );
+}
+
+export default function NewTaskPage() {
+  return (
+    <Suspense>
+      <NewTaskForm />
+    </Suspense>
   );
 }

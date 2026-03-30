@@ -9,6 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ReportSummary } from "@/components/reports/report-summary";
 import { ThroughputTrend } from "@/components/reports/throughput-trend";
+import { CycleTimeCard } from "@/components/reports/cycle-time-card";
+import { EstimationAccuracyCard } from "@/components/reports/estimation-accuracy-card";
+import { BlockerStatsCard } from "@/components/reports/blocker-stats-card";
+import { BucketDistributionCard } from "@/components/reports/bucket-distribution-card";
 import { ContributionTable } from "@/components/reports/contribution-table";
 
 interface ReportData {
@@ -18,14 +22,37 @@ interface ReportData {
     backlogSize: number;
     backlogDelta: number;
     missedDeadlines: number;
+    staleTasks?: number;
+    behindScheduleTasks?: number;
     period: string;
+    prevTasksCompleted?: number;
+    prevTasksCreated?: number;
+    prevMissedDeadlines?: number;
   };
   perPerson: Array<{
     user: { id: string; name: string };
     tasksCompleted: number;
     pointsEarned: number;
+    weekly?: number[];
   }> | null;
   weeklyThroughput: Array<{ week: string; points: number }>;
+  cycleTime?: Record<string, { avg: number | null; count: number }>;
+  estimationAccuracy?: {
+    small: { avgDays: number | null; count: number };
+    medium: { avgDays: number | null; count: number; ratioToSmall: number | null };
+    large: { avgDays: number | null; count: number; ratioToSmall: number | null };
+  };
+  blockerStats?: {
+    count: number;
+    avgDays: number | null;
+    maxDays: number | null;
+    currentlyBlocked: number;
+  };
+  bucketData?: Array<{
+    name: string;
+    colorKey: string | null;
+    count: number;
+  }>;
 }
 
 function SkeletonBlock({ className = "" }: { className?: string }) {
@@ -129,6 +156,10 @@ export default function ReportsPage() {
                     data={weeklyData.weeklyThroughput}
                     period="weekly"
                   />
+                  <CycleTimeCard data={weeklyData.cycleTime} />
+                  <EstimationAccuracyCard data={weeklyData.estimationAccuracy} />
+                  <BlockerStatsCard data={weeklyData.blockerStats} />
+                  <BucketDistributionCard data={weeklyData.bucketData} />
                   <ContributionTable
                     data={weeklyData.perPerson}
                     isManager={isManager}
@@ -156,6 +187,10 @@ export default function ReportsPage() {
                     data={monthlyData.weeklyThroughput}
                     period="monthly"
                   />
+                  <CycleTimeCard data={monthlyData.cycleTime} />
+                  <EstimationAccuracyCard data={monthlyData.estimationAccuracy} />
+                  <BlockerStatsCard data={monthlyData.blockerStats} />
+                  <BucketDistributionCard data={monthlyData.bucketData} />
                   <ContributionTable
                     data={monthlyData.perPerson}
                     isManager={isManager}

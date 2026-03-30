@@ -2,21 +2,26 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireSession, handleApiError, requireTeam } from "@/lib/session";
 import { canEditTask, canDeleteTask } from "@/lib/permissions";
+import { getTeamRole } from "@/lib/team-auth";
+import { validateTaskFields, clampTaskFields } from "@/lib/task-validation";
 import { createNotification } from "@/lib/notifications";
 import { awardAction, updateOnTimeStreak } from "@/lib/gamification";
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await requireSession();
+    const teamId = await requireTeam();
     const { id } = await params;
     const task = await prisma.task.findUnique({
       where: { id },
       include: {
         createdBy: { select: { id: true, name: true, avatarColor: true } },
         assignedTo: { select: { id: true, name: true, avatarColor: true } },
+        bucket: { select: { id: true, name: true, colorKey: true } },
       },
     });
     if (!task) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (task.teamId !== teamId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     return NextResponse.json(task);
   } catch (error) {
     return handleApiError(error);
@@ -33,7 +38,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const task = await prisma.task.findUnique({ where: { id } });
     if (!task) return NextResponse.json({ error: "Not found" }, { status: 404 });
     if (task.teamId !== teamId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    if (!canEditTask({ id: user.id, role: user.role }, { createdById: task.createdById, assignedToId: task.assignedToId })) {
+    const teamRole = await getTeamRole(user.id, teamId) ?? undefined;
+    if (!canEditTask({ id: user.id, role: user.role, teamRole }, { createdById: task.createdById, assignedToId: task.assignedToId })) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -63,6 +69,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       }
     }
 
+    const validationError = validateTaskFields(body);
+    if (validationError) return NextResponse.json({ error: validationError }, { status: 400 });
+    clampTaskFields(body);
+
     const updateData: any = {};
     if (body.title !== undefined) updateData.title = body.title;
     if (body.description !== undefined) updateData.description = body.description;
@@ -76,9 +86,28 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       updateData.assignedToId = body.assignedToId;
       updateData.backlogPosition = body.assignedToId ? null : task.backlogPosition;
     }
-    if (body.status === "done") {
+    if (body.timeAllocation !== undefined) updateData.timeAllocation = body.timeAllocation;
+    if (body.triaged !== undefined) updateData.triaged = Boolean(body.triaged);
+    if (body.bucketId !== undefined) {
+      updateData.bucketId = body.bucketId || null;
+      // Auto-triage when a bucket is assigned
+      if (body.bucketId && !task.triaged) {
+        updateData.triaged = true;
+      }
+    }
+    if (body.status === "done" && task.status !== "done") {
       updateData.completedAt = new Date();
       updateData.percentComplete = 100;
+    } else if (body.status && body.status !== "done" && task.status === "done") {
+      updateData.completedAt = null;
+    }
+    // Set startedAt when task first moves to in_progress
+    if (body.status === "in_progress" && task.status !== "in_progress" && !task.startedAt) {
+      updateData.startedAt = new Date();
+    }
+    // Clear startedAt if moved back to not_started
+    if (body.status === "not_started") {
+      updateData.startedAt = null;
     }
 
     const [updatedTask] = await Promise.all([
@@ -88,6 +117,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         include: {
           createdBy: { select: { id: true, name: true, avatarColor: true } },
           assignedTo: { select: { id: true, name: true, avatarColor: true } },
+          bucket: { select: { id: true, name: true, colorKey: true } },
         },
       }),
       activities.length > 0 ? prisma.taskActivity.createMany({ data: activities }) : Promise.resolve(),
@@ -129,12 +159,13 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const user = await requireSession();
     const teamId = await requireTeam();
     const { id } = await params;
-    if (!canDeleteTask({ id: user.id, role: user.role })) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
     const task = await prisma.task.findUnique({ where: { id } });
     if (!task) return NextResponse.json({ error: "Not found" }, { status: 404 });
     if (task.teamId !== teamId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    const deleteTeamRole = await getTeamRole(user.id, teamId) ?? undefined;
+    if (!canDeleteTask({ id: user.id, role: user.role, teamRole: deleteTeamRole })) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
     // Soft delete: archive the task instead of hard-deleting to preserve related records
     await prisma.task.update({ where: { id }, data: { archivedAt: new Date(), status: "done" } });
     return NextResponse.json({ success: true });

@@ -25,16 +25,34 @@ export async function GET(request: NextRequest) {
       });
 
       let users = memberships.map((m) => m.user);
-      if (!includeInactive || session.role !== "manager") {
+      const membership = teamId ? memberships.find((m) => m.userId === session.id) : null;
+      const isManager = session.isSuperAdmin || membership?.role === "manager";
+      if (!includeInactive || !isManager) {
         users = users.filter((u) => u.isActive);
       }
 
       return NextResponse.json(users);
     }
 
-    const where = (includeInactive && session?.role === "manager")
+    const where = (includeInactive && session?.isSuperAdmin)
       ? {}
       : { isActive: true };
+
+    if (allTeams) {
+      const usersWithTeams = await prisma.user.findMany({
+        where,
+        select: {
+          id: true, name: true, role: true, avatarColor: true, isActive: true, isSuperAdmin: true, createdAt: true,
+          teamMemberships: { select: { team: { select: { id: true, name: true } } } },
+        },
+        orderBy: { name: "asc" },
+      });
+      return NextResponse.json(usersWithTeams.map((u) => ({
+        id: u.id, name: u.name, role: u.role, avatarColor: u.avatarColor,
+        isActive: u.isActive, isSuperAdmin: u.isSuperAdmin, createdAt: u.createdAt,
+        teams: u.teamMemberships.map((m) => m.team),
+      })));
+    }
 
     const users = await prisma.user.findMany({
       where,

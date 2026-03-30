@@ -1,6 +1,6 @@
 "use client";
 
-import { use } from "react";
+import { use, useCallback, useRef } from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { ArrowLeft, CalendarDays, User2, Clock } from "lucide-react";
@@ -18,11 +18,12 @@ import { ActivityLog } from "@/components/tasks/activity-log";
 import { CommentBox } from "@/components/tasks/comment-box";
 import { StatusBadge } from "@/components/tasks/status-badge";
 import { PriorityBadge } from "@/components/tasks/priority-badge";
+import { BucketBadge } from "@/components/buckets/bucket-badge";
 import { ProgressSlider } from "@/components/tasks/progress-slider";
 import { useUser } from "@/components/user-context";
 import { canEditTask } from "@/lib/permissions";
 
-type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "done";
+type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "done" | "boulder";
 type TaskPriority = "high" | "medium" | "low";
 type EffortEstimate = "small" | "medium" | "large";
 
@@ -34,12 +35,15 @@ interface Task {
   priority: TaskPriority;
   effortEstimate: EffortEstimate;
   percentComplete: number;
+  timeAllocation: number;
   dueDate: string | null;
   blockerReason: string | null;
   createdAt: string;
   updatedAt: string;
   createdBy: { id: string; name: string; avatarColor: string };
   assignedTo: { id: string; name: string; avatarColor: string } | null;
+  teamId: string;
+  bucket: { id: string; name: string; colorKey: string } | null;
 }
 
 function formatDate(dateStr: string) {
@@ -52,8 +56,8 @@ function formatDate(dateStr: string) {
 
 function formatDueDateInput(dateStr: string | null): string {
   if (!dateStr) return "";
-  // Convert ISO to YYYY-MM-DD for date input
-  return new Date(dateStr).toISOString().split("T")[0];
+  // Extract YYYY-MM-DD directly to avoid UTC→local timezone shift
+  return dateStr.split("T")[0];
 }
 
 function MetaItem({
@@ -99,6 +103,9 @@ export default function TaskDetailPage({
   const { id } = use(params);
   const { user } = useUser();
   const { data: task, isLoading, error, mutate } = useSWR<Task>(`/api/tasks/${id}`);
+  const refreshActivityRef = useRef<(() => void) | null>(null);
+  const handleMutateReady = useCallback((fn: () => void) => { refreshActivityRef.current = fn; }, []);
+  const handleCommentPosted = useCallback(() => { refreshActivityRef.current?.(); }, []);
 
   const canEdit =
     !!user &&
@@ -142,8 +149,10 @@ export default function TaskDetailPage({
     effortEstimate: task.effortEstimate,
     dueDate: formatDueDateInput(task.dueDate),
     status: task.status,
+    timeAllocation: task.timeAllocation ?? 0,
     assignedToId: task.assignedTo?.id ?? null,
     blockerReason: task.blockerReason ?? "",
+    bucketId: task.bucket?.id ?? null,
   };
 
   const handleFormSubmit = async (data: TaskFormData) => {
@@ -173,6 +182,9 @@ export default function TaskDetailPage({
           <div className="flex items-center gap-2 shrink-0">
             <StatusBadge status={task.status} />
             <PriorityBadge priority={task.priority} />
+            {task.bucket && (
+              <BucketBadge name={task.bucket.name} colorKey={task.bucket.colorKey} />
+            )}
           </div>
         </div>
 
@@ -203,15 +215,17 @@ export default function TaskDetailPage({
           />
         </div>
 
-        {/* Progress bar */}
-        <div className="max-w-sm">
-          <ProgressSlider
-            taskId={task.id}
-            initialValue={task.percentComplete}
-            onUpdate={() => mutate()}
-            disabled={!canEdit}
-          />
-        </div>
+        {/* Progress bar — hidden for boulders (ongoing operational tasks) */}
+        {task.status !== "boulder" && (
+          <div className="max-w-sm">
+            <ProgressSlider
+              taskId={task.id}
+              initialValue={task.percentComplete}
+              onUpdate={() => mutate()}
+              disabled={!canEdit}
+            />
+          </div>
+        )}
       </div>
 
       <Separator />
@@ -236,6 +250,7 @@ export default function TaskDetailPage({
                 mode="edit"
                 initialData={initialData}
                 onSubmit={handleFormSubmit}
+                teamId={task.teamId}
               />
             ) : (
               <ReadOnlyView task={task} />
@@ -250,7 +265,7 @@ export default function TaskDetailPage({
               <CardTitle className="text-base">Activity</CardTitle>
             </CardHeader>
             <CardContent>
-              <ActivityLog taskId={id} />
+              <ActivityLog taskId={id} onMutateReady={handleMutateReady} />
             </CardContent>
           </Card>
 
@@ -259,7 +274,7 @@ export default function TaskDetailPage({
               <CardTitle className="text-base">Comment</CardTitle>
             </CardHeader>
             <CardContent>
-              <CommentBox taskId={id} />
+              <CommentBox taskId={id} onCommentPosted={handleCommentPosted} />
             </CardContent>
           </Card>
         </div>
@@ -300,7 +315,7 @@ function ReadOnlyView({ task }: { task: Task }) {
       {task.dueDate && (
         <div>
           <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Due Date</dt>
-          <dd>{new Date(task.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</dd>
+          <dd>{(() => { const [y, m, d] = task.dueDate!.split("T")[0].split("-").map(Number); return new Date(y, m - 1, d).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }); })()}</dd>
         </div>
       )}
       {task.blockerReason && task.status === "blocked" && (

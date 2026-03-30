@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { requireSession, handleApiError } from "@/lib/session";
+import { requireSession, handleApiError, requireTeam } from "@/lib/session";
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await requireSession();
+    const teamId = await requireTeam();
     const { id } = await params;
+
+    const task = await prisma.task.findUnique({ where: { id } });
+    if (!task) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (task.teamId !== teamId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
     const cursor = request.nextUrl.searchParams.get("cursor");
     const limit = 20;
 

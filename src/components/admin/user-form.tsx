@@ -108,6 +108,10 @@ export function UserForm({ open, onClose, onSave, initialData, currentUserIsSupe
       setError("Name is required.");
       return;
     }
+    if (!isEdit && selectedTeamIds.size === 0) {
+      setError("Select at least one team.");
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {

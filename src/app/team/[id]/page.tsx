@@ -58,8 +58,11 @@ function formatDueDate(
   dateStr: string | null
 ): { label: string; className: string } | null {
   if (!dateStr) return null;
-  const due = new Date(dateStr);
+  // Parse as local date to avoid UTC→local timezone shift (off-by-one day)
+  const [y, m, d] = dateStr.split("T")[0].split("-").map(Number);
+  const due = new Date(y, m - 1, d);
   const now = new Date();
+  now.setHours(0, 0, 0, 0);
   const diffDays = (due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
   const formatted = due.toLocaleDateString(undefined, {
     month: "short",

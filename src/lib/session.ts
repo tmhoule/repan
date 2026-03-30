@@ -14,9 +14,10 @@ export async function getSession() {
 }
 
 export async function setSession(userId: string) {
+  const isSecure = process.env.NODE_ENV === "production" && !process.env.DISABLE_SECURE_COOKIES;
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE, userId, {
-    httpOnly: true, secure: process.env.NODE_ENV === "production",
+    httpOnly: true, secure: isSecure,
     sameSite: "lax", maxAge: SESSION_MAX_AGE, path: "/",
   });
 }
@@ -45,8 +46,6 @@ export async function requireManager() {
     });
     if (membership?.role === "manager") return user;
   }
-  // Fall back to global role
-  if (user.role === "manager") return user;
   throw new Error("Forbidden");
 }
 

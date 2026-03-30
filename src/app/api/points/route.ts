@@ -5,7 +5,7 @@ import { requireSession, handleApiError } from "@/lib/session";
 export async function GET(request: NextRequest) {
   try {
     const user = await requireSession();
-    const userId = request.nextUrl.searchParams.get("userId") || user.id;
+    const userId = user.id;
 
     const [points, total] = await Promise.all([
       prisma.pointsLedger.findMany({

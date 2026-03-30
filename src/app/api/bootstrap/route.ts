@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { headers } from "next/headers";
 import { prisma } from "@/lib/db";
+import { slugify } from "@/lib/tenant";
 
 // GET: Check if setup is needed AND return public team/user list for login
 export async function GET() {
@@ -15,8 +17,16 @@ export async function GET() {
     return NextResponse.json({ needsSetup: true, teams: [] });
   }
 
+  // Check if we're on a tenant subdomain (set by middleware)
+  const hdrs = await headers();
+  const tenantSlug = hdrs.get("x-tenant-slug");
+
+  // If on a tenant subdomain, only return that team
+  const where = tenantSlug ? { slug: tenantSlug } : {};
+
   // Return teams with their members for the login page
   const teams = await prisma.team.findMany({
+    where,
     include: {
       memberships: {
         where: { user: { isActive: true } },
@@ -29,6 +39,7 @@ export async function GET() {
 
   return NextResponse.json({
     needsSetup: false,
+    tenantSlug: tenantSlug ?? null,
     teams: teams.map((t) => ({
       id: t.id,
       name: t.name,
@@ -56,7 +67,9 @@ export async function POST(request: NextRequest) {
   // Find or create default team
   let team = await prisma.team.findFirst({ where: { name: "Default Team" } });
   if (!team) {
-    team = await prisma.team.create({ data: { name: "Default Team" } });
+    team = await prisma.team.create({ data: { name: "Default Team", slug: "default" } });
+  } else if (!team.slug) {
+    team = await prisma.team.update({ where: { id: team.id }, data: { slug: "default" } });
   }
 
   await prisma.teamMembership.create({

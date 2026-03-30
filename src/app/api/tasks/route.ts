@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireSession, handleApiError, requireTeam } from "@/lib/session";
 import { sortByUrgency } from "@/lib/urgency";
+import { validateTaskFields, clampTaskFields } from "@/lib/task-validation";
 import { createNotification } from "@/lib/notifications";
 
 export async function GET(request: NextRequest) {
@@ -12,7 +13,20 @@ export async function GET(request: NextRequest) {
     const status = searchParams.getAll("status");
     const priority = searchParams.get("priority");
     const search = searchParams.get("search");
-    const assignedTo = searchParams.get("assignedTo") || user.id;
+    const requestedAssignedTo = searchParams.get("assignedTo");
+
+    // Allow any team member to view tasks assigned to other team members (read-only view)
+    let assignedTo = user.id;
+    if (requestedAssignedTo && requestedAssignedTo !== user.id) {
+      const targetMembership = await prisma.teamMembership.findUnique({
+        where: { userId_teamId: { userId: requestedAssignedTo, teamId } },
+      });
+      if (targetMembership) {
+        assignedTo = requestedAssignedTo;
+      }
+    } else if (requestedAssignedTo) {
+      assignedTo = requestedAssignedTo;
+    }
 
     const where: any = { archivedAt: null, assignedToId: assignedTo, teamId };
     if (status.length > 0) where.status = { in: status };
@@ -29,6 +43,7 @@ export async function GET(request: NextRequest) {
       include: {
         createdBy: { select: { id: true, name: true, avatarColor: true } },
         assignedTo: { select: { id: true, name: true, avatarColor: true } },
+        bucket: { select: { id: true, name: true, colorKey: true } },
       },
     });
 
@@ -48,6 +63,10 @@ export async function POST(request: NextRequest) {
     const teamId = await requireTeam();
     const body = await request.json();
 
+    const validationError = validateTaskFields(body);
+    if (validationError) return NextResponse.json({ error: validationError }, { status: 400 });
+    clampTaskFields(body);
+
     let assignedToId = body.assignedToId !== undefined ? body.assignedToId : null;
     if (user.role === "staff") {
       if (assignedToId && assignedToId !== user.id) {
@@ -62,15 +81,19 @@ export async function POST(request: NextRequest) {
         description: body.description,
         priority: body.priority || "medium",
         effortEstimate: body.effortEstimate || "medium",
-        dueDate: body.dueDate ? new Date(body.dueDate) : null,
+        dueDate: body.dueDate && body.dueDate !== "" ? new Date(body.dueDate) : null,
+        status: body.status || "not_started",
+        timeAllocation: body.timeAllocation ?? 0,
         createdById: user.id,
         assignedToId,
         backlogPosition: assignedToId ? null : body.backlogPosition,
         teamId,
+        bucketId: body.bucketId || null,
       },
       include: {
         createdBy: { select: { id: true, name: true, avatarColor: true } },
         assignedTo: { select: { id: true, name: true, avatarColor: true } },
+        bucket: { select: { id: true, name: true, colorKey: true } },
       },
     });
 

@@ -22,6 +22,7 @@ enum TaskStatus {
   blocked
   stalled
   done
+  boulder
 }
 
 enum TaskPriority {
@@ -77,17 +78,24 @@ model User {
   userAwards      UserAward[]
   streaks         Streak[]
   teamMemberships TeamMembership[]
+  todos           Todo[]
 
   @@map("users")
 }
 
 model Team {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  createdAt DateTime @default(now()) @map("created_at")
+  id           String   @id @default(uuid())
+  name         String   @unique
+  slug         String?  @unique
+  createdAt    DateTime @default(now()) @map("created_at")
+  weightHigh   Int      @default(60) @map("weight_high")
+  weightMedium Int      @default(35) @map("weight_medium")
+  weightLow    Int      @default(10) @map("weight_low")
 
   memberships TeamMembership[]
   tasks       Task[]
+  buckets     Bucket[]
+  todos       Todo[]
 
   @@map("teams")
 }
@@ -105,6 +113,37 @@ model TeamMembership {
   @@map("team_memberships")
 }
 
+model Bucket {
+  id           String   @id @default(uuid())
+  name         String
+  colorKey     String   @map("color_key")
+  displayOrder Int      @default(0) @map("display_order")
+  teamId       String   @map("team_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  team  Team   @relation(fields: [teamId], references: [id])
+  tasks Task[]
+
+  @@unique([name, teamId])
+  @@map("buckets")
+}
+
+model Todo {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  userId      String   @map("user_id")
+  teamId      String   @map("team_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+  team Team @relation(fields: [teamId], references: [id])
+
+  @@map("todos")
+}
+
 model Task {
   id              String        @id @default(uuid())
   title           String
@@ -118,12 +157,18 @@ model Task {
   createdAt       DateTime      @default(now()) @map("created_at")
   updatedAt       DateTime      @updatedAt @map("updated_at")
   completedAt     DateTime?     @map("completed_at")
+  startedAt       DateTime?     @map("started_at")
   archivedAt      DateTime?     @map("archived_at")
   createdById     String        @map("created_by")
   assignedToId    String?       @map("assigned_to")
   backlogPosition Int?          @map("backlog_position")
   teamId          String        @map("team_id")
 
+  timeAllocation  Int           @default(0) @map("time_allocation")
+  bucketId        String?       @map("bucket_id")
+  triaged         Boolean       @default(false)
+
+  bucket          Bucket?       @relation(fields: [bucketId], references: [id], onDelete: SetNull)
   createdBy       User          @relation("CreatedTasks", fields: [createdById], references: [id])
   assignedTo      User?         @relation("AssignedTasks", fields: [assignedToId], references: [id])
   team            Team          @relation(fields: [teamId], references: [id])

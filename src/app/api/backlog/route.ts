@@ -1,18 +1,27 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireSession, handleApiError, requireTeam } from "@/lib/session";
 import { calculateBacklogForecast, getWeeklyThroughput, getBacklogHealth } from "@/lib/forecasting";
 import { sortByUrgency } from "@/lib/urgency";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
   await requireSession();
   const teamId = await requireTeam();
+  const bucketId = request.nextUrl.searchParams.get("bucketId");
 
   const [backlogTasks, completedTasks] = await Promise.all([
     prisma.task.findMany({
-      where: { assignedToId: null, archivedAt: null, teamId },
-      include: { createdBy: { select: { id: true, name: true, avatarColor: true } } },
+      where: {
+        assignedToId: null,
+        archivedAt: null,
+        teamId,
+        ...(bucketId ? { bucketId } : {}),
+      },
+      include: {
+        createdBy: { select: { id: true, name: true, avatarColor: true } },
+        bucket: { select: { id: true, name: true, colorKey: true } },
+      },
     }),
     prisma.task.findMany({
       where: { status: "done", completedAt: { gte: new Date(Date.now() - 28 * 86400000) }, teamId },
