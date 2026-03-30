@@ -56,8 +56,8 @@ function formatDate(dateStr: string) {
 
 function formatDueDateInput(dateStr: string | null): string {
   if (!dateStr) return "";
-  // Convert ISO to YYYY-MM-DD for date input
-  return new Date(dateStr).toISOString().split("T")[0];
+  // Extract YYYY-MM-DD directly to avoid UTC→local timezone shift
+  return dateStr.split("T")[0];
 }
 
 function MetaItem({
