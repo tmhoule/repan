@@ -40,10 +40,35 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { name } = await request.json();
-    if (!name?.trim()) return NextResponse.json({ error: "Team name is required" }, { status: 400 });
+    const body = await request.json();
+    const data: Record<string, unknown> = {};
 
-    const team = await prisma.team.update({ where: { id }, data: { name: name.trim() } });
+    if (body.name !== undefined) {
+      if (!body.name?.trim()) return NextResponse.json({ error: "Team name is required" }, { status: 400 });
+      data.name = body.name.trim();
+    }
+
+    if (body.weightHigh !== undefined) {
+      const v = Number(body.weightHigh);
+      if (!Number.isInteger(v) || v < 1) return NextResponse.json({ error: "weightHigh must be a positive integer" }, { status: 400 });
+      data.weightHigh = v;
+    }
+    if (body.weightMedium !== undefined) {
+      const v = Number(body.weightMedium);
+      if (!Number.isInteger(v) || v < 1) return NextResponse.json({ error: "weightMedium must be a positive integer" }, { status: 400 });
+      data.weightMedium = v;
+    }
+    if (body.weightLow !== undefined) {
+      const v = Number(body.weightLow);
+      if (!Number.isInteger(v) || v < 1) return NextResponse.json({ error: "weightLow must be a positive integer" }, { status: 400 });
+      data.weightLow = v;
+    }
+
+    if (Object.keys(data).length === 0) {
+      return NextResponse.json({ error: "No fields to update" }, { status: 400 });
+    }
+
+    const team = await prisma.team.update({ where: { id }, data });
     return NextResponse.json(team);
   } catch (error) {
     return handleApiError(error);
