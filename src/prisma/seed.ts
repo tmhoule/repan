@@ -8,7 +8,7 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
-const AVATAR_COLORS = ["#EF4444", "#F59E0B", "#10B981", "#3B82F6", "#8B5CF6", "#EC4899", "#06B6D4", "#F97316"];
+const AVATAR_COLORS = ["#EF4444", "#3B82F6", "#10B981", "#F59E0B", "#8B5CF6", "#EC4899"];
 
 const STARTER_BADGES = [
   { name: "First Blood", description: "Complete your first task", icon: "sword", criteriaType: "count_action", criteriaValue: { action: "complete_task", count: 1 } },
@@ -30,63 +30,123 @@ const STARTER_BADGES = [
 
 async function main() {
   // Create default team
-  const defaultTeam = await prisma.team.create({
-    data: { name: "Default Team" },
+  const team = await prisma.team.upsert({
+    where: { name: "Default Team" },
+    update: {},
+    create: { name: "Default Team" },
   });
 
-  // Create users
-  const manager = await prisma.user.create({
-    data: { name: "Todd", role: UserRole.manager, avatarColor: AVATAR_COLORS[0], isSuperAdmin: true },
-  });
-
-  const staffNames = ["Alice", "Bob", "Carol", "Dave", "Eve", "Frank", "Grace"];
-  const staff = await Promise.all(
-    staffNames.map((name, i) =>
-      prisma.user.create({
-        data: { name, role: UserRole.staff, avatarColor: AVATAR_COLORS[i + 1] },
-      })
-    )
-  );
-
-  // Add all users to the default team
-  await prisma.teamMembership.create({
-    data: { userId: manager.id, teamId: defaultTeam.id, role: TeamRole.manager },
-  });
-
-  await Promise.all(
-    staff.map((s) =>
-      prisma.teamMembership.create({
-        data: { userId: s.id, teamId: defaultTeam.id, role: TeamRole.member },
-      })
-    )
-  );
-
-  // Create starter badges
-  await Promise.all(
-    STARTER_BADGES.map((badge) =>
-      prisma.award.create({ data: badge })
-    )
-  );
-
-  // Create sample tasks (all assigned to the default team)
-  const sampleTasks = [
-    { title: "Update company website homepage", priority: TaskPriority.high, effortEstimate: EffortEstimate.large, assignedToId: staff[0].id, status: TaskStatus.in_progress, percentComplete: 40, dueDate: new Date("2026-03-28") },
-    { title: "Prepare Q1 budget report", priority: TaskPriority.high, effortEstimate: EffortEstimate.medium, assignedToId: staff[1].id, status: TaskStatus.not_started, dueDate: new Date("2026-03-25") },
-    { title: "Organize team building event", priority: TaskPriority.medium, effortEstimate: EffortEstimate.medium, assignedToId: staff[2].id, status: TaskStatus.in_progress, percentComplete: 60, dueDate: new Date("2026-04-10") },
-    { title: "Review vendor contracts", priority: TaskPriority.low, effortEstimate: EffortEstimate.small, assignedToId: staff[3].id, status: TaskStatus.blocked, blockerReason: "Waiting on legal review", dueDate: new Date("2026-03-20") },
-    { title: "Set up new employee onboarding docs", priority: TaskPriority.medium, effortEstimate: EffortEstimate.large, assignedToId: null, backlogPosition: 1 },
-    { title: "Audit office supply inventory", priority: TaskPriority.low, effortEstimate: EffortEstimate.small, assignedToId: null, backlogPosition: 2 },
-    { title: "Plan holiday party", priority: TaskPriority.low, effortEstimate: EffortEstimate.medium, assignedToId: null, backlogPosition: 3 },
-    { title: "Update emergency contact list", priority: TaskPriority.medium, effortEstimate: EffortEstimate.small, assignedToId: null, backlogPosition: 4 },
+  // Create 6 users: 1 manager + 5 staff
+  const users = [
+    { name: "Todd",   role: UserRole.manager, avatarColor: AVATAR_COLORS[0], isSuperAdmin: true, teamRole: TeamRole.manager },
+    { name: "Alice",  role: UserRole.staff,   avatarColor: AVATAR_COLORS[1], isSuperAdmin: false, teamRole: TeamRole.member },
+    { name: "Bob",    role: UserRole.staff,   avatarColor: AVATAR_COLORS[2], isSuperAdmin: false, teamRole: TeamRole.member },
+    { name: "Carol",  role: UserRole.staff,   avatarColor: AVATAR_COLORS[3], isSuperAdmin: false, teamRole: TeamRole.member },
+    { name: "Dave",   role: UserRole.staff,   avatarColor: AVATAR_COLORS[4], isSuperAdmin: false, teamRole: TeamRole.member },
+    { name: "Eve",    role: UserRole.staff,   avatarColor: AVATAR_COLORS[5], isSuperAdmin: false, teamRole: TeamRole.member },
   ];
 
-  for (const task of sampleTasks) {
-    await prisma.task.create({
-      data: { ...task, createdById: manager.id, teamId: defaultTeam.id },
+  const createdUsers: Record<string, string> = {};
+  for (const u of users) {
+    const user = await prisma.user.upsert({
+      where: { name: u.name },
+      update: {},
+      create: { name: u.name, role: u.role, avatarColor: u.avatarColor, isSuperAdmin: u.isSuperAdmin },
+    });
+    createdUsers[u.name] = user.id;
+
+    // Add to team
+    await prisma.teamMembership.upsert({
+      where: { userId_teamId: { userId: user.id, teamId: team.id } },
+      update: {},
+      create: { userId: user.id, teamId: team.id, role: u.teamRole },
     });
   }
 
-  console.log("Seed complete: 1 default team, 1 manager (super_admin), 7 staff, 15 badges, 8 sample tasks");
+  const todd = createdUsers["Todd"];
+  const alice = createdUsers["Alice"];
+  const bob = createdUsers["Bob"];
+  const carol = createdUsers["Carol"];
+  const dave = createdUsers["Dave"];
+  const eve = createdUsers["Eve"];
+
+  // Create badges
+  for (const badge of STARTER_BADGES) {
+    await prisma.award.upsert({
+      where: { name: badge.name },
+      update: {},
+      create: badge,
+    });
+  }
+
+  // Create 20 tasks with realistic variety
+  const tasks: Array<{
+    title: string;
+    description?: string;
+    status: TaskStatus;
+    priority: TaskPriority;
+    effortEstimate: EffortEstimate;
+    percentComplete: number;
+    dueDate?: Date;
+    assignedToId: string | null;
+    blockerReason?: string;
+    backlogPosition?: number;
+  }> = [
+    // Todd — 3 tasks
+    { title: "Review Q2 staffing plan", description: "Evaluate headcount needs for next quarter", status: TaskStatus.in_progress, priority: TaskPriority.high, effortEstimate: EffortEstimate.large, percentComplete: 30, dueDate: new Date("2026-04-15"), assignedToId: todd },
+    { title: "Prepare board presentation", description: "Monthly metrics and highlights deck", status: TaskStatus.in_progress, priority: TaskPriority.high, effortEstimate: EffortEstimate.large, percentComplete: 60, dueDate: new Date("2026-04-02"), assignedToId: todd },
+    { title: "Sign off on marketing budget", status: TaskStatus.blocked, priority: TaskPriority.medium, effortEstimate: EffortEstimate.small, percentComplete: 0, dueDate: new Date("2026-04-08"), assignedToId: todd, blockerReason: "Waiting for finance to send revised numbers" },
+
+    // Alice — 4 tasks
+    { title: "Redesign landing page hero", description: "New branding guidelines from marketing", status: TaskStatus.in_progress, priority: TaskPriority.high, effortEstimate: EffortEstimate.large, percentComplete: 75, dueDate: new Date("2026-04-03"), assignedToId: alice },
+    { title: "Fix mobile nav overflow bug", description: "Hamburger menu clips on small screens", status: TaskStatus.not_started, priority: TaskPriority.medium, effortEstimate: EffortEstimate.small, percentComplete: 0, dueDate: new Date("2026-04-06"), assignedToId: alice },
+    { title: "Build settings page UI", status: TaskStatus.in_progress, priority: TaskPriority.medium, effortEstimate: EffortEstimate.medium, percentComplete: 40, dueDate: new Date("2026-04-12"), assignedToId: alice },
+    { title: "Accessibility audit for forms", description: "WCAG 2.1 AA compliance check", status: TaskStatus.not_started, priority: TaskPriority.low, effortEstimate: EffortEstimate.medium, percentComplete: 0, dueDate: new Date("2026-04-20"), assignedToId: alice },
+
+    // Bob — 3 tasks
+    { title: "Write API docs for v2 endpoints", status: TaskStatus.in_progress, priority: TaskPriority.medium, effortEstimate: EffortEstimate.large, percentComplete: 40, dueDate: new Date("2026-04-12"), assignedToId: bob },
+    { title: "Migrate auth to OAuth2", description: "Security audit flagged session tokens", status: TaskStatus.blocked, priority: TaskPriority.high, effortEstimate: EffortEstimate.large, percentComplete: 20, dueDate: new Date("2026-04-10"), assignedToId: bob, blockerReason: "Waiting on SSO provider credentials" },
+    { title: "Set up CI/CD for staging", status: TaskStatus.not_started, priority: TaskPriority.high, effortEstimate: EffortEstimate.medium, percentComplete: 0, dueDate: new Date("2026-04-05"), assignedToId: bob },
+
+    // Carol — 3 tasks
+    { title: "Database index optimization", description: "Slow queries on reports endpoint", status: TaskStatus.in_progress, priority: TaskPriority.high, effortEstimate: EffortEstimate.medium, percentComplete: 15, dueDate: new Date("2026-04-04"), assignedToId: carol },
+    { title: "Implement rate limiting", description: "Public API abuse prevention", status: TaskStatus.not_started, priority: TaskPriority.high, effortEstimate: EffortEstimate.medium, percentComplete: 0, dueDate: new Date("2026-04-09"), assignedToId: carol },
+    { title: "Set up monitoring dashboards", description: "Grafana + alerting for staging", status: TaskStatus.in_progress, priority: TaskPriority.medium, effortEstimate: EffortEstimate.medium, percentComplete: 50, dueDate: new Date("2026-04-07"), assignedToId: carol },
+
+    // Dave — 2 tasks
+    { title: "Load test payment pipeline", description: "Target: 1000 TPS sustained", status: TaskStatus.in_progress, priority: TaskPriority.high, effortEstimate: EffortEstimate.large, percentComplete: 35, dueDate: new Date("2026-04-11"), assignedToId: dave },
+    { title: "Update privacy policy", description: "Legal sent new GDPR language", status: TaskStatus.not_started, priority: TaskPriority.high, effortEstimate: EffortEstimate.small, percentComplete: 0, dueDate: new Date("2026-04-03"), assignedToId: dave },
+
+    // Eve — 1 task
+    { title: "Create onboarding email sequence", description: "5-part drip campaign for signups", status: TaskStatus.in_progress, priority: TaskPriority.medium, effortEstimate: EffortEstimate.medium, percentComplete: 80, dueDate: new Date("2026-04-01"), assignedToId: eve },
+
+    // Backlog — 4 unassigned tasks
+    { title: "Research competitor pricing", description: "PM wants comparison matrix", status: TaskStatus.not_started, priority: TaskPriority.medium, effortEstimate: EffortEstimate.medium, percentComplete: 0, assignedToId: null, backlogPosition: 1 },
+    { title: "Add dark mode support", description: "Frequently requested feature", status: TaskStatus.not_started, priority: TaskPriority.low, effortEstimate: EffortEstimate.large, percentComplete: 0, assignedToId: null, backlogPosition: 2 },
+    { title: "Automate monthly reporting", description: "Currently manual, takes 2 hours", status: TaskStatus.not_started, priority: TaskPriority.medium, effortEstimate: EffortEstimate.medium, percentComplete: 0, assignedToId: null, backlogPosition: 3 },
+    { title: "Upgrade Node.js to v22 LTS", status: TaskStatus.not_started, priority: TaskPriority.low, effortEstimate: EffortEstimate.small, percentComplete: 0, assignedToId: null, backlogPosition: 4 },
+  ];
+
+  for (const t of tasks) {
+    await prisma.task.create({
+      data: {
+        title: t.title,
+        description: t.description,
+        status: t.status,
+        priority: t.priority,
+        effortEstimate: t.effortEstimate,
+        percentComplete: t.percentComplete,
+        dueDate: t.dueDate,
+        assignedToId: t.assignedToId,
+        blockerReason: t.blockerReason,
+        backlogPosition: t.backlogPosition ?? null,
+        createdById: todd,
+        teamId: team.id,
+      },
+    });
+  }
+
+  console.log("Seed complete: 1 team, 6 users (1 manager + 5 staff), 15 badges, 20 tasks (16 assigned + 4 backlog)");
 }
 
 main()
