@@ -1,19 +1,28 @@
 # Synology NAS deployment for Velo (Repan)
 # Cloudflare tunnel routes *.velo.hermes-tv.com → port 3060
 #
-# Usage:
-#   docker compose -f docker-compose.yml -f docker-compose.synology.yml up -d --build
+# Usage (standalone — do NOT combine with docker-compose.yml):
+#   docker compose -f docker-compose.synology.yml up -d --build
 
 version: "3.8"
 services:
   db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: repan
+      POSTGRES_PASSWORD: repan_dev
+      POSTGRES_DB: repan
+    expose:
+      - "5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
     restart: unless-stopped
 
   app:
+    build: .
     ports:
-      # Cloudflare tunnel routes to port 3060
+      # Cloudflare tunnel routes to port 3060 — no port 3000 exposed
       - "0.0.0.0:3060:3000"
-    restart: unless-stopped
     environment:
       DATABASE_URL: "postgresql://repan:repan_dev@db:5432/repan"
       # Cloudflare handles TLS termination — disable secure cookie flag
@@ -22,3 +31,9 @@ services:
       # Base domain for subdomain-based multi-tenant routing
       # e.g. acme.velo.hermes-tv.com → tenant slug "acme"
       APP_BASE_DOMAIN: "velo.hermes-tv.com"
+    depends_on:
+      - db
+    restart: unless-stopped
+
+volumes:
+  pgdata:
