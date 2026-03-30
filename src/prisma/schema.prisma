@@ -86,7 +86,6 @@ model User {
 model Team {
   id           String   @id @default(uuid())
   name         String   @unique
-  slug         String?  @unique
   createdAt    DateTime @default(now()) @map("created_at")
   weightHigh   Int      @default(60) @map("weight_high")
   weightMedium Int      @default(35) @map("weight_medium")

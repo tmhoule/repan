@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireSession, handleApiError } from "@/lib/session";
 import { getTeamRole } from "@/lib/team-auth";
-import { slugify } from "@/lib/tenant";
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -47,14 +46,6 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (body.name !== undefined) {
       if (!body.name?.trim()) return NextResponse.json({ error: "Team name is required" }, { status: 400 });
       data.name = body.name.trim();
-      // Auto-update slug when name changes (unless slug explicitly provided)
-      if (body.slug === undefined) data.slug = slugify(body.name.trim());
-    }
-    if (body.slug !== undefined) {
-      if (body.slug && !/^[a-z0-9-]+$/.test(body.slug)) {
-        return NextResponse.json({ error: "Slug must be lowercase alphanumeric with hyphens" }, { status: 400 });
-      }
-      data.slug = body.slug || null;
     }
 
     if (body.weightHigh !== undefined) {
