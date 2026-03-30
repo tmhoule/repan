@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import useSWRInfinite from "swr/infinite";
 import { MessageSquare, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -140,16 +141,20 @@ function AvatarCircle({ user }: { user: ActivityUser }) {
   );
 }
 
-export function ActivityLog({ taskId }: ActivityLogProps) {
+export function ActivityLog({ taskId, onMutateReady }: ActivityLogProps & { onMutateReady?: (mutate: () => void) => void }) {
   const getKey = (pageIndex: number, previousPage: ActivityPage | null) => {
     if (previousPage && !previousPage.nextCursor) return null;
     if (pageIndex === 0) return `/api/tasks/${taskId}/activity`;
     return `/api/tasks/${taskId}/activity?cursor=${previousPage!.nextCursor}`;
   };
 
-  const { data, size, setSize, isLoading } = useSWRInfinite<ActivityPage>(getKey, {
+  const { data, size, setSize, isLoading, mutate } = useSWRInfinite<ActivityPage>(getKey, {
     revalidateFirstPage: true,
   });
+
+  useEffect(() => {
+    onMutateReady?.(() => { mutate(); });
+  }, [onMutateReady, mutate]);
 
   const pages = data ?? [];
   const allActivities = pages.flatMap((p) => p.activities);

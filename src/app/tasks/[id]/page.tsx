@@ -1,6 +1,6 @@
 "use client";
 
-import { use } from "react";
+import { use, useCallback, useRef } from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { ArrowLeft, CalendarDays, User2, Clock } from "lucide-react";
@@ -103,6 +103,9 @@ export default function TaskDetailPage({
   const { id } = use(params);
   const { user } = useUser();
   const { data: task, isLoading, error, mutate } = useSWR<Task>(`/api/tasks/${id}`);
+  const refreshActivityRef = useRef<(() => void) | null>(null);
+  const handleMutateReady = useCallback((fn: () => void) => { refreshActivityRef.current = fn; }, []);
+  const handleCommentPosted = useCallback(() => { refreshActivityRef.current?.(); }, []);
 
   const canEdit =
     !!user &&
@@ -262,7 +265,7 @@ export default function TaskDetailPage({
               <CardTitle className="text-base">Activity</CardTitle>
             </CardHeader>
             <CardContent>
-              <ActivityLog taskId={id} />
+              <ActivityLog taskId={id} onMutateReady={handleMutateReady} />
             </CardContent>
           </Card>
 
@@ -271,7 +274,7 @@ export default function TaskDetailPage({
               <CardTitle className="text-base">Comment</CardTitle>
             </CardHeader>
             <CardContent>
-              <CommentBox taskId={id} />
+              <CommentBox taskId={id} onCommentPosted={handleCommentPosted} />
             </CardContent>
           </Card>
         </div>
