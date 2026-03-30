@@ -7,6 +7,11 @@ export async function GET() {
     await requireSession();
     const teamId = await requireTeam();
 
+    const team = await prisma.team.findUniqueOrThrow({
+      where: { id: teamId },
+      select: { weightHigh: true, weightMedium: true, weightLow: true },
+    });
+
     const now = new Date();
     const twoWeeksOut = new Date(now.getTime() + 14 * 86400000);
 
@@ -74,8 +79,7 @@ export async function GET() {
 
       const calcLoad = (tasks: typeof userTasks) => {
         return tasks.reduce((sum, t) => {
-          const weight = t.priority === "high" ? 60 : t.priority === "medium" ? 35 : 10;
-          // Reduce weight by percent complete
+          const weight = t.priority === "high" ? team.weightHigh : t.priority === "medium" ? team.weightMedium : team.weightLow;
           const remaining = 1 - (t.percentComplete ?? 0) / 100;
           return sum + Math.round(weight * remaining);
         }, 0);
