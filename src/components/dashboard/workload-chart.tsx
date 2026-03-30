@@ -15,18 +15,11 @@ interface WorkloadUser {
 
 interface WorkloadChartProps {
   data: WorkloadUser[];
+  priorityWeights?: { high: number; medium: number; low: number };
 }
 
-const TIME_WEIGHTS: Record<string, number> = { high: 60, medium: 35, low: 10 };
 const PRIORITY_COLORS: Record<string, string> = { high: "#dc2626", medium: "#f59e0b", low: "#166534" };
 const PRIORITY_ORDER = ["high", "medium", "low"] as const;
-
-const SEGMENTS = [
-  { key: "boulder", label: "Boulder", color: "#8B5CF6" },
-  { key: "high", label: "High (60%)", color: "#dc2626" },
-  { key: "medium", label: "Med (35%)", color: "#f59e0b" },
-  { key: "low", label: "Low (10%)", color: "#166534" },
-] as const;
 
 function WorkloadTooltip({
   user,
@@ -34,12 +27,14 @@ function WorkloadTooltip({
   boulders,
   total,
   avg30d,
+  weights,
 }: {
   user: string;
   tasks: Array<{ title: string; priority: string }>;
   boulders: Array<{ title: string; timeAllocation: number }>;
   total: number;
   avg30d: number;
+  weights: Record<string, number>;
 }) {
   return (
     <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-md text-xs max-w-[300px]">
@@ -62,7 +57,7 @@ function WorkloadTooltip({
                   style={{ backgroundColor: PRIORITY_COLORS[priority] }}
                 />
                 <span className="text-foreground line-clamp-1 flex-1">{t.title}</span>
-                <span className="text-muted-foreground shrink-0">{TIME_WEIGHTS[priority]}%</span>
+                <span className="text-muted-foreground shrink-0">{weights[priority]}%</span>
               </div>
             ));
           })}
@@ -102,6 +97,7 @@ function WorkloadRow({
   tasks,
   boulders,
   isNearTop,
+  weights,
 }: {
   user: WorkloadUser["user"];
   segments: Array<{ color: string; value: number }>;
@@ -111,6 +107,7 @@ function WorkloadRow({
   tasks: Array<{ title: string; priority: string }>;
   boulders: Array<{ title: string; timeAllocation: number }>;
   isNearTop: boolean;
+  weights: Record<string, number>;
 }) {
   const [hovered, setHovered] = useState(false);
   const scale = (v: number) => `${(v / maxValue) * 100}%`;
@@ -176,6 +173,7 @@ function WorkloadRow({
             boulders={boulders}
             total={total}
             avg30d={avg30d}
+            weights={weights}
           />
         </div>
       )}
@@ -183,7 +181,15 @@ function WorkloadRow({
   );
 }
 
-export function WorkloadChart({ data }: WorkloadChartProps) {
+export function WorkloadChart({ data, priorityWeights }: WorkloadChartProps) {
+  const TIME_WEIGHTS = priorityWeights ?? { high: 60, medium: 35, low: 10 };
+  const SEGMENTS = [
+    { key: "boulder", label: "Boulder", color: "#8B5CF6" },
+    { key: "high", label: `High (${TIME_WEIGHTS.high}%)`, color: "#dc2626" },
+    { key: "medium", label: `Med (${TIME_WEIGHTS.medium}%)`, color: "#f59e0b" },
+    { key: "low", label: `Low (${TIME_WEIGHTS.low}%)`, color: "#166534" },
+  ] as const;
+
   const rows = data.map((d) => {
     const highPct = d.byPriority.high * TIME_WEIGHTS.high;
     const medPct = d.byPriority.medium * TIME_WEIGHTS.medium;
@@ -222,7 +228,7 @@ export function WorkloadChart({ data }: WorkloadChartProps) {
         ) : (
           <div className="space-y-3">
             {rows.map((row, i) => (
-              <WorkloadRow key={row.user.id} maxValue={maxValue} isNearTop={i < 2} {...row} />
+              <WorkloadRow key={row.user.id} maxValue={maxValue} isNearTop={i < 2} weights={TIME_WEIGHTS} {...row} />
             ))}
 
             {/* Legend */}

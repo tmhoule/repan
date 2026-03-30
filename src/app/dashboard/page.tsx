@@ -62,6 +62,7 @@ interface DashboardData {
     user: { id: string; name: string; avatarColor: string };
     award: { name: string; icon: string; description: string };
   }>;
+  priorityWeights?: { high: number; medium: number; low: number };
 }
 
 function SkeletonCard({ className = "" }: { className?: string }) {
@@ -112,7 +113,7 @@ export default function DashboardPage() {
             {isLoading || !data ? (
               <SkeletonCard className="h-64" />
             ) : (
-              <WorkloadChart data={data.workload} />
+              <WorkloadChart data={data.workload} priorityWeights={data.priorityWeights} />
             )}
           </div>
           <div>
