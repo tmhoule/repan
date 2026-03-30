@@ -43,8 +43,10 @@ function severityScore(task: AtRiskTask): number {
 
 function getDueDateInfo(dueDate: string | null | undefined): { label: string; className: string } | null {
   if (!dueDate) return null;
-  const due = new Date(dueDate);
+  const [y, m, d] = dueDate.split("T")[0].split("-").map(Number);
+  const due = new Date(y, m - 1, d);
   const now = new Date();
+  now.setHours(0, 0, 0, 0);
   const diffDays = Math.ceil((due.getTime() - now.getTime()) / 86400000);
   if (diffDays < 0) return { label: `${Math.abs(diffDays)}d overdue`, className: "text-orange-400" };
   if (diffDays === 0) return { label: "due today", className: "text-red-400" };

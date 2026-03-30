@@ -76,7 +76,8 @@ function formatValue(type: string, value: string | null): string {
   if (type === "progress_update") return `${value}%`;
   if (type === "due_date_change") {
     try {
-      return new Date(value).toLocaleDateString(undefined, {
+      const [y, m, d] = value.split("T")[0].split("-").map(Number);
+      return new Date(y, m - 1, d).toLocaleDateString(undefined, {
         month: "short",
         day: "numeric",
         year: "numeric",

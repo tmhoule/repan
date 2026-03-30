@@ -76,7 +76,7 @@ function countRisks(tasks: Task[]): { stale: number; behind: number; blocked: nu
   for (const t of tasks) {
     if (t.status === "done" || t.status === "boulder") continue;
     if (t.status === "blocked") { blocked++; continue; }
-    if (t.dueDate && new Date(t.dueDate) < now) { overdue++; continue; }
+    if (t.dueDate) { const [dy, dm, dd] = t.dueDate.split("T")[0].split("-").map(Number); if (new Date(dy, dm - 1, dd) < now) { overdue++; continue; } }
     // Stale: no update in 3+ days for in_progress
     const lastUpdate = t.updatedAt ? new Date(t.updatedAt) : (t.createdAt ? new Date(t.createdAt) : now);
     const daysSince = (now.getTime() - lastUpdate.getTime()) / 86400000;
@@ -85,7 +85,8 @@ function countRisks(tasks: Task[]): { stale: number; behind: number; blocked: nu
     // Behind schedule
     if (t.dueDate && t.createdAt) {
       const created = new Date(t.createdAt);
-      const due = new Date(t.dueDate);
+      const [dy2, dm2, dd2] = t.dueDate.split("T")[0].split("-").map(Number);
+      const due = new Date(dy2, dm2 - 1, dd2);
       const total = due.getTime() - created.getTime();
       if (total > 0) {
         const elapsed = now.getTime() - created.getTime();

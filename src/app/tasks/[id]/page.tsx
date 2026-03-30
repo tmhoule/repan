@@ -312,7 +312,7 @@ function ReadOnlyView({ task }: { task: Task }) {
       {task.dueDate && (
         <div>
           <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Due Date</dt>
-          <dd>{new Date(task.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</dd>
+          <dd>{(() => { const [y, m, d] = task.dueDate!.split("T")[0].split("-").map(Number); return new Date(y, m - 1, d).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }); })()}</dd>
         </div>
       )}
       {task.blockerReason && task.status === "blocked" && (
