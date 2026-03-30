@@ -10,6 +10,11 @@ export async function GET() {
   const user = await requireSession();
   const teamId = await requireTeam();
 
+  const team = await prisma.team.findUniqueOrThrow({
+    where: { id: teamId },
+    select: { weightHigh: true, weightMedium: true, weightLow: true },
+  });
+
   // Check team manager or super_admin access
   const teamRole = await getTeamRole(user.id, teamId);
   if (!user.isSuperAdmin && teamRole !== "manager") {
@@ -57,9 +62,9 @@ export async function GET() {
     const userTasks = tasks.filter((t) => t.assignedTo?.id === u.id && t.status !== "boulder");
 
     // Calculate current workload %
-    const currentHigh = userTasks.filter(t => t.priority === "high").length * 60;
-    const currentMed = userTasks.filter(t => t.priority === "medium").length * 35;
-    const currentLow = userTasks.filter(t => t.priority === "low").length * 10;
+    const currentHigh = userTasks.filter(t => t.priority === "high").length * team.weightHigh;
+    const currentMed = userTasks.filter(t => t.priority === "medium").length * team.weightMedium;
+    const currentLow = userTasks.filter(t => t.priority === "low").length * team.weightLow;
     const currentBoulder = tasks.filter(t => t.assignedTo?.id === u.id && t.status === "boulder").reduce((sum, t) => sum + (t.timeAllocation ?? 0), 0);
     const currentTotal = currentHigh + currentMed + currentLow + currentBoulder;
 
@@ -76,7 +81,7 @@ export async function GET() {
         if (t.status === "boulder") {
           dayLoad += t.timeAllocation ?? 0;
         } else {
-          dayLoad += t.priority === "high" ? 60 : t.priority === "medium" ? 35 : 10;
+          dayLoad += t.priority === "high" ? team.weightHigh : t.priority === "medium" ? team.weightMedium : team.weightLow;
         }
       }
       totalDailyLoad += dayLoad;
@@ -177,7 +182,7 @@ export async function GET() {
     take: 10,
   });
 
-  return NextResponse.json({ workload, atRisk, keyProjects, backlogHealth: health, weeklyThroughput: weeklyData, recentActivity, recentBadges });
+  return NextResponse.json({ workload, atRisk, keyProjects, backlogHealth: health, weeklyThroughput: weeklyData, recentActivity, recentBadges, priorityWeights: { high: team.weightHigh, medium: team.weightMedium, low: team.weightLow } });
   } catch (error) {
     return handleApiError(error);
   }
