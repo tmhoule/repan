@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "teams" ADD COLUMN     "weight_high" INTEGER NOT NULL DEFAULT 60,
+ADD COLUMN     "weight_low" INTEGER NOT NULL DEFAULT 10,
+ADD COLUMN     "weight_medium" INTEGER NOT NULL DEFAULT 35;
