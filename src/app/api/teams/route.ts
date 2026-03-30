@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireSession, handleApiError } from "@/lib/session";
+import { slugify } from "@/lib/tenant";
 
 export async function GET() {
   try {
@@ -39,7 +40,8 @@ export async function POST(request: NextRequest) {
     const { name } = await request.json();
     if (!name?.trim()) return NextResponse.json({ error: "Team name is required" }, { status: 400 });
 
-    const team = await prisma.team.create({ data: { name: name.trim() } });
+    const slug = slugify(name.trim());
+    const team = await prisma.team.create({ data: { name: name.trim(), slug } });
     return NextResponse.json(team, { status: 201 });
   } catch (error) {
     return handleApiError(error);
