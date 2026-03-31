@@ -22,13 +22,13 @@ import { useUser } from "@/components/user-context";
 const staffNavLinks = [
   { href: "/tasks", label: "My Tasks" },
   { href: "/team", label: "Team" },
+  { href: "/history", label: "History" },
 ];
 
 const managerNavLinks = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/standup", label: "Standup" },
   { href: "/reports", label: "Reports" },
-  { href: "/history", label: "History" },
   { href: "/capacity", label: "Capacity" },
 ];
 

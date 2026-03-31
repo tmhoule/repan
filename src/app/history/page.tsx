@@ -3,10 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import useSWR from "swr";
-import { History } from "lucide-react";
+import { History, RotateCcw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { PriorityBadge } from "@/components/tasks/priority-badge";
 import { BucketBadge } from "@/components/buckets/bucket-badge";
 
@@ -58,10 +59,19 @@ export default function HistoryPage() {
   if (toDate) params.set("to", toDate);
   const queryString = params.toString();
 
-  const { data, isLoading } = useSWR<{ tasks: HistoryTask[] }>(
+  const { data, isLoading, mutate } = useSWR<{ tasks: HistoryTask[] }>(
     `/api/history${queryString ? `?${queryString}` : ""}`
   );
   const tasks = data?.tasks ?? [];
+
+  const handleReopen = async (taskId: string) => {
+    await fetch(`/api/tasks/${taskId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "not_started" }),
+    });
+    mutate();
+  };
 
   const { data: bucketsData } = useSWR<{ buckets: Bucket[] }>("/api/buckets");
   const buckets = bucketsData?.buckets ?? [];
@@ -174,6 +184,15 @@ export default function HistoryPage() {
                   {task.bucket && (
                     <BucketBadge name={task.bucket.name} colorKey={task.bucket.colorKey} />
                   )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 gap-1.5 text-xs shrink-0"
+                    onClick={() => handleReopen(task.id)}
+                  >
+                    <RotateCcw className="size-3" />
+                    Reopen
+                  </Button>
                 </div>
               </div>
             );

@@ -9,9 +9,10 @@ import { Label } from "@/components/ui/label";
 interface CommentBoxProps {
   taskId: string;
   onCommentPosted?: () => void;
+  onComposingChange?: (isComposing: boolean) => void;
 }
 
-export function CommentBox({ taskId, onCommentPosted }: CommentBoxProps) {
+export function CommentBox({ taskId, onCommentPosted, onComposingChange }: CommentBoxProps) {
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -61,7 +62,11 @@ export function CommentBox({ taskId, onCommentPosted }: CommentBoxProps) {
         id="comment-input"
         ref={textareaRef}
         value={comment}
-        onChange={(e) => setComment(e.target.value)}
+        onChange={(e) => {
+          const val = e.target.value;
+          setComment(val);
+          onComposingChange?.(val.trim().length > 0);
+        }}
         onKeyDown={handleKeyDown}
         placeholder="Write a comment… (Cmd+Enter to submit)"
         rows={3}

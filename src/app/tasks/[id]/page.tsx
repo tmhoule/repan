@@ -1,9 +1,9 @@
 "use client";
 
-import { use, useCallback, useRef } from "react";
+import { use, useCallback, useRef, useState } from "react";
 import Link from "next/link";
 import useSWR from "swr";
-import { ArrowLeft, CalendarDays, User2, Clock } from "lucide-react";
+import { ArrowLeft, CalendarDays, User2, Clock, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -106,6 +106,7 @@ export default function TaskDetailPage({
   const refreshActivityRef = useRef<(() => void) | null>(null);
   const handleMutateReady = useCallback((fn: () => void) => { refreshActivityRef.current = fn; }, []);
   const handleCommentPosted = useCallback(() => { refreshActivityRef.current?.(); }, []);
+  const [isCommenting, setIsCommenting] = useState(false);
 
   const canEdit =
     !!user &&
@@ -184,6 +185,25 @@ export default function TaskDetailPage({
             <PriorityBadge priority={task.priority} />
             {task.bucket && (
               <BucketBadge name={task.bucket.name} colorKey={task.bucket.colorKey} />
+            )}
+            {canEdit && task.status !== "done" && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 gap-1.5 text-xs shrink-0 text-green-700 border-green-200 hover:bg-green-50 hover:border-green-300 dark:text-green-400 dark:border-green-800 dark:hover:bg-green-950"
+                disabled={isCommenting}
+                onClick={async () => {
+                  await fetch(`/api/tasks/${id}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ status: "done" }),
+                  });
+                  mutate();
+                }}
+              >
+                <CheckCircle className="size-3.5" />
+                Done
+              </Button>
             )}
           </div>
         </div>
@@ -274,7 +294,7 @@ export default function TaskDetailPage({
               <CardTitle className="text-base">Comment</CardTitle>
             </CardHeader>
             <CardContent>
-              <CommentBox taskId={id} onCommentPosted={handleCommentPosted} />
+              <CommentBox taskId={id} onCommentPosted={handleCommentPosted} onComposingChange={setIsCommenting} />
             </CardContent>
           </Card>
         </div>
