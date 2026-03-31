@@ -53,6 +53,7 @@ enum ActivityType {
 
 enum NotificationType {
   task_assigned
+  task_completed
   due_date_approaching
   comment_added
   badge_earned

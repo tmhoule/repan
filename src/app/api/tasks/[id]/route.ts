@@ -98,6 +98,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (body.status === "done" && task.status !== "done") {
       updateData.completedAt = new Date();
       updateData.percentComplete = 100;
+      // Notify task creator when someone else completes it
+      if (task.createdById && task.createdById !== user.id) {
+        await createNotification(task.createdById, "task_completed", "Task completed", `${user.name} completed "${task.title}"`, task.id);
+      }
     } else if (body.status && body.status !== "done" && task.status === "done") {
       updateData.completedAt = null;
     }

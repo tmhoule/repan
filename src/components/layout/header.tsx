@@ -29,7 +29,6 @@ const managerNavLinks = [
   { href: "/standup", label: "Standup" },
   { href: "/reports", label: "Reports" },
   { href: "/history", label: "History" },
-  { href: "/admin", label: "Admin" },
   { href: "/capacity", label: "Capacity" },
 ];
 
@@ -118,6 +117,18 @@ export function Header() {
         {/* Right side */}
         <div className="flex items-center gap-2 ml-auto">
           {user && <GlobalSearch />}
+          {isManager && (
+            <Link
+              href="/admin"
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground ${
+                pathname === "/admin" || pathname.startsWith("/admin/")
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted-foreground"
+              }`}
+            >
+              Admin
+            </Link>
+          )}
           {user && <NotificationBell />}
 
           {user && (
