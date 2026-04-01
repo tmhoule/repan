@@ -70,6 +70,8 @@ model User {
   createdAt     DateTime  @default(now()) @map("created_at")
   isActive      Boolean   @default(true) @map("is_active")
   isSuperAdmin  Boolean   @default(false) @map("is_super_admin")
+  ssoUid        String?   @unique @map("sso_uid")
+  ssoUser       Boolean   @default(false) @map("sso_user")
 
   createdTasks    Task[]          @relation("CreatedTasks")
   assignedTasks   Task[]          @relation("AssignedTasks")
@@ -88,9 +90,11 @@ model Team {
   id           String   @id @default(uuid())
   name         String   @unique
   createdAt    DateTime @default(now()) @map("created_at")
-  weightHigh   Int      @default(60) @map("weight_high")
-  weightMedium Int      @default(35) @map("weight_medium")
-  weightLow    Int      @default(10) @map("weight_low")
+  weightHigh         Int @default(60) @map("weight_high")
+  weightMedium       Int @default(35) @map("weight_medium")
+  weightLow          Int @default(10) @map("weight_low")
+  multiplierBlocked  Int @default(5)  @map("multiplier_blocked")
+  multiplierStalled  Int @default(25) @map("multiplier_stalled")
 
   memberships TeamMembership[]
   tasks       Task[]
@@ -265,4 +269,20 @@ model Streak {
 
   @@unique([userId, streakType])
   @@map("streaks")
+}
+
+model SamlConfig {
+  id              String   @id @default("singleton")
+  enabled         Boolean  @default(false)
+  appUrl          String   @map("app_url")
+  idpEntityId     String   @map("idp_entity_id")
+  idpSsoUrl       String   @map("idp_sso_url")
+  idpCertificate  String   @map("idp_certificate")
+  spEntityId      String   @map("sp_entity_id")
+  attrUid         String   @default("uid") @map("attr_uid")
+  attrDisplayName String   @default("displayName") @map("attr_display_name")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("saml_config")
 }
