@@ -12,7 +12,7 @@ export async function GET() {
 
   const team = await prisma.team.findUniqueOrThrow({
     where: { id: teamId },
-    select: { weightHigh: true, weightMedium: true, weightLow: true },
+    select: { weightHigh: true, weightMedium: true, weightLow: true, multiplierBlocked: true, multiplierStalled: true },
   });
 
   // Check team manager or super_admin access
@@ -76,7 +76,10 @@ export async function GET() {
         if (t.status === "boulder") {
           dayLoad += t.timeAllocation ?? 0;
         } else {
-          dayLoad += t.priority === "high" ? team.weightHigh : t.priority === "medium" ? team.weightMedium : team.weightLow;
+          let weight = t.priority === "high" ? team.weightHigh : t.priority === "medium" ? team.weightMedium : team.weightLow;
+          if (t.status === "blocked") weight = Math.round(weight * team.multiplierBlocked / 100);
+          else if (t.status === "stalled") weight = Math.round(weight * team.multiplierStalled / 100);
+          dayLoad += weight;
         }
       }
       totalDailyLoad += dayLoad;
