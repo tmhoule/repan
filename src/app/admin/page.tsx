@@ -181,10 +181,48 @@ export default function AdminPage() {
   const [weightHigh, setWeightHigh] = useState(60);
   const [weightMedium, setWeightMedium] = useState(35);
   const [weightLow, setWeightLow] = useState(10);
+  const [multiplierBlocked, setMultiplierBlocked] = useState(5);
+  const [multiplierStalled, setMultiplierStalled] = useState(25);
   const [savingWeights, setSavingWeights] = useState(false);
 
+  // SSO state
+  const {
+    data: ssoConfig,
+    isLoading: ssoLoading,
+    mutate: mutateSso,
+  } = useSWR<{
+    configured: boolean;
+    enabled?: boolean;
+    appUrl?: string;
+    idpEntityId?: string;
+    idpSsoUrl?: string;
+    spEntityId?: string;
+    attrUid?: string;
+    attrDisplayName?: string;
+    acsUrl?: string;
+    hasCertificate?: boolean;
+  }>(isSuperAdmin ? "/api/admin/saml" : null);
+
+  const [ssoAppUrl, setSsoAppUrl] = useState("");
+  const [ssoMetadataUrl, setSsoMetadataUrl] = useState("");
+  const [ssoAttrUid, setSsoAttrUid] = useState("uid");
+  const [ssoAttrDisplayName, setSsoAttrDisplayName] = useState("displayName");
+  const [savingSso, setSavingSso] = useState(false);
+  const [ssoError, setSsoError] = useState("");
+  const [ssoSuccess, setSsoSuccess] = useState("");
+  const [togglingSso, setTogglingSso] = useState(false);
+
+  // Sync SSO form fields from loaded config
+  useEffect(() => {
+    if (ssoConfig?.configured) {
+      setSsoAppUrl(ssoConfig.appUrl ?? "");
+      setSsoAttrUid(ssoConfig.attrUid ?? "uid");
+      setSsoAttrDisplayName(ssoConfig.attrDisplayName ?? "displayName");
+    }
+  }, [ssoConfig]);
+
   // Load team priority weights
-  const { data: teamWeights, mutate: mutateWeights } = useSWR<{ weightHigh: number; weightMedium: number; weightLow: number }>(
+  const { data: teamWeights, mutate: mutateWeights } = useSWR<{ weightHigh: number; weightMedium: number; weightLow: number; multiplierBlocked: number; multiplierStalled: number }>(
     activeTeamId ? `/api/teams/${activeTeamId}` : null
   );
 
@@ -193,6 +231,8 @@ export default function AdminPage() {
       setWeightHigh(teamWeights.weightHigh);
       setWeightMedium(teamWeights.weightMedium);
       setWeightLow(teamWeights.weightLow);
+      setMultiplierBlocked(teamWeights.multiplierBlocked);
+      setMultiplierStalled(teamWeights.multiplierStalled);
     }
   }, [teamWeights]);
 
@@ -363,7 +403,7 @@ export default function AdminPage() {
       const res = await fetch(`/api/teams/${activeTeamId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ weightHigh, weightMedium, weightLow }),
+        body: JSON.stringify({ weightHigh, weightMedium, weightLow, multiplierBlocked, multiplierStalled }),
       });
       if (!res.ok) {
         toast.error("Failed to save priority weights");
@@ -375,6 +415,55 @@ export default function AdminPage() {
       toast.error("Failed to save priority weights");
     } finally {
       setSavingWeights(false);
+    }
+  };
+
+  const handleSaveSso = async () => {
+    if (!ssoAppUrl.trim() || !ssoMetadataUrl.trim()) return;
+    setSavingSso(true);
+    setSsoError("");
+    setSsoSuccess("");
+    try {
+      const res = await fetch("/api/admin/saml", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          appUrl: ssoAppUrl.trim(),
+          metadataUrl: ssoMetadataUrl.trim(),
+          attrUid: ssoAttrUid.trim() || "uid",
+          attrDisplayName: ssoAttrDisplayName.trim() || "displayName",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to save SSO config");
+      setSsoSuccess("SSO configuration saved successfully");
+      setSsoMetadataUrl("");
+      mutateSso();
+    } catch (err) {
+      setSsoError(err instanceof Error ? err.message : "Failed to save SSO config");
+    } finally {
+      setSavingSso(false);
+    }
+  };
+
+  const handleToggleSso = async () => {
+    setTogglingSso(true);
+    setSsoError("");
+    try {
+      const res = await fetch("/api/admin/saml", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: !ssoConfig?.enabled }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? "Failed to toggle SSO");
+      }
+      mutateSso();
+    } catch (err) {
+      setSsoError(err instanceof Error ? err.message : "Failed to toggle SSO");
+    } finally {
+      setTogglingSso(false);
     }
   };
 
@@ -407,6 +496,7 @@ export default function AdminPage() {
             <TabsTrigger value="badges">Badges</TabsTrigger>
             {isManager && <TabsTrigger value="teams">Teams</TabsTrigger>}
             <TabsTrigger value="settings">Settings</TabsTrigger>
+            {isSuperAdmin && <TabsTrigger value="sso">SSO</TabsTrigger>}
           </TabsList>
 
           {/* ── Users Tab ── */}
@@ -706,6 +796,39 @@ export default function AdminPage() {
                       </div>
                     </div>
                   </div>
+
+                  <div className="border-t border-zinc-800 pt-4 mt-4">
+                    <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wide mb-3">Status Multipliers</h3>
+                    <p className="text-xs text-zinc-500 mb-3">
+                      Blocked and stalled tasks contribute a reduced percentage of their normal priority weight to workload.
+                      For example, a high-priority task at 60% weight with a 5% blocked multiplier counts as 3%.
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs text-zinc-400 mb-1">Blocked (%)</label>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={100}
+                          value={multiplierBlocked}
+                          onChange={(e) => setMultiplierBlocked(Math.max(0, Math.min(100, parseInt(e.target.value) || 0)))}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-zinc-400 mb-1">Stalled (%)</label>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={100}
+                          value={multiplierStalled}
+                          onChange={(e) => setMultiplierStalled(Math.max(0, Math.min(100, parseInt(e.target.value) || 0)))}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="flex items-center justify-end pt-1">
                     <Button
                       size="sm"
@@ -713,7 +836,7 @@ export default function AdminPage() {
                       disabled={savingWeights}
                       className="h-8 text-xs"
                     >
-                      {savingWeights ? "Saving..." : "Save Weights"}
+                      {savingWeights ? "Saving..." : "Save Settings"}
                     </Button>
                   </div>
                 </div>
@@ -1015,6 +1138,138 @@ export default function AdminPage() {
               </div>
             )}
           </TabsContent>
+
+          {/* ── SSO Tab ── */}
+          {isSuperAdmin && (
+            <TabsContent value="sso" className="mt-4">
+              <div className="space-y-6">
+                <div className="rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-zinc-800">
+                    <h2 className="text-sm font-semibold text-zinc-200">SAML SSO Configuration</h2>
+                    <p className="text-xs text-zinc-500 mt-0.5">Configure single sign-on via your identity provider</p>
+                  </div>
+
+                  <div className="p-4 space-y-4">
+                    {ssoLoading ? (
+                      <div className="space-y-2">
+                        {Array.from({ length: 3 }).map((_, i) => (
+                          <div key={i} className="h-10 rounded-lg bg-zinc-800/50 animate-pulse" />
+                        ))}
+                      </div>
+                    ) : (
+                      <>
+                        {/* Enable/Disable toggle */}
+                        {ssoConfig?.configured && (
+                          <div className="flex items-center justify-between p-3 rounded-lg border border-zinc-800 bg-zinc-800/30">
+                            <div>
+                              <p className="text-sm font-medium text-zinc-200">SSO Enabled</p>
+                              <p className="text-xs text-zinc-500">
+                                {ssoConfig.enabled ? "Users can sign in via SSO" : "SSO is configured but disabled"}
+                              </p>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant={ssoConfig.enabled ? "destructive" : "default"}
+                              onClick={handleToggleSso}
+                              disabled={togglingSso}
+                            >
+                              {togglingSso ? "..." : ssoConfig.enabled ? "Disable" : "Enable"}
+                            </Button>
+                          </div>
+                        )}
+
+                        {/* App URL */}
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-medium text-zinc-400">Application URL</label>
+                          <Input
+                            value={ssoAppUrl}
+                            onChange={(e) => setSsoAppUrl(e.target.value)}
+                            placeholder="https://repan.company.com"
+                            className="h-9 text-sm"
+                          />
+                          <p className="text-xs text-zinc-600">Public URL where this app is hosted</p>
+                        </div>
+
+                        {/* Metadata URL */}
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-medium text-zinc-400">IdP Metadata URL</label>
+                          <Input
+                            value={ssoMetadataUrl}
+                            onChange={(e) => setSsoMetadataUrl(e.target.value)}
+                            placeholder="https://idp.company.com/nidp/saml2/metadata"
+                            className="h-9 text-sm"
+                          />
+                          <p className="text-xs text-zinc-600">Your identity provider&apos;s SAML metadata endpoint</p>
+                        </div>
+
+                        {/* Attribute mapping */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-zinc-400">UID Attribute</label>
+                            <Input
+                              value={ssoAttrUid}
+                              onChange={(e) => setSsoAttrUid(e.target.value)}
+                              placeholder="uid"
+                              className="h-9 text-sm"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-zinc-400">Display Name Attribute</label>
+                            <Input
+                              value={ssoAttrDisplayName}
+                              onChange={(e) => setSsoAttrDisplayName(e.target.value)}
+                              placeholder="displayName"
+                              className="h-9 text-sm"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Error/Success messages */}
+                        {ssoError && <p className="text-sm text-red-400">{ssoError}</p>}
+                        {ssoSuccess && <p className="text-sm text-green-400">{ssoSuccess}</p>}
+
+                        {/* Save button */}
+                        <Button
+                          onClick={handleSaveSso}
+                          disabled={savingSso || !ssoAppUrl.trim() || !ssoMetadataUrl.trim()}
+                          className="w-full"
+                        >
+                          {savingSso ? "Fetching metadata..." : "Fetch Metadata & Save"}
+                        </Button>
+
+                        {/* SP info for IdP registration */}
+                        {ssoConfig?.configured && (
+                          <div className="mt-4 p-3 rounded-lg border border-zinc-800 bg-zinc-800/30 space-y-2">
+                            <p className="text-xs font-medium text-zinc-400">
+                              Register these values with your Identity Provider:
+                            </p>
+                            <div className="space-y-1.5">
+                              <div>
+                                <p className="text-xs text-zinc-500">SP Entity ID</p>
+                                <p className="text-sm text-zinc-200 font-mono break-all">{ssoConfig.spEntityId}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-zinc-500">ACS URL (Assertion Consumer Service)</p>
+                                <p className="text-sm text-zinc-200 font-mono break-all">{ssoConfig.acsUrl}</p>
+                              </div>
+                            </div>
+                            {ssoConfig.idpEntityId && (
+                              <div className="pt-2 border-t border-zinc-700 space-y-1.5">
+                                <p className="text-xs text-zinc-500">IdP Entity ID</p>
+                                <p className="text-sm text-zinc-300 font-mono break-all">{ssoConfig.idpEntityId}</p>
+                                <p className="text-xs text-zinc-500">IdP SSO URL</p>
+                                <p className="text-sm text-zinc-300 font-mono break-all">{ssoConfig.idpSsoUrl}</p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+          )}
         </Tabs>
       </div>
 
