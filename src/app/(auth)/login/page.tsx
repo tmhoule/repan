@@ -143,7 +143,7 @@ export default function LoginPage() {
           )}
 
           {/* SSO Login */}
-          {ssoEnabled && !needsSetup && !loading && !selectedTeam && (
+          {ssoEnabled && !needsSetup && !loading && (
             <div className="max-w-sm mx-auto mb-8">
               <a
                 href="/api/auth/saml/login"

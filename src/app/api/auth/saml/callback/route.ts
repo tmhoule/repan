@@ -21,17 +21,13 @@ export async function POST(request: NextRequest) {
     // Look up existing SSO user
     let user = await prisma.user.findUnique({ where: { ssoUid: uid } });
 
-    if (user) {
-      // Update display name if SAML provides one and it differs
-      if (displayName && displayName !== user.name) {
-        user = await prisma.user.update({
-          where: { id: user.id },
-          data: { name: displayName },
-        });
+    if (!user) {
+      // JIT provision new user — handle name collisions with unique constraint
+      let name = displayName || uid;
+      const existing = await prisma.user.findUnique({ where: { name } });
+      if (existing) {
+        name = `${name} (${uid})`;
       }
-    } else {
-      // JIT provision new user
-      const name = displayName || uid;
       const avatarColor = AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)];
 
       user = await prisma.user.create({
@@ -44,6 +40,7 @@ export async function POST(request: NextRequest) {
         },
       });
     }
+    // For existing users, don't overwrite name — it's user-editable after provisioning
 
     // Set session
     await setSession(user.id);

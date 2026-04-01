@@ -1,4 +1,5 @@
 import { SAML } from "@node-saml/node-saml";
+import { parseStringPromise } from "xml2js";
 import { prisma } from "./db";
 
 export interface SamlAttributes {
@@ -6,36 +7,54 @@ export interface SamlAttributes {
   displayName: string | null;
 }
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 /**
  * Parse IdP metadata XML and extract entity ID, SSO URL, and signing certificate.
+ * Uses xml2js for proper XML parsing instead of regex.
  */
-export function parseSamlMetadata(xml: string): {
+export async function parseSamlMetadata(xml: string): Promise<{
   idpEntityId: string;
   idpSsoUrl: string;
   idpCertificate: string;
-} {
-  // Extract EntityID
-  const entityIdMatch = xml.match(/entityID="([^"]+)"/);
-  if (!entityIdMatch) throw new Error("Could not find entityID in metadata");
-  const idpEntityId = entityIdMatch[1];
+}> {
+  const result = await parseStringPromise(xml, { explicitArray: false, tagNameProcessors: [(name: string) => name.replace(/^.*:/, "")] });
 
-  // Extract SSO URL (HTTP-Redirect or HTTP-POST SingleSignOnService)
-  const ssoUrlMatch = xml.match(
-    /SingleSignOnService[^>]+Binding="urn:oasis:names:tc:SAML:2\.0:bindings:HTTP-Redirect"[^>]+Location="([^"]+)"/
-  ) ?? xml.match(
-    /SingleSignOnService[^>]+Location="([^"]+)"[^>]+Binding="urn:oasis:names:tc:SAML:2\.0:bindings:HTTP-Redirect"/
-  ) ?? xml.match(
-    /SingleSignOnService[^>]+Location="([^"]+)"/
-  );
-  if (!ssoUrlMatch) throw new Error("Could not find SingleSignOnService URL in metadata");
-  const idpSsoUrl = ssoUrlMatch[1];
+  // Find the EntityDescriptor (may be top-level or nested under EntitiesDescriptor)
+  const descriptor = result.EntityDescriptor ?? result.EntitiesDescriptor?.EntityDescriptor;
+  if (!descriptor) throw new Error("Could not find EntityDescriptor in metadata");
+  // If multiple descriptors, find the one with an IDPSSODescriptor
+  const entity = Array.isArray(descriptor)
+    ? descriptor.find((d: any) => d.IDPSSODescriptor)
+    : descriptor;
+  if (!entity) throw new Error("Could not find IdP EntityDescriptor in metadata");
 
-  // Extract signing certificate (strip PEM headers/whitespace)
-  const certMatch = xml.match(
-    /<(?:ds:)?X509Certificate>([\s\S]*?)<\/(?:ds:)?X509Certificate>/
-  );
-  if (!certMatch) throw new Error("Could not find X509Certificate in metadata");
-  const idpCertificate = certMatch[1].replace(/\s/g, "");
+  const idpEntityId = entity.$.entityID;
+  if (!idpEntityId) throw new Error("Could not find entityID in metadata");
+
+  // Extract SSO URL from IDPSSODescriptor
+  const idpDesc = entity.IDPSSODescriptor;
+  if (!idpDesc) throw new Error("Could not find IDPSSODescriptor in metadata");
+
+  const ssoServices = Array.isArray(idpDesc.SingleSignOnService)
+    ? idpDesc.SingleSignOnService
+    : [idpDesc.SingleSignOnService];
+  // Prefer HTTP-Redirect binding, fall back to first available
+  const redirectBinding = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect";
+  const ssoService = ssoServices.find((s: any) => s?.$.Binding === redirectBinding)
+    ?? ssoServices[0];
+  if (!ssoService?.$?.Location) throw new Error("Could not find SingleSignOnService URL in metadata");
+  const idpSsoUrl = ssoService.$.Location;
+
+  // Extract signing certificate from KeyDescriptor
+  const keyDescriptors = Array.isArray(idpDesc.KeyDescriptor)
+    ? idpDesc.KeyDescriptor
+    : [idpDesc.KeyDescriptor].filter(Boolean);
+  // Prefer the signing key, fall back to first available
+  const signingKey = keyDescriptors.find((k: any) => k?.$.use === "signing") ?? keyDescriptors[0];
+  const cert = signingKey?.KeyInfo?.X509Data?.X509Certificate;
+  if (!cert) throw new Error("Could not find X509Certificate in metadata");
+  const idpCertificate = (typeof cert === "string" ? cert : cert._).replace(/\s/g, "");
 
   return { idpEntityId, idpSsoUrl, idpCertificate };
 }
@@ -51,6 +70,7 @@ async function buildSaml(): Promise<{ saml: SAML; config: { attrUid: string; att
     callbackUrl: `${config.appUrl}/api/auth/saml/callback`,
     entryPoint: config.idpSsoUrl,
     issuer: config.spEntityId,
+    audience: config.spEntityId,
     idpCert: config.idpCertificate,
     wantAssertionsSigned: true,
   });

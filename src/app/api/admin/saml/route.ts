@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
       xml = await res.text();
     }
 
-    const { idpEntityId, idpSsoUrl, idpCertificate } = parseSamlMetadata(xml);
+    const { idpEntityId, idpSsoUrl, idpCertificate } = await parseSamlMetadata(xml);
     const cleanAppUrl = appUrl.replace(/\/+$/, "");
 
     const config = await prisma.samlConfig.upsert({
