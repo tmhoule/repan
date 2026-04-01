@@ -9,7 +9,7 @@ export async function GET() {
 
     const team = await prisma.team.findUniqueOrThrow({
       where: { id: teamId },
-      select: { weightHigh: true, weightMedium: true, weightLow: true },
+      select: { weightHigh: true, weightMedium: true, weightLow: true, multiplierBlocked: true, multiplierStalled: true },
     });
 
     const now = new Date();
@@ -36,6 +36,7 @@ export async function GET() {
         priority: true,
         effortEstimate: true,
         dueDate: true,
+        status: true,
         assignedToId: true,
         percentComplete: true,
       },
@@ -55,6 +56,7 @@ export async function GET() {
         title: true,
         priority: true,
         effortEstimate: true,
+        status: true,
         assignedToId: true,
         percentComplete: true,
       },
@@ -79,7 +81,9 @@ export async function GET() {
 
       const calcLoad = (tasks: typeof userTasks) => {
         return tasks.reduce((sum, t) => {
-          const weight = t.priority === "high" ? team.weightHigh : t.priority === "medium" ? team.weightMedium : team.weightLow;
+          let weight = t.priority === "high" ? team.weightHigh : t.priority === "medium" ? team.weightMedium : team.weightLow;
+          if (t.status === "blocked") weight = Math.round(weight * team.multiplierBlocked / 100);
+          else if (t.status === "stalled") weight = Math.round(weight * team.multiplierStalled / 100);
           const remaining = 1 - (t.percentComplete ?? 0) / 100;
           return sum + Math.round(weight * remaining);
         }, 0);
