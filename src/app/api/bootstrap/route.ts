@@ -27,8 +27,18 @@ export async function GET() {
     orderBy: { name: "asc" },
   });
 
+  // Check if SSO is enabled
+  let ssoEnabled = false;
+  try {
+    const samlConfig = await prisma.samlConfig.findUnique({ where: { id: "singleton" } });
+    ssoEnabled = samlConfig?.enabled ?? false;
+  } catch {
+    // Table may not exist yet during migration
+  }
+
   return NextResponse.json({
     needsSetup: false,
+    ssoEnabled,
     teams: teams.map((t) => ({
       id: t.id,
       name: t.name,
