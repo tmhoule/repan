@@ -32,6 +32,23 @@ export default function TeamSelectPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Auto-refresh every 10s for users with no teams (limbo state)
+  useEffect(() => {
+    if (loading || teams.length > 0) return;
+    const interval = setInterval(() => {
+      fetch("/api/teams", { cache: "no-store" })
+        .then((res) => res.ok ? res.json() : [])
+        .then((data) => {
+          const teamList = Array.isArray(data) ? data : [];
+          if (teamList.length > 0) {
+            setTeams(teamList);
+          }
+        })
+        .catch(() => {});
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [loading, teams.length]);
+
   const handleSelectTeam = async (teamId: string) => {
     setSelecting(teamId);
     try {
@@ -91,8 +108,13 @@ export default function TeamSelectPage() {
             ))}
           </div>
         ) : teams.length === 0 ? (
-          <div className="text-center text-muted-foreground py-12">
-            <p>No teams found. Please contact your administrator.</p>
+          <div className="text-center py-12 space-y-3">
+            <p className="text-muted-foreground">
+              Your account has been created. A manager will assign you to a team shortly.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              This page will refresh automatically.
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
