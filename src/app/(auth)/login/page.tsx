@@ -24,6 +24,7 @@ export default function LoginPage() {
   // Team-first flow state
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [loggingIn, setLoggingIn] = useState<string | null>(null);
+  const [ssoEnabled, setSsoEnabled] = useState(false);
 
   useEffect(() => {
     fetch("/api/bootstrap", { cache: "no-store" })
@@ -37,10 +38,20 @@ export default function LoginPage() {
           if (data.teams?.length === 1) {
             setSelectedTeam(data.teams[0]);
           }
+          setSsoEnabled(data.ssoEnabled === true);
         }
       })
       .catch((err) => console.error("Failed to load:", err))
       .finally(() => setLoading(false));
+  }, []);
+
+  // Show SSO error if redirected back with an error
+  const [ssoError, setSsoError] = useState<string | null>(null);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const error = params.get("error");
+    if (error === "sso_failed") setSsoError("SSO authentication failed. Please try again.");
+    if (error === "missing_response") setSsoError("Invalid SSO response. Please try again.");
   }, []);
 
   const handleSetup = async (e: React.FormEvent) => {
@@ -123,6 +134,33 @@ export default function LoginPage() {
           <p className="text-muted-foreground text-sm mt-1">Team Task Tracker</p>
           <p className="text-muted-foreground text-sm mt-3">{subtitle}</p>
         </div>
+
+          {/* SSO error */}
+          {ssoError && (
+            <div className="max-w-sm mx-auto mb-4">
+              <p className="text-sm text-destructive text-center">{ssoError}</p>
+            </div>
+          )}
+
+          {/* SSO Login */}
+          {ssoEnabled && !needsSetup && !loading && !selectedTeam && (
+            <div className="max-w-sm mx-auto mb-8">
+              <a
+                href="/api/auth/saml/login"
+                className="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl border bg-card text-card-foreground font-semibold shadow-sm transition-all duration-200 hover:border-primary/50 hover:shadow-md"
+              >
+                Sign in with SSO
+              </a>
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-zinc-800" />
+                </div>
+                <div className="relative flex justify-center text-xs">
+                  <span className="bg-background px-2 text-muted-foreground">or select your account</span>
+                </div>
+              </div>
+            </div>
+          )}
 
         {/* First-time setup */}
         {needsSetup && !loading ? (
