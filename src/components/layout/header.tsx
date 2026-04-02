@@ -2,10 +2,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Menu, X, LogOut, Users } from "lucide-react";
+import { Menu, X, LogOut, Users, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { csrfFetch } from "@/lib/csrf-client";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,6 +16,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { GlobalSearch } from "@/components/layout/search";
 import { useUser } from "@/components/user-context";
@@ -42,6 +52,48 @@ export function Header() {
   const allLinks = isManager
     ? [...staffNavLinks, ...managerNavLinks]
     : staffNavLinks;
+
+  // Change password state
+  const [pwOpen, setPwOpen] = useState(false);
+  const [currentPw, setCurrentPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [pwError, setPwError] = useState("");
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwSuccess, setPwSuccess] = useState(false);
+
+  const handleChangePassword = async () => {
+    setPwError("");
+    if (newPw.length < 6) { setPwError("Password must be at least 6 characters"); return; }
+    if (newPw !== confirmPw) { setPwError("Passwords do not match"); return; }
+    setPwSaving(true);
+    try {
+      const res = await csrfFetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword: currentPw || undefined, newPassword: newPw }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? "Failed to change password");
+      }
+      setPwSuccess(true);
+      setTimeout(() => { setPwOpen(false); setPwSuccess(false); }, 1500);
+    } catch (err) {
+      setPwError(err instanceof Error ? err.message : "Failed to change password");
+    } finally {
+      setPwSaving(false);
+    }
+  };
+
+  const openPasswordDialog = () => {
+    setCurrentPw("");
+    setNewPw("");
+    setConfirmPw("");
+    setPwError("");
+    setPwSuccess(false);
+    setPwOpen(true);
+  };
 
   const initials = user?.name
     ? user.name
@@ -169,10 +221,18 @@ export function Header() {
                   </DropdownMenuLabel>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => router.push("/team-select")}>
-                  <Users className="mr-2 h-4 w-4" />
-                  Switch Team
-                </DropdownMenuItem>
+                {!user.ssoUser && (
+                  <DropdownMenuItem onClick={openPasswordDialog}>
+                    <KeyRound className="mr-2 h-4 w-4" />
+                    Change Password
+                  </DropdownMenuItem>
+                )}
+                {(user.teamCount ?? 0) > 1 && (
+                  <DropdownMenuItem onClick={() => router.push("/team-select")}>
+                    <Users className="mr-2 h-4 w-4" />
+                    Switch Team
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem
                   onClick={logout}
                   variant="destructive"
@@ -222,6 +282,55 @@ export function Header() {
           ))}
         </div>
       )}
+
+      {/* Change Password Dialog */}
+      <Dialog open={pwOpen} onOpenChange={setPwOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Change Password</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="current-pw">Current Password</Label>
+              <Input
+                id="current-pw"
+                type="password"
+                value={currentPw}
+                onChange={(e) => setCurrentPw(e.target.value)}
+                placeholder="Enter current password"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="new-pw">New Password</Label>
+              <Input
+                id="new-pw"
+                type="password"
+                value={newPw}
+                onChange={(e) => setNewPw(e.target.value)}
+                placeholder="At least 6 characters"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="confirm-pw">Confirm New Password</Label>
+              <Input
+                id="confirm-pw"
+                type="password"
+                value={confirmPw}
+                onChange={(e) => setConfirmPw(e.target.value)}
+                placeholder="Re-enter new password"
+              />
+            </div>
+            {pwError && <p className="text-sm text-destructive">{pwError}</p>}
+            {pwSuccess && <p className="text-sm text-green-400">Password changed successfully.</p>}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setPwOpen(false)}>Cancel</Button>
+            <Button size="sm" onClick={handleChangePassword} disabled={pwSaving || !newPw}>
+              {pwSaving ? "Saving..." : "Change Password"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </header>
   );
 }

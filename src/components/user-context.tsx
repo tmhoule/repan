@@ -2,7 +2,7 @@
 import { createContext, useContext, ReactNode, useState, useEffect } from "react";
 import { csrfFetch, usePreloadCsrfToken } from "@/lib/csrf-client";
 
-type User = { id: string; name: string; role: string; avatarColor: string; isSuperAdmin?: boolean } | null;
+type User = { id: string; name: string; role: string; avatarColor: string; isSuperAdmin?: boolean; ssoUser?: boolean; teamCount?: number } | null;
 type ActiveTeam = { id: string; name: string } | null;
 
 const UserContext = createContext<{

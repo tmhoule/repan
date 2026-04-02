@@ -29,7 +29,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  let initialUser: { id: string; name: string; role: string; avatarColor: string; isSuperAdmin: boolean } | null = null;
+  let initialUser: { id: string; name: string; role: string; avatarColor: string; isSuperAdmin: boolean; ssoUser: boolean; teamCount: number } | null = null;
   let initialTeam: { id: string; name: string } | null = null;
 
   try {
@@ -50,6 +50,10 @@ export default async function RootLayout({
       if (membership?.role === "manager") effectiveRole = "manager";
     }
 
+    const teamCount = session
+      ? await prisma.teamMembership.count({ where: { userId: session.id } })
+      : 0;
+
     initialUser = session
       ? {
           id: session.id,
@@ -57,6 +61,8 @@ export default async function RootLayout({
           role: effectiveRole,
           avatarColor: session.avatarColor,
           isSuperAdmin: session.isSuperAdmin,
+          ssoUser: session.ssoUser,
+          teamCount,
         }
       : null;
   } catch {
