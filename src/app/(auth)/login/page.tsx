@@ -1,12 +1,12 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { ArrowLeft } from "lucide-react";
 import { TeamIcon } from "@/lib/team-icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-type User = { id: string; name: string; avatarColor: string };
+type User = { id: string; name: string; avatarColor: string; hasPassword: boolean };
 type Team = { id: string; name: string; members: User[] };
 
 function getInitials(name: string) {
@@ -18,6 +18,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(true);
   const [needsSetup, setNeedsSetup] = useState(false);
   const [setupName, setSetupName] = useState("");
+  const [setupPassword, setSetupPassword] = useState("");
   const [settingUp, setSettingUp] = useState(false);
   const [setupError, setSetupError] = useState("");
 
@@ -25,6 +26,12 @@ export default function LoginPage() {
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [loggingIn, setLoggingIn] = useState<string | null>(null);
   const [ssoEnabled, setSsoEnabled] = useState(false);
+
+  // Password prompt state
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [password, setPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
+  const passwordRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetch("/api/bootstrap", { cache: "no-store" })
@@ -34,7 +41,6 @@ export default function LoginPage() {
           setNeedsSetup(true);
         } else {
           setTeams(data.teams ?? []);
-          // If only one team, auto-select it
           if (data.teams?.length === 1) {
             setSelectedTeam(data.teams[0]);
           }
@@ -54,16 +60,23 @@ export default function LoginPage() {
     if (error === "missing_response") setSsoError("Invalid SSO response. Please try again.");
   }, []);
 
+  // Focus password input when user is selected
+  useEffect(() => {
+    if (selectedUser) {
+      setTimeout(() => passwordRef.current?.focus(), 100);
+    }
+  }, [selectedUser]);
+
   const handleSetup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!setupName.trim()) return;
+    if (!setupName.trim() || !setupPassword) return;
     setSettingUp(true);
     setSetupError("");
     try {
       const res = await fetch("/api/bootstrap", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: setupName.trim() }),
+        body: JSON.stringify({ name: setupName.trim(), password: setupPassword }),
       });
       if (!res.ok && res.status !== 409) {
         const data = await res.json().catch(() => ({}));
@@ -77,19 +90,40 @@ export default function LoginPage() {
     }
   };
 
-  const handleLogin = async (userId: string, teamId: string) => {
+  const handleAvatarClick = (user: User) => {
+    if (user.hasPassword) {
+      setSelectedUser(user);
+      setPassword("");
+      setLoginError("");
+    } else {
+      // No password set — log in directly
+      handleLogin(user.id, selectedTeam!.id, undefined);
+    }
+  };
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedUser || !selectedTeam) return;
+    handleLogin(selectedUser.id, selectedTeam.id, password);
+  };
+
+  const handleLogin = async (userId: string, teamId: string, pw: string | undefined) => {
     setLoggingIn(userId);
+    setLoginError("");
     try {
-      // Login
       const loginRes = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify({ userId, password: pw }),
       });
-      if (!loginRes.ok) { setLoggingIn(null); return; }
+      if (!loginRes.ok) {
+        const data = await loginRes.json().catch(() => ({}));
+        setLoginError(data.error ?? "Login failed");
+        setLoggingIn(null);
+        return;
+      }
 
-      // Set team
       const teamRes = await fetch("/api/teams/select", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -106,6 +140,8 @@ export default function LoginPage() {
 
   const subtitle = needsSetup
     ? "Welcome! Let's set up your admin account."
+    : selectedUser
+    ? "Enter your password"
     : selectedTeam
     ? "Choose your name"
     : "Select your team";
@@ -143,7 +179,7 @@ export default function LoginPage() {
           )}
 
           {/* SSO Login */}
-          {ssoEnabled && !needsSetup && !loading && (
+          {ssoEnabled && !needsSetup && !loading && !selectedUser && (
             <div className="max-w-sm mx-auto mb-8">
               <a
                 href="/api/auth/saml/login"
@@ -176,11 +212,21 @@ export default function LoginPage() {
                   autoFocus
                 />
               </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="admin-password">Password</Label>
+                <Input
+                  id="admin-password"
+                  type="password"
+                  value={setupPassword}
+                  onChange={(e) => setSetupPassword(e.target.value)}
+                  placeholder="Choose a password"
+                />
+              </div>
               {setupError && <p className="text-sm text-destructive">{setupError}</p>}
               <p className="text-xs text-muted-foreground">
                 This creates your super admin account and a default team.
               </p>
-              <Button type="submit" className="w-full" disabled={settingUp || !setupName.trim()}>
+              <Button type="submit" className="w-full" disabled={settingUp || !setupName.trim() || !setupPassword}>
                 {settingUp ? "Setting up..." : "Create Admin Account"}
               </Button>
             </form>
@@ -194,6 +240,55 @@ export default function LoginPage() {
                 <div className="h-4 w-24 rounded bg-muted" />
               </div>
             ))}
+          </div>
+
+        ) : selectedUser && selectedTeam ? (
+          /* ── Step 3: Password prompt ── */
+          <div className="max-w-sm mx-auto space-y-4">
+            <button
+              onClick={() => { setSelectedUser(null); setLoginError(""); }}
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="size-4" />
+              Back
+            </button>
+
+            <form onSubmit={handlePasswordSubmit} className="p-6 rounded-xl border bg-card space-y-4">
+              <div className="flex flex-col items-center gap-3">
+                <div
+                  className="h-20 w-20 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-sm"
+                  style={{ backgroundColor: selectedUser.avatarColor ?? "#6b7280" }}
+                >
+                  {loggingIn === selectedUser.id ? (
+                    <svg className="animate-spin h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  ) : (
+                    getInitials(selectedUser.name)
+                  )}
+                </div>
+                <span className="font-semibold text-sm">{selectedUser.name}</span>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="login-password">Password</Label>
+                <Input
+                  ref={passwordRef}
+                  id="login-password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                />
+              </div>
+
+              {loginError && <p className="text-sm text-destructive">{loginError}</p>}
+
+              <Button type="submit" className="w-full" disabled={loggingIn !== null || !password}>
+                {loggingIn ? "Signing in..." : "Sign In"}
+              </Button>
+            </form>
           </div>
 
         ) : selectedTeam ? (
@@ -226,7 +321,7 @@ export default function LoginPage() {
                   return (
                     <button
                       key={user.id}
-                      onClick={() => handleLogin(user.id, selectedTeam.id)}
+                      onClick={() => handleAvatarClick(user)}
                       disabled={isDisabled || isLoading}
                       className={`flex flex-col items-center gap-3 p-8 rounded-xl border bg-card text-card-foreground shadow-sm transition-all duration-200
                         ${isLoading ? "opacity-80 scale-95" : ""}

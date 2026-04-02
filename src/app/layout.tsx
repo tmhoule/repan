@@ -36,6 +36,7 @@ export default async function RootLayout({
     const [session, teamId] = await Promise.all([getSession(), getActiveTeam()]);
 
     let effectiveRole = session?.role ?? "staff";
+    if (session?.isSuperAdmin) effectiveRole = "manager";
 
     if (session && teamId) {
       const [team, membership] = await Promise.all([
@@ -47,7 +48,6 @@ export default async function RootLayout({
       ]);
       initialTeam = team ?? null;
       if (membership?.role === "manager") effectiveRole = "manager";
-      if (session.isSuperAdmin) effectiveRole = "manager";
     }
 
     initialUser = session

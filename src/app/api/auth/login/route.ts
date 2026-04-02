@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 import { handleApiError, setSession, setActiveTeam } from "@/lib/session";
 import { checkRateLimit, getRateLimitHeaders, RATE_LIMITS } from "@/lib/rate-limit";
@@ -18,7 +19,7 @@ export async function POST(request: NextRequest) {
       );
     }
     
-  const { userId } = await request.json();
+  const { userId, password } = await request.json();
   const user = await prisma.user.findUnique({
     where: { id: userId, isActive: true },
     include: {
@@ -28,6 +29,13 @@ export async function POST(request: NextRequest) {
     },
   });
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+  // Verify password if user has one set
+  if (user.passwordHash) {
+    if (!password || !(await bcrypt.compare(password, user.passwordHash))) {
+      return NextResponse.json({ error: "Invalid password" }, { status: 401 });
+    }
+  }
 
   const teams = user.teamMemberships.map((m) => ({
     id: m.team.id,

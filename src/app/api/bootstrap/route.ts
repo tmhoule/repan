@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 
 // GET: Check if setup is needed AND return public team/user list for login
@@ -20,7 +21,7 @@ export async function GET() {
     include: {
       memberships: {
         where: { user: { isActive: true } },
-        include: { user: { select: { id: true, name: true, avatarColor: true } } },
+        include: { user: { select: { id: true, name: true, avatarColor: true, passwordHash: true } } },
         orderBy: { user: { name: "asc" } },
       },
     },
@@ -42,7 +43,12 @@ export async function GET() {
     teams: teams.map((t) => ({
       id: t.id,
       name: t.name,
-      members: t.memberships.map((m) => m.user),
+      members: t.memberships.map((m) => ({
+        id: m.user.id,
+        name: m.user.name,
+        avatarColor: m.user.avatarColor,
+        hasPassword: !!m.user.passwordHash,
+      })),
     })),
   });
 }
@@ -54,13 +60,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Super admin already exists" }, { status: 409 });
   }
 
-  const { name } = await request.json();
+  const { name, password } = await request.json();
   if (!name?.trim()) {
     return NextResponse.json({ error: "Name is required" }, { status: 400 });
   }
+  if (!password || password.length < 6) {
+    return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
+  }
 
+  const passwordHash = await bcrypt.hash(password, 10);
   const user = await prisma.user.create({
-    data: { name: name.trim(), role: "manager", isSuperAdmin: true, avatarColor: "#8B5CF6" },
+    data: { name: name.trim(), role: "manager", isSuperAdmin: true, avatarColor: "#8B5CF6", passwordHash },
   });
 
   // Find or create default team

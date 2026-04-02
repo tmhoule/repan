@@ -20,8 +20,16 @@ async function getSecretKey(): Promise<string> {
     return secretKeyCache;
   }
 
+  // Environment variable takes priority — always available, no async/race issues
+  const envSecret = process.env.SESSION_SECRET;
+  if (envSecret) {
+    secretKeyCache = envSecret;
+    cacheTimestamp = now;
+    return envSecret;
+  }
+
   try {
-    // Try to get from database first
+    // Try database-stored secret
     const config = await prisma.systemConfig.findUnique({
       where: { id: "singleton" },
       select: { sessionSecret: true },
@@ -35,14 +43,6 @@ async function getSecretKey(): Promise<string> {
   } catch (error) {
     // Database might not be initialized yet or migration not run
     console.warn("Could not fetch session secret from database:", error);
-  }
-
-  // Fallback to environment variable
-  const envSecret = process.env.SESSION_SECRET;
-  if (envSecret) {
-    secretKeyCache = envSecret;
-    cacheTimestamp = now;
-    return envSecret;
   }
 
   // Last resort: generate random key (acceptable for dev, warning for production)

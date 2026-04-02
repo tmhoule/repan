@@ -11,7 +11,9 @@ export async function middleware(request: NextRequest) {
   const isApiRoute = pathname.startsWith("/api");
 
   // Check CSRF token for API routes with state-changing methods
-  if (isApiRoute && session) {
+  // Skip CSRF for auth endpoints (login, bootstrap, team-select) since they establish sessions
+  const isAuthRoute = pathname === "/api/auth/login" || pathname === "/api/bootstrap" || pathname === "/api/teams/select";
+  if (isApiRoute && session && !isAuthRoute) {
     const csrfError = await requireCsrfToken(request);
     if (csrfError) {
       return csrfError;

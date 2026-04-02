@@ -19,7 +19,7 @@ export async function getSession() {
     // Invalid or expired token
     return null;
   }
-  
+
   return prisma.user.findUnique({ where: { id: userId, isActive: true } });
 }
 
