@@ -9,11 +9,14 @@ const AVATAR_COLORS = [
 ];
 
 export async function POST(request: NextRequest) {
+  const samlConfig = await prisma.samlConfig.findUnique({ where: { id: "singleton" } });
+  const baseUrl = samlConfig?.appUrl || request.url;
+
   try {
     const formData = await request.formData();
     const samlResponse = formData.get("SAMLResponse") as string;
     if (!samlResponse) {
-      return NextResponse.redirect(new URL("/login?error=missing_response", request.url));
+      return NextResponse.redirect(new URL("/login?error=missing_response", baseUrl));
     }
 
     const { uid, displayName } = await validateSamlResponse(samlResponse);
@@ -53,13 +56,13 @@ export async function POST(request: NextRequest) {
 
     if (memberships.length === 1) {
       await setActiveTeam(memberships[0].teamId);
-      return NextResponse.redirect(new URL("/tasks", request.url));
+      return NextResponse.redirect(new URL("/tasks", baseUrl));
     }
 
     // No teams or multiple teams — go to team select
-    return NextResponse.redirect(new URL("/team-select", request.url));
+    return NextResponse.redirect(new URL("/team-select", baseUrl));
   } catch (error) {
     console.error("SAML callback error:", error);
-    return NextResponse.redirect(new URL("/login?error=sso_failed", request.url));
+    return NextResponse.redirect(new URL("/login?error=sso_failed", baseUrl));
   }
 }
