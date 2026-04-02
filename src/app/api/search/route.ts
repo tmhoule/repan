@@ -1,9 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireSession, handleApiError, requireTeam } from "@/lib/session";
+import { checkRateLimit, getRateLimitHeaders, RATE_LIMITS } from "@/lib/rate-limit";
 
 export async function GET(request: NextRequest) {
   try {
+    // Apply rate limiting to prevent DoS attacks
+    const rateLimitResult = checkRateLimit(request, RATE_LIMITS.SEARCH);
+    
+    if (rateLimitResult.limited) {
+      return NextResponse.json(
+        { error: "Too many search requests. Please slow down." },
+        { 
+          status: 429,
+          headers: getRateLimitHeaders(rateLimitResult),
+        }
+      );
+    }
+    
     const user = await requireSession();
     const teamId = await requireTeam();
     const q = request.nextUrl.searchParams.get("q")?.trim();
@@ -11,6 +25,9 @@ export async function GET(request: NextRequest) {
     if (!q || q.length < 2) {
       return NextResponse.json({ tasks: [], users: [] });
     }
+    
+    // Limit query length to prevent performance issues
+    const sanitizedQuery = q.substring(0, 100);
 
     // Search tasks by title and description
     const tasks = await prisma.task.findMany({
@@ -18,8 +35,8 @@ export async function GET(request: NextRequest) {
         teamId,
         archivedAt: null,
         OR: [
-          { title: { contains: q, mode: "insensitive" } },
-          { description: { contains: q, mode: "insensitive" } },
+          { title: { contains: sanitizedQuery, mode: "insensitive" } },
+          { description: { contains: sanitizedQuery, mode: "insensitive" } },
         ],
       },
       select: {
@@ -36,7 +53,7 @@ export async function GET(request: NextRequest) {
     const commentHits = await prisma.taskActivity.findMany({
       where: {
         type: "comment",
-        content: { contains: q, mode: "insensitive" },
+        content: { contains: sanitizedQuery, mode: "insensitive" },
         task: { teamId, archivedAt: null },
       },
       select: {
@@ -67,16 +84,24 @@ export async function GET(request: NextRequest) {
       where: {
         id: { in: teamMemberIds },
         isActive: true,
-        name: { contains: q, mode: "insensitive" },
+        name: { contains: sanitizedQuery, mode: "insensitive" },
       },
       select: { id: true, name: true, avatarColor: true, role: true },
       take: 5,
     });
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       tasks: [...taskMap.values()].slice(0, 15),
       users,
     });
+    
+    // Add rate limit headers
+    const headers = getRateLimitHeaders(rateLimitResult);
+    Object.entries(headers).forEach(([key, value]) => {
+      response.headers.set(key, value);
+    });
+    
+    return response;
   } catch (error) {
     return handleApiError(error);
   }

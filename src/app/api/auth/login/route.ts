@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { handleApiError } from "@/lib/session";
+import { checkRateLimit, getRateLimitHeaders, RATE_LIMITS } from "@/lib/rate-limit";
 
 const SESSION_COOKIE = "repan_session";
 const TEAM_COOKIE = "repan_team";
@@ -8,6 +9,19 @@ const SESSION_MAX_AGE = 30 * 24 * 60 * 60;
 
 export async function POST(request: NextRequest) {
   try {
+    // Apply rate limiting to prevent brute force attacks
+    const rateLimitResult = checkRateLimit(request, RATE_LIMITS.AUTH);
+    
+    if (rateLimitResult.limited) {
+      return NextResponse.json(
+        { error: "Too many login attempts. Please try again later." },
+        { 
+          status: 429,
+          headers: getRateLimitHeaders(rateLimitResult),
+        }
+      );
+    }
+    
   const { userId } = await request.json();
   const user = await prisma.user.findUnique({
     where: { id: userId, isActive: true },
@@ -33,6 +47,12 @@ export async function POST(request: NextRequest) {
   const response = NextResponse.json({
     user: { id: user.id, name: user.name, role: effectiveRole, avatarColor: user.avatarColor, isSuperAdmin: user.isSuperAdmin },
     teams,
+  });
+
+  // Add rate limit headers to successful response
+  const headers = getRateLimitHeaders(rateLimitResult);
+  Object.entries(headers).forEach(([key, value]) => {
+    response.headers.set(key, value);
   });
 
   const isSecure = process.env.NODE_ENV === "production" && !process.env.DISABLE_SECURE_COOKIES;

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireCsrfToken } from "./lib/csrf";
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const session = request.cookies.get("repan_session");
   const team = request.cookies.get("repan_team");
   const { pathname } = request.nextUrl;
@@ -8,6 +9,14 @@ export function middleware(request: NextRequest) {
   const isLoginPage = pathname === "/login";
   const isTeamSelectPage = pathname === "/team-select";
   const isApiRoute = pathname.startsWith("/api");
+
+  // Check CSRF token for API routes with state-changing methods
+  if (isApiRoute && session) {
+    const csrfError = await requireCsrfToken(request);
+    if (csrfError) {
+      return csrfError;
+    }
+  }
 
   // Unauthenticated users: redirect to login (except on login page and API routes)
   if (!session && !isLoginPage && !isApiRoute) {
