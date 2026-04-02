@@ -14,7 +14,7 @@ export async function getSession() {
   if (!sessionCookie?.value) return null;
   
   // Verify the signed token and extract user ID
-  const userId = verifySignedToken(sessionCookie.value, SESSION_MAX_AGE_MS);
+  const userId = await verifySignedToken(sessionCookie.value, SESSION_MAX_AGE_MS);
   if (!userId) {
     // Invalid or expired token
     return null;
@@ -28,8 +28,8 @@ export async function setSession(userId: string) {
   const cookieStore = await cookies();
   
   // Create a cryptographically signed token instead of storing plain user ID
-  const signedToken = createSignedToken(userId);
-  
+  const signedToken = await createSignedToken(userId);
+
   cookieStore.set(SESSION_COOKIE, signedToken, {
     httpOnly: true, secure: isSecure,
     sameSite: "lax", maxAge: SESSION_MAX_AGE, path: "/",

@@ -1,5 +1,6 @@
 "use client";
-import { createContext, useContext, ReactNode, useState } from "react";
+import { createContext, useContext, ReactNode, useState, useEffect } from "react";
+import { csrfFetch, usePreloadCsrfToken } from "@/lib/csrf-client";
 
 type User = { id: string; name: string; role: string; avatarColor: string; isSuperAdmin?: boolean } | null;
 type ActiveTeam = { id: string; name: string } | null;
@@ -30,8 +31,11 @@ export function UserProvider({
   const [user, setUser] = useState<User>(initialUser);
   const [activeTeam, setActiveTeam] = useState<ActiveTeam>(initialTeam);
 
+  // Preload CSRF token on mount for all authenticated pages
+  usePreloadCsrfToken();
+
   const logout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
+    await csrfFetch("/api/auth/logout", { method: "POST" });
     window.location.href = "/login";
   };
 

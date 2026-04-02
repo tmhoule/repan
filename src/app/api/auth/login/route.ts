@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { handleApiError } from "@/lib/session";
+import { handleApiError, setSession, setActiveTeam } from "@/lib/session";
 import { checkRateLimit, getRateLimitHeaders, RATE_LIMITS } from "@/lib/rate-limit";
-
-const SESSION_COOKIE = "repan_session";
-const TEAM_COOKIE = "repan_team";
-const SESSION_MAX_AGE = 30 * 24 * 60 * 60;
 
 export async function POST(request: NextRequest) {
   try {
@@ -55,24 +51,12 @@ export async function POST(request: NextRequest) {
     response.headers.set(key, value);
   });
 
-  const isSecure = process.env.NODE_ENV === "production" && !process.env.DISABLE_SECURE_COOKIES;
-  response.cookies.set(SESSION_COOKIE, user.id, {
-    httpOnly: true,
-    secure: isSecure,
-    sameSite: "lax",
-    maxAge: SESSION_MAX_AGE,
-    path: "/",
-  });
+  // Set signed session token
+  await setSession(user.id);
 
   // Auto-set team cookie if user belongs to exactly one team
   if (teams.length === 1) {
-    response.cookies.set(TEAM_COOKIE, teams[0].id, {
-      httpOnly: true,
-      secure: isSecure,
-      sameSite: "lax",
-      maxAge: SESSION_MAX_AGE,
-      path: "/",
-    });
+    await setActiveTeam(teams[0].id);
   }
 
   return response;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef, KeyboardEvent } from "react";
+import { csrfFetch } from "@/lib/csrf-client";
 import Link from "next/link";
 import { useSWRConfig } from "swr";
 import { useUser } from "@/components/user-context";
@@ -113,7 +114,7 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
 
   const patchTask = useCallback(
     async (data: Partial<Task>) => {
-      const res = await fetch(`/api/tasks/${task.id}`, {
+      const res = await csrfFetch(`/api/tasks/${task.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -159,7 +160,7 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
   const handleDelete = useCallback(async () => {
     if (!confirm("Delete this task? This cannot be undone.")) return;
     try {
-      const res = await fetch(`/api/tasks/${task.id}`, { method: "DELETE" });
+      const res = await csrfFetch(`/api/tasks/${task.id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete task");
       mutate("/api/tasks");
       onUpdate?.();
@@ -424,7 +425,7 @@ function InlineComment({ taskId, onSubmit }: { taskId: string; onSubmit?: () => 
     if (!text || sending) return;
     setSending(true);
     try {
-      const res = await fetch(`/api/tasks/${taskId}/comments`, {
+      const res = await csrfFetch(`/api/tasks/${taskId}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: text }),

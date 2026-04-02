@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { csrfFetch } from "@/lib/csrf-client";
 import Link from "next/link";
 import { useSWRConfig } from "swr";
 import { CheckCircle, Loader2 } from "lucide-react";
@@ -33,7 +34,7 @@ export function TodoCard({ todo, onDone }: TodoCardProps) {
   const handleDone = useCallback(async () => {
     setDeleting(true);
     try {
-      const res = await fetch(`/api/todos/${todo.id}`, { method: "DELETE" });
+      const res = await csrfFetch(`/api/todos/${todo.id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed");
       triggerCelebration();
       setShowPoints(true);

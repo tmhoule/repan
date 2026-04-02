@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useState, useEffect, useRef, useCallback } from "react";
+import { csrfFetch } from "@/lib/csrf-client";
 import Link from "next/link";
 import useSWR from "swr";
 import { ArrowLeft, Trash2 } from "lucide-react";
@@ -41,7 +42,7 @@ export default function TodoDetailPage({ params }: { params: Promise<{ id: strin
     if (!todo || !title.trim()) return;
     setSaveStatus("saving");
     try {
-      const res = await fetch(`/api/todos/${todo.id}`, {
+      const res = await csrfFetch(`/api/todos/${todo.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: title.trim(), description: description.trim() || null }),
@@ -68,7 +69,7 @@ export default function TodoDetailPage({ params }: { params: Promise<{ id: strin
   const handleDelete = async () => {
     if (!todo) return;
     if (!confirm("Delete this to do?")) return;
-    await fetch(`/api/todos/${todo.id}`, { method: "DELETE" });
+    await csrfFetch(`/api/todos/${todo.id}`, { method: "DELETE" });
     router.push("/tasks");
   };
 

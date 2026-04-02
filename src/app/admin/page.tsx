@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { csrfFetch } from "@/lib/csrf-client";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { UserPlus, PlusCircle, Pencil, Archive, ArchiveRestore, Users, Trash2, Plus, Palette, Key } from "lucide-react";
@@ -273,7 +274,7 @@ export default function AdminPage() {
   };
 
   const handleRetireBadge = async (id: string, currentlyActive: boolean) => {
-    await fetch(`/api/awards/${id}`, {
+    await csrfFetch(`/api/awards/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ isActive: !currentlyActive }),
@@ -285,7 +286,7 @@ export default function AdminPage() {
     if (!newTeamName.trim()) return;
     setCreatingTeam(true);
     try {
-      await fetch("/api/teams", {
+      await csrfFetch("/api/teams", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newTeamName.trim() }),
@@ -302,7 +303,7 @@ export default function AdminPage() {
     if (!deleteTeamId) return;
     setDeletingTeam(true);
     try {
-      const res = await fetch(`/api/teams/${deleteTeamId}`, { method: "DELETE" });
+      const res = await csrfFetch(`/api/teams/${deleteTeamId}`, { method: "DELETE" });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
         alert(data?.error ?? "Failed to delete team. It may still have tasks assigned to it.");
@@ -317,7 +318,7 @@ export default function AdminPage() {
 
   const handleRemoveMember = async (userId: string) => {
     if (!managingTeam) return;
-    await fetch(`/api/teams/${managingTeam.id}/members`, {
+    await csrfFetch(`/api/teams/${managingTeam.id}/members`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId }),
@@ -331,7 +332,7 @@ export default function AdminPage() {
     if (!managingTeam || !addMemberUserId) return;
     setAddingMember(true);
     try {
-      await fetch(`/api/teams/${managingTeam.id}/members`, {
+      await csrfFetch(`/api/teams/${managingTeam.id}/members`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: addMemberUserId, role: addMemberRole }),
@@ -351,7 +352,7 @@ export default function AdminPage() {
     if (!newBucketName.trim() || !activeTeamId) return;
     setAddingBucket(true);
     try {
-      const res = await fetch(`/api/teams/${activeTeamId}/buckets`, {
+      const res = await csrfFetch(`/api/teams/${activeTeamId}/buckets`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newBucketName.trim(), colorKey: newBucketColor }),
@@ -380,7 +381,7 @@ export default function AdminPage() {
   const handleSaveBucket = async (bucketId: string) => {
     if (!editBucketName.trim() || !activeTeamId) return;
     try {
-      const res = await fetch(`/api/teams/${activeTeamId}/buckets/${bucketId}`, {
+      const res = await csrfFetch(`/api/teams/${activeTeamId}/buckets/${bucketId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: editBucketName.trim(), colorKey: editBucketColor }),
@@ -401,7 +402,7 @@ export default function AdminPage() {
     if (!confirm(`Delete "${bucket.name}"? Tasks in this bucket will become uncategorized.`)) return;
     if (!activeTeamId) return;
     try {
-      const res = await fetch(`/api/teams/${activeTeamId}/buckets/${bucket.id}`, { method: "DELETE" });
+      const res = await csrfFetch(`/api/teams/${activeTeamId}/buckets/${bucket.id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete");
       mutateBuckets();
       toast.success("Bucket deleted");
@@ -414,7 +415,7 @@ export default function AdminPage() {
     if (!activeTeamId) return;
     setSavingWeights(true);
     try {
-      const res = await fetch(`/api/teams/${activeTeamId}`, {
+      const res = await csrfFetch(`/api/teams/${activeTeamId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ weightHigh, weightMedium, weightLow, multiplierBlocked, multiplierStalled }),
@@ -438,7 +439,7 @@ export default function AdminPage() {
     setSsoError("");
     setSsoSuccess("");
     try {
-      const res = await fetch("/api/admin/saml", {
+      const res = await csrfFetch("/api/admin/saml", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -464,7 +465,7 @@ export default function AdminPage() {
     setTogglingSso(true);
     setSsoError("");
     try {
-      const res = await fetch("/api/admin/saml", {
+      const res = await csrfFetch("/api/admin/saml", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ enabled: !ssoConfig?.enabled }),
@@ -489,7 +490,7 @@ export default function AdminPage() {
     setSecretError("");
     setSecretSuccess("");
     try {
-      const res = await fetch("/api/admin/session-secret", {
+      const res = await csrfFetch("/api/admin/session-secret", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "generate" }),
@@ -1509,7 +1510,7 @@ function EditableTeamName({ teamId, name, onSave }: { teamId: string; name: stri
     }
     setSaving(true);
     try {
-      const res = await fetch(`/api/teams/${teamId}`, {
+      const res = await csrfFetch(`/api/teams/${teamId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: value.trim() }),

@@ -9,17 +9,28 @@ interface RateLimitStore {
 
 // In-memory rate limit store (for single-server deployments)
 // For multi-server deployments, use Redis with @upstash/ratelimit
-const rateLimitStore: RateLimitStore = {};
+// Use globalThis to persist across HMR cycles in development
+const globalStore = globalThis as typeof globalThis & {
+  __rateLimitStore?: RateLimitStore;
+  __rateLimitTimer?: ReturnType<typeof setInterval>;
+};
 
-// Clean up old entries every 5 minutes
-setInterval(() => {
-  const now = Date.now();
-  Object.keys(rateLimitStore).forEach((key) => {
-    if (rateLimitStore[key].resetTime < now) {
-      delete rateLimitStore[key];
-    }
-  });
-}, 5 * 60 * 1000);
+if (!globalStore.__rateLimitStore) {
+  globalStore.__rateLimitStore = {};
+}
+const rateLimitStore = globalStore.__rateLimitStore;
+
+// Clean up old entries every 5 minutes (only create one timer)
+if (!globalStore.__rateLimitTimer) {
+  globalStore.__rateLimitTimer = setInterval(() => {
+    const now = Date.now();
+    Object.keys(rateLimitStore).forEach((key) => {
+      if (rateLimitStore[key].resetTime < now) {
+        delete rateLimitStore[key];
+      }
+    });
+  }, 5 * 60 * 1000);
+}
 
 export interface RateLimitConfig {
   /**

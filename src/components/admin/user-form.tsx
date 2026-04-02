@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { csrfFetch } from "@/lib/csrf-client";
 import useSWR from "swr";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -117,7 +118,7 @@ export function UserForm({ open, onClose, onSave, initialData, currentUserIsSupe
     try {
       const url = isEdit ? `/api/users/${initialData!.id}` : "/api/users";
       const method = isEdit ? "PATCH" : "POST";
-      const res = await fetch(url, {
+      const res = await csrfFetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -135,7 +136,7 @@ export function UserForm({ open, onClose, onSave, initialData, currentUserIsSupe
 
       // If editing, sync team memberships
       if (isEdit && initialData?.id) {
-        await fetch(`/api/users/${initialData.id}/teams`, {
+        await csrfFetch(`/api/users/${initialData.id}/teams`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ teamIds: Array.from(selectedTeamIds) }),
@@ -156,7 +157,7 @@ export function UserForm({ open, onClose, onSave, initialData, currentUserIsSupe
     if (!confirm(`Delete ${initialData.name}? Their open tasks will be moved to the backlog.`)) return;
     setDeactivating(true);
     try {
-      const res = await fetch(`/api/users/${initialData.id}`, { method: "DELETE" });
+      const res = await csrfFetch(`/api/users/${initialData.id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete");
       onSave();
       onClose();

@@ -1,5 +1,10 @@
-import { NextRequest } from "next/server";
 import { verifyCsrfToken } from "../csrf";
+
+// Mock next/server to avoid Request not defined in Jest
+jest.mock("next/server", () => ({
+  NextRequest: jest.fn(),
+  NextResponse: { json: jest.fn() },
+}));
 
 // Mock cookies and generateRandomToken
 jest.mock("next/headers", () => ({
@@ -14,7 +19,7 @@ describe("CSRF Protection", () => {
   const createMockRequest = (
     headerToken?: string,
     cookieToken?: string
-  ): NextRequest => {
+  ) => {
     const headers = new Map<string, string>();
     if (headerToken) {
       headers.set("x-csrf-token", headerToken);

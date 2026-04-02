@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { generateRandomToken } from "./crypto";
 
 const CSRF_COOKIE_NAME = "repan_csrf";
 const CSRF_HEADER_NAME = "x-csrf-token";
@@ -10,6 +9,8 @@ const CSRF_TOKEN_LENGTH = 32; // 256 bits
  * Generate a new CSRF token and set it in a cookie
  */
 export async function generateCsrfToken(): Promise<string> {
+  // Dynamic import to avoid pulling Node.js crypto into Edge Middleware
+  const { generateRandomToken } = await import("./crypto");
   const token = generateRandomToken(CSRF_TOKEN_LENGTH);
   const cookieStore = await cookies();
   
@@ -54,8 +55,13 @@ export async function verifyCsrfToken(request: NextRequest): Promise<boolean> {
     return false;
   }
   
-  // Compare tokens (constant-time comparison)
-  return headerToken === cookieToken;
+  // Constant-time comparison (Edge-compatible, no Node.js crypto needed)
+  if (headerToken.length !== cookieToken.length) return false;
+  let result = 0;
+  for (let i = 0; i < headerToken.length; i++) {
+    result |= headerToken.charCodeAt(i) ^ cookieToken.charCodeAt(i);
+  }
+  return result === 0;
 }
 
 /**
