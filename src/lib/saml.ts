@@ -73,6 +73,7 @@ async function buildSaml(): Promise<{ saml: SAML; config: { attrUid: string; att
     audience: config.spEntityId,
     idpCert: config.idpCertificate,
     wantAssertionsSigned: true,
+    wantAuthnResponseSigned: false,
   });
 
   return { saml, config: { attrUid: config.attrUid, attrDisplayName: config.attrDisplayName } };
