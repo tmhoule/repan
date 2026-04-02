@@ -18,5 +18,6 @@ services:
     environment:
       # Override with production values
       DATABASE_URL: "postgresql://repan:repan_dev@db:5432/repan"
+      SESSION_SECRET: "${SESSION_SECRET}"
       DISABLE_SECURE_COOKIES: "${DISABLE_SECURE_COOKIES:-false}"
       NEXT_PUBLIC_APP_NAME: "${NEXT_PUBLIC_APP_NAME:-Repan}"

@@ -17,6 +17,7 @@ services:
       - "127.0.0.1:3000:3000"
     environment:
       DATABASE_URL: "postgresql://repan:repan_dev@db:5432/repan"
+      SESSION_SECRET: "${SESSION_SECRET:-default-dev-session-secret-do-not-use-in-prod}"
       DISABLE_SECURE_COOKIES: "true"
     depends_on:
       - db
