@@ -52,9 +52,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (isActive !== undefined) data.isActive = isActive;
     // Only super admins can grant/revoke super admin status
     if (isSuperAdmin !== undefined && currentUser.isSuperAdmin) data.isSuperAdmin = isSuperAdmin;
-    // Set or clear password
+    // Set or clear password (skip for SSO users)
     if (password !== undefined) {
-      data.passwordHash = password ? await bcrypt.hash(password, 10) : null;
+      const target = await prisma.user.findUnique({ where: { id }, select: { ssoUser: true } });
+      if (!target?.ssoUser) {
+        data.passwordHash = password ? await bcrypt.hash(password, 10) : null;
+      }
     }
     return NextResponse.json(await prisma.user.update({ where: { id }, data }));
   } catch (error) {

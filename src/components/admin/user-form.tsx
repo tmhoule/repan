@@ -41,6 +41,7 @@ interface UserFormData {
   avatarColor: string;
   isActive?: boolean;
   isSuperAdmin?: boolean;
+  ssoUser?: boolean;
 }
 
 interface Team {
@@ -219,20 +220,22 @@ export function UserForm({ open, onClose, onSave, initialData, currentUserIsSupe
             </label>
           )}
 
-          {/* Password */}
-          <div className="space-y-1.5">
-            <Label htmlFor="user-password">{isEdit ? "Set Password" : "Password"}</Label>
-            <Input
-              id="user-password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={isEdit ? "Leave blank to keep current" : "Optional — leave blank for no password"}
-            />
-            <p className="text-xs text-muted-foreground">
-              {isEdit ? "Enter a new password or leave blank to keep unchanged." : "Users without a password can log in by clicking their avatar."}
-            </p>
-          </div>
+          {/* Password (hidden for SSO users) */}
+          {!initialData?.ssoUser && (
+            <div className="space-y-1.5">
+              <Label htmlFor="user-password">{isEdit ? "Set Password" : "Password"}</Label>
+              <Input
+                id="user-password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={isEdit ? "Leave blank to keep current" : "Optional — leave blank for no password"}
+              />
+              <p className="text-xs text-muted-foreground">
+                {isEdit ? "Enter a new password or leave blank to keep unchanged." : "Users without a password can log in by clicking their avatar."}
+              </p>
+            </div>
+          )}
 
           {/* Avatar Color */}
           <div className="space-y-1.5">

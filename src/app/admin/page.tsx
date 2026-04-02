@@ -40,6 +40,7 @@ interface UserRow {
   avatarColor: string;
   isActive: boolean;
   isSuperAdmin: boolean;
+  ssoUser?: boolean;
   createdAt: string;
   teams?: { id: string; name: string }[];
 }
