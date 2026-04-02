@@ -1,22 +1,36 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { prisma } from "./db";
+import { createSignedToken, verifySignedToken } from "./crypto";
 
 const SESSION_COOKIE = "repan_session";
 const TEAM_COOKIE = "repan_team";
-const SESSION_MAX_AGE = 30 * 24 * 60 * 60;
+const SESSION_MAX_AGE = 30 * 24 * 60 * 60; // 30 days in seconds
+const SESSION_MAX_AGE_MS = SESSION_MAX_AGE * 1000; // Convert to milliseconds for crypto validation
 
 export async function getSession() {
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get(SESSION_COOKIE);
   if (!sessionCookie?.value) return null;
-  return prisma.user.findUnique({ where: { id: sessionCookie.value, isActive: true } });
+  
+  // Verify the signed token and extract user ID
+  const userId = verifySignedToken(sessionCookie.value, SESSION_MAX_AGE_MS);
+  if (!userId) {
+    // Invalid or expired token
+    return null;
+  }
+  
+  return prisma.user.findUnique({ where: { id: userId, isActive: true } });
 }
 
 export async function setSession(userId: string) {
   const isSecure = process.env.NODE_ENV === "production" && !process.env.DISABLE_SECURE_COOKIES;
   const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE, userId, {
+  
+  // Create a cryptographically signed token instead of storing plain user ID
+  const signedToken = createSignedToken(userId);
+  
+  cookieStore.set(SESSION_COOKIE, signedToken, {
     httpOnly: true, secure: isSecure,
     sameSite: "lax", maxAge: SESSION_MAX_AGE, path: "/",
   });

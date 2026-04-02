@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
-import { UserPlus, PlusCircle, Pencil, Archive, ArchiveRestore, Users, Trash2, Plus, Palette } from "lucide-react";
+import { UserPlus, PlusCircle, Pencil, Archive, ArchiveRestore, Users, Trash2, Plus, Palette, Key } from "lucide-react";
 import { TeamIcon } from "@/lib/team-icons";
 import { useUser } from "@/components/user-context";
 import { Button } from "@/components/ui/button";
@@ -211,6 +211,20 @@ export default function AdminPage() {
   const [ssoError, setSsoError] = useState("");
   const [ssoSuccess, setSsoSuccess] = useState("");
   const [togglingSso, setTogglingSso] = useState(false);
+
+  // Session secret state
+  const {
+    data: sessionSecretData,
+    isLoading: sessionSecretLoading,
+    mutate: mutateSessionSecret,
+  } = useSWR<{
+    configured: boolean;
+    lastUpdated: string | null;
+  }>(isSuperAdmin ? "/api/admin/session-secret" : null);
+
+  const [generatingSecret, setGeneratingSecret] = useState(false);
+  const [secretSuccess, setSecretSuccess] = useState("");
+  const [secretError, setSecretError] = useState("");
 
   // Sync SSO form fields from loaded config
   useEffect(() => {
@@ -464,6 +478,33 @@ export default function AdminPage() {
       setSsoError(err instanceof Error ? err.message : "Failed to toggle SSO");
     } finally {
       setTogglingSso(false);
+    }
+  };
+
+  const handleGenerateSessionSecret = async () => {
+    if (!confirm("Generate a new session secret? This will invalidate all existing user sessions and require everyone to log in again.")) {
+      return;
+    }
+    setGeneratingSecret(true);
+    setSecretError("");
+    setSecretSuccess("");
+    try {
+      const res = await fetch("/api/admin/session-secret", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "generate" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to generate session secret");
+      setSecretSuccess(data.message);
+      mutateSessionSecret();
+      toast.success("Session secret generated successfully");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to generate session secret";
+      setSecretError(message);
+      toast.error(message);
+    } finally {
+      setGeneratingSecret(false);
     }
   };
 
@@ -1263,6 +1304,69 @@ export default function AdminPage() {
                             )}
                           </div>
                         )}
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Session Secret Security */}
+                <div className="rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-zinc-800">
+                    <h2 className="text-sm font-semibold text-zinc-200">Session Security</h2>
+                    <p className="text-xs text-zinc-500 mt-0.5">Manage cryptographic keys for session tokens</p>
+                  </div>
+
+                  <div className="p-4 space-y-4">
+                    {sessionSecretLoading ? (
+                      <div className="h-10 rounded-lg bg-zinc-800/50 animate-pulse" />
+                    ) : (
+                      <>
+                        <div className="p-3 rounded-lg border border-zinc-800 bg-zinc-800/30">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-zinc-200 mb-1">Session Secret</p>
+                              <p className="text-xs text-zinc-500 leading-relaxed">
+                                Sessions are signed with HMAC-SHA256 using a secret key stored in the database.
+                                {sessionSecretData?.configured
+                                  ? " A secret is currently configured."
+                                  : " No secret configured - using fallback (less secure)."}
+                              </p>
+                              {sessionSecretData?.lastUpdated && (
+                                <p className="text-xs text-zinc-600 mt-1.5">
+                                  Last generated: {formatDate(sessionSecretData.lastUpdated)}
+                                </p>
+                              )}
+                            </div>
+                            <Button
+                              size="sm"
+                              variant={sessionSecretData?.configured ? "outline" : "default"}
+                              onClick={handleGenerateSessionSecret}
+                              disabled={generatingSecret}
+                              className="shrink-0"
+                            >
+                              {generatingSecret ? "Generating..." : sessionSecretData?.configured ? "Regenerate" : "Generate"}
+                            </Button>
+                          </div>
+                        </div>
+
+                        {secretError && (
+                          <div className="p-3 rounded-lg bg-red-950/30 border border-red-900/50">
+                            <p className="text-sm text-red-400">{secretError}</p>
+                          </div>
+                        )}
+
+                        {secretSuccess && (
+                          <div className="p-3 rounded-lg bg-green-950/30 border border-green-900/50">
+                            <p className="text-sm text-green-400">{secretSuccess}</p>
+                          </div>
+                        )}
+
+                        <div className="p-3 rounded-lg border border-amber-900/50 bg-amber-950/20">
+                          <p className="text-xs text-amber-400 leading-relaxed">
+                            <strong>Warning:</strong> Generating a new secret will invalidate all active user sessions.
+                            All users will be required to log in again.
+                          </p>
+                        </div>
                       </>
                     )}
                   </div>
