@@ -205,7 +205,11 @@ export default function AdminPage() {
   }>(isSuperAdmin ? "/api/admin/saml" : null);
 
   const [ssoAppUrl, setSsoAppUrl] = useState("");
+  const [ssoConfigMode, setSsoConfigMode] = useState<"metadata" | "manual">("metadata");
   const [ssoMetadataUrl, setSsoMetadataUrl] = useState("");
+  const [ssoIdpEntityId, setSsoIdpEntityId] = useState("");
+  const [ssoIdpSsoUrl, setSsoIdpSsoUrl] = useState("");
+  const [ssoIdpCertificate, setSsoIdpCertificate] = useState("");
   const [ssoAttrUid, setSsoAttrUid] = useState("uid");
   const [ssoAttrDisplayName, setSsoAttrDisplayName] = useState("displayName");
   const [savingSso, setSavingSso] = useState(false);
@@ -434,20 +438,29 @@ export default function AdminPage() {
   };
 
   const handleSaveSso = async () => {
-    if (!ssoAppUrl.trim() || !ssoMetadataUrl.trim()) return;
+    if (!ssoAppUrl.trim()) return;
+    if (ssoConfigMode === "metadata" && !ssoMetadataUrl.trim()) return;
+    if (ssoConfigMode === "manual" && (!ssoIdpEntityId.trim() || !ssoIdpSsoUrl.trim() || !ssoIdpCertificate.trim())) return;
     setSavingSso(true);
     setSsoError("");
     setSsoSuccess("");
     try {
+      const payload: Record<string, string> = {
+        appUrl: ssoAppUrl.trim(),
+        attrUid: ssoAttrUid.trim() || "uid",
+        attrDisplayName: ssoAttrDisplayName.trim() || "displayName",
+      };
+      if (ssoConfigMode === "metadata") {
+        payload.metadataUrl = ssoMetadataUrl.trim();
+      } else {
+        payload.idpEntityId = ssoIdpEntityId.trim();
+        payload.idpSsoUrl = ssoIdpSsoUrl.trim();
+        payload.idpCertificate = ssoIdpCertificate.trim();
+      }
       const res = await csrfFetch("/api/admin/saml", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          appUrl: ssoAppUrl.trim(),
-          metadataUrl: ssoMetadataUrl.trim(),
-          attrUid: ssoAttrUid.trim() || "uid",
-          attrDisplayName: ssoAttrDisplayName.trim() || "displayName",
-        }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to save SSO config");
@@ -1232,17 +1245,74 @@ export default function AdminPage() {
                           <p className="text-xs text-zinc-600">Public URL where this app is hosted</p>
                         </div>
 
-                        {/* Metadata URL */}
+                        {/* Config mode toggle */}
                         <div className="space-y-1.5">
-                          <label className="text-xs font-medium text-zinc-400">IdP Metadata URL</label>
-                          <Input
-                            value={ssoMetadataUrl}
-                            onChange={(e) => setSsoMetadataUrl(e.target.value)}
-                            placeholder="https://idp.company.com/nidp/saml2/metadata"
-                            className="h-9 text-sm"
-                          />
-                          <p className="text-xs text-zinc-600">Your identity provider&apos;s SAML metadata endpoint</p>
+                          <label className="text-xs font-medium text-zinc-400">IdP Configuration Method</label>
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant={ssoConfigMode === "metadata" ? "default" : "outline"}
+                              onClick={() => setSsoConfigMode("metadata")}
+                            >
+                              Metadata URL
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant={ssoConfigMode === "manual" ? "default" : "outline"}
+                              onClick={() => setSsoConfigMode("manual")}
+                            >
+                              Manual
+                            </Button>
+                          </div>
                         </div>
+
+                        {ssoConfigMode === "metadata" ? (
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-zinc-400">IdP Metadata URL</label>
+                            <Input
+                              value={ssoMetadataUrl}
+                              onChange={(e) => setSsoMetadataUrl(e.target.value)}
+                              placeholder="https://idp.company.com/nidp/saml2/metadata"
+                              className="h-9 text-sm"
+                            />
+                            <p className="text-xs text-zinc-600">Your identity provider&apos;s SAML metadata endpoint</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-medium text-zinc-400">IdP Entity ID</label>
+                              <Input
+                                value={ssoIdpEntityId}
+                                onChange={(e) => setSsoIdpEntityId(e.target.value)}
+                                placeholder="https://idp.company.com/nidp/saml2"
+                                className="h-9 text-sm"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-medium text-zinc-400">IdP SSO URL</label>
+                              <Input
+                                value={ssoIdpSsoUrl}
+                                onChange={(e) => setSsoIdpSsoUrl(e.target.value)}
+                                placeholder="https://idp.company.com/nidp/saml2/sso"
+                                className="h-9 text-sm"
+                              />
+                              <p className="text-xs text-zinc-600">URL to redirect users for authentication</p>
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-medium text-zinc-400">IdP Signing Certificate</label>
+                              <textarea
+                                value={ssoIdpCertificate}
+                                onChange={(e) => setSsoIdpCertificate(e.target.value)}
+                                placeholder={"-----BEGIN CERTIFICATE-----\nMIID...\n-----END CERTIFICATE-----"}
+                                rows={4}
+                                className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                              />
+                              <p className="text-xs text-zinc-600">PEM-encoded X.509 certificate from your IdP (for verifying SAML assertions)</p>
+                            </div>
+                          </div>
+                        )}
 
                         {/* Attribute mapping */}
                         <div className="grid grid-cols-2 gap-4">
@@ -1273,10 +1343,10 @@ export default function AdminPage() {
                         {/* Save button */}
                         <Button
                           onClick={handleSaveSso}
-                          disabled={savingSso || !ssoAppUrl.trim() || !ssoMetadataUrl.trim()}
+                          disabled={savingSso || !ssoAppUrl.trim() || (ssoConfigMode === "metadata" ? !ssoMetadataUrl.trim() : (!ssoIdpEntityId.trim() || !ssoIdpSsoUrl.trim() || !ssoIdpCertificate.trim()))}
                           className="w-full"
                         >
-                          {savingSso ? "Fetching metadata..." : "Fetch Metadata & Save"}
+                          {savingSso ? "Saving..." : ssoConfigMode === "metadata" ? "Fetch Metadata & Save" : "Save Configuration"}
                         </Button>
 
                         {/* SP info for IdP registration */}

@@ -102,63 +102,83 @@ export async function POST(request: NextRequest) {
     // Full configuration
     const { appUrl, metadataUrl, metadataXml, attrUid, attrDisplayName } = body;
     if (!appUrl) return NextResponse.json({ error: "appUrl is required" }, { status: 400 });
-    if (!metadataUrl && !metadataXml) {
-      return NextResponse.json({ error: "metadataUrl or metadataXml is required" }, { status: 400 });
-    }
 
-    let xml = metadataXml;
-    if (!xml && metadataUrl) {
-      // Validate URL to prevent SSRF attacks
-      const urlValidation = isAllowedUrl(metadataUrl);
-      if (!urlValidation.allowed) {
-        return NextResponse.json({ 
-          error: `Invalid metadata URL: ${urlValidation.error}` 
-        }, { status: 400 });
-      }
-      
-      // Fetch with timeout to prevent hanging requests
-      try {
-        const res = await fetch(metadataUrl, {
-          signal: AbortSignal.timeout(10000), // 10 second timeout
-          headers: {
-            'User-Agent': 'Repan-SAML-Client/1.0',
-            'Accept': 'application/xml, text/xml',
-          },
-        });
-        
-        if (!res.ok) {
-          return NextResponse.json({ 
-            error: `Failed to fetch metadata: HTTP ${res.status}` 
-          }, { status: 400 });
-        }
-        
-        // Limit response size to prevent memory exhaustion
-        const contentLength = res.headers.get('content-length');
-        if (contentLength && parseInt(contentLength) > 1024 * 1024) { // 1MB limit
-          return NextResponse.json({ 
-            error: "Metadata file too large (max 1MB)" 
-          }, { status: 400 });
-        }
-        
-        xml = await res.text();
-        
-        // Additional size check after reading
-        if (xml.length > 1024 * 1024) {
-          return NextResponse.json({ 
-            error: "Metadata file too large (max 1MB)" 
-          }, { status: 400 });
-        }
-      } catch (error) {
-        if (error instanceof Error && error.name === 'TimeoutError') {
-          return NextResponse.json({ 
-            error: "Request timed out while fetching metadata" 
-          }, { status: 400 });
-        }
-        throw error;
-      }
-    }
+    let idpEntityId: string;
+    let idpSsoUrl: string;
+    let idpCertificate: string;
 
-    const { idpEntityId, idpSsoUrl, idpCertificate } = await parseSamlMetadata(xml);
+    // Manual IdP configuration — fields provided directly
+    if (body.idpEntityId && body.idpSsoUrl && body.idpCertificate) {
+      idpEntityId = body.idpEntityId.trim();
+      idpSsoUrl = body.idpSsoUrl.trim();
+      // Clean up certificate — strip PEM headers/footers and whitespace
+      idpCertificate = body.idpCertificate
+        .replace(/-----BEGIN CERTIFICATE-----/g, "")
+        .replace(/-----END CERTIFICATE-----/g, "")
+        .replace(/\s/g, "");
+      if (!idpCertificate) {
+        return NextResponse.json({ error: "Invalid certificate" }, { status: 400 });
+      }
+    } else if (metadataUrl || metadataXml) {
+      // Metadata-based configuration
+      let xml = metadataXml;
+      if (!xml && metadataUrl) {
+        // Validate URL to prevent SSRF attacks
+        const urlValidation = isAllowedUrl(metadataUrl);
+        if (!urlValidation.allowed) {
+          return NextResponse.json({
+            error: `Invalid metadata URL: ${urlValidation.error}`
+          }, { status: 400 });
+        }
+
+        // Fetch with timeout to prevent hanging requests
+        try {
+          const res = await fetch(metadataUrl, {
+            signal: AbortSignal.timeout(10000), // 10 second timeout
+            headers: {
+              'User-Agent': 'Repan-SAML-Client/1.0',
+              'Accept': 'application/xml, text/xml',
+            },
+          });
+
+          if (!res.ok) {
+            return NextResponse.json({
+              error: `Failed to fetch metadata: HTTP ${res.status}`
+            }, { status: 400 });
+          }
+
+          // Limit response size to prevent memory exhaustion
+          const contentLength = res.headers.get('content-length');
+          if (contentLength && parseInt(contentLength) > 1024 * 1024) { // 1MB limit
+            return NextResponse.json({
+              error: "Metadata file too large (max 1MB)"
+            }, { status: 400 });
+          }
+
+          xml = await res.text();
+
+          // Additional size check after reading
+          if (xml.length > 1024 * 1024) {
+            return NextResponse.json({
+              error: "Metadata file too large (max 1MB)"
+            }, { status: 400 });
+          }
+        } catch (error) {
+          if (error instanceof Error && error.name === 'TimeoutError') {
+            return NextResponse.json({
+              error: "Request timed out while fetching metadata"
+            }, { status: 400 });
+          }
+          throw error;
+        }
+      }
+
+      ({ idpEntityId, idpSsoUrl, idpCertificate } = await parseSamlMetadata(xml));
+    } else {
+      return NextResponse.json({
+        error: "Provide either IdP details (idpEntityId, idpSsoUrl, idpCertificate) or a metadata URL/XML"
+      }, { status: 400 });
+    }
     const cleanAppUrl = appUrl.replace(/\/+$/, "");
 
     const config = await prisma.samlConfig.upsert({
