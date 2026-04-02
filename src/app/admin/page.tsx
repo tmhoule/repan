@@ -202,6 +202,7 @@ export default function AdminPage() {
     attrDisplayName?: string;
     acsUrl?: string;
     hasCertificate?: boolean;
+    certFingerprint?: string | null;
   }>(isSuperAdmin ? "/api/admin/saml" : null);
 
   const [ssoAppUrl, setSsoAppUrl] = useState("");
@@ -1371,6 +1372,12 @@ export default function AdminPage() {
                                 <p className="text-sm text-zinc-300 font-mono break-all">{ssoConfig.idpEntityId}</p>
                                 <p className="text-xs text-zinc-500">IdP SSO URL</p>
                                 <p className="text-sm text-zinc-300 font-mono break-all">{ssoConfig.idpSsoUrl}</p>
+                                {ssoConfig.certFingerprint && (
+                                  <>
+                                    <p className="text-xs text-zinc-500">Certificate Fingerprint (SHA-256)</p>
+                                    <p className="text-sm text-zinc-300 font-mono break-all">{ssoConfig.certFingerprint}</p>
+                                  </>
+                                )}
                               </div>
                             )}
                           </div>

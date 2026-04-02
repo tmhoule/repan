@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createHash } from "crypto";
 import { prisma } from "@/lib/db";
 import { requireSession, handleApiError } from "@/lib/session";
 import { parseSamlMetadata } from "@/lib/saml";
@@ -74,6 +75,9 @@ export async function GET() {
       attrDisplayName: config.attrDisplayName,
       acsUrl: `${config.appUrl}/api/auth/saml/callback`,
       hasCertificate: !!config.idpCertificate,
+      certFingerprint: config.idpCertificate
+        ? createHash("sha256").update(Buffer.from(config.idpCertificate, "base64")).digest("hex").replace(/(.{2})(?!$)/g, "$1:")
+        : null,
     });
   } catch (error) {
     return handleApiError(error);
