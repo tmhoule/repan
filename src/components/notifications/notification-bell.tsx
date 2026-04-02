@@ -38,7 +38,7 @@ export function NotificationBell() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ notificationIds: [notification.id] }),
       });
-      mutate();
+      await mutate();
     }
     if (notification.taskId) {
       router.push(`/tasks/${notification.taskId}`);
