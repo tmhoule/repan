@@ -63,6 +63,7 @@ export function UserForm({ open, onClose, onSave, initialData, currentUserIsSupe
   const [role, setRole] = useState<"manager" | "staff">(initialData?.role ?? "staff");
   const [isSuperAdmin, setIsSuperAdmin] = useState(initialData?.isSuperAdmin ?? false);
   const [avatarColor, setAvatarColor] = useState(initialData?.avatarColor ?? AVATAR_COLORS[0].value);
+  const [password, setPassword] = useState("");
   const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
   const [deactivating, setDeactivating] = useState(false);
@@ -91,6 +92,7 @@ export function UserForm({ open, onClose, onSave, initialData, currentUserIsSupe
     setRole(initialData?.role ?? "staff");
     setIsSuperAdmin(initialData?.isSuperAdmin ?? false);
     setAvatarColor(initialData?.avatarColor ?? AVATAR_COLORS[0].value);
+    setPassword("");
     if (!isEdit) setSelectedTeamIds(new Set());
     setError(null);
   }, [initialData, open, isEdit]);
@@ -127,6 +129,7 @@ export function UserForm({ open, onClose, onSave, initialData, currentUserIsSupe
           avatarColor,
           teamIds: Array.from(selectedTeamIds),
           ...(currentUserIsSuperAdmin ? { isSuperAdmin } : {}),
+          ...(password ? { password } : {}),
         }),
       });
       if (!res.ok) {
@@ -215,6 +218,21 @@ export function UserForm({ open, onClose, onSave, initialData, currentUserIsSupe
               <span className="text-xs text-muted-foreground">— can create teams and manage all teams</span>
             </label>
           )}
+
+          {/* Password */}
+          <div className="space-y-1.5">
+            <Label htmlFor="user-password">{isEdit ? "Set Password" : "Password"}</Label>
+            <Input
+              id="user-password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder={isEdit ? "Leave blank to keep current" : "Optional — leave blank for no password"}
+            />
+            <p className="text-xs text-muted-foreground">
+              {isEdit ? "Enter a new password or leave blank to keep unchanged." : "Users without a password can log in by clicking their avatar."}
+            </p>
+          </div>
 
           {/* Avatar Color */}
           <div className="space-y-1.5">

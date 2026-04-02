@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 import { requireManager, getSession, getActiveTeam, handleApiError } from "@/lib/session";
 
@@ -69,7 +70,7 @@ export async function POST(request: NextRequest) {
   try {
     const currentUser = await requireManager();
     const activeTeamId = await getActiveTeam();
-    const { name, role, avatarColor, teamIds, isSuperAdmin } = await request.json();
+    const { name, role, avatarColor, teamIds, isSuperAdmin, password } = await request.json();
     const user = await prisma.user.create({
       data: {
         name,
@@ -77,6 +78,7 @@ export async function POST(request: NextRequest) {
         avatarColor,
         // Only super admins can create other super admins
         ...(isSuperAdmin && currentUser.isSuperAdmin ? { isSuperAdmin: true } : {}),
+        ...(password ? { passwordHash: await bcrypt.hash(password, 10) } : {}),
       },
     });
 

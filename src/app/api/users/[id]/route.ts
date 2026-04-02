@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 import { requireSession, requireManager, handleApiError } from "@/lib/session";
 
@@ -42,7 +43,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const { id } = await params;
     const body = await request.json();
     // Whitelist allowed fields to prevent mass-assignment
-    const { name, role, avatarColor, soundEnabled, isActive, isSuperAdmin } = body;
+    const { name, role, avatarColor, soundEnabled, isActive, isSuperAdmin, password } = body;
     const data: Record<string, unknown> = {};
     if (name !== undefined) data.name = name;
     if (role !== undefined) data.role = role;
@@ -51,6 +52,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (isActive !== undefined) data.isActive = isActive;
     // Only super admins can grant/revoke super admin status
     if (isSuperAdmin !== undefined && currentUser.isSuperAdmin) data.isSuperAdmin = isSuperAdmin;
+    // Set or clear password
+    if (password !== undefined) {
+      data.passwordHash = password ? await bcrypt.hash(password, 10) : null;
+    }
     return NextResponse.json(await prisma.user.update({ where: { id }, data }));
   } catch (error) {
     return handleApiError(error);
