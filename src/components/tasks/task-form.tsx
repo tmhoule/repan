@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
+import { csrfFetch } from "@/lib/csrf-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -112,7 +113,7 @@ export function TaskForm({ mode, initialData, onSubmit, teamId }: TaskFormProps)
     if (mode !== "edit" || !initialData?.id || !title.trim()) return;
     setSaveStatus("saving");
     try {
-      const res = await fetch(`/api/tasks/${initialData.id}`, {
+      const res = await csrfFetch(`/api/tasks/${initialData.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -209,7 +210,7 @@ export function TaskForm({ mode, initialData, onSubmit, teamId }: TaskFormProps)
 
     try {
       if (mode === "create") {
-        const res = await fetch("/api/tasks", {
+        const res = await csrfFetch("/api/tasks", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(formData),
@@ -218,7 +219,7 @@ export function TaskForm({ mode, initialData, onSubmit, teamId }: TaskFormProps)
         const task = await res.json();
         router.push(`/tasks/${task.id}`);
       } else if (mode === "edit" && initialData?.id) {
-        const res = await fetch(`/api/tasks/${initialData.id}`, {
+        const res = await csrfFetch(`/api/tasks/${initialData.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(formData),

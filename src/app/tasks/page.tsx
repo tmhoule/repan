@@ -27,7 +27,7 @@ interface Task {
   timeAllocation: number;
   dueDate: string | null;
   blockerReason?: string | null;
-  createdBy: { id: string; name: string; avatarColor: string };
+  createdBy: { id: string; name: string; avatarColor: string } | null;
   assignedTo?: { id: string; name: string; avatarColor: string } | null;
 }
 

@@ -40,7 +40,7 @@ interface Task {
   blockerReason: string | null;
   createdAt: string;
   updatedAt: string;
-  createdBy: { id: string; name: string; avatarColor: string };
+  createdBy: { id: string; name: string; avatarColor: string } | null;
   assignedTo: { id: string; name: string; avatarColor: string } | null;
   teamId: string;
   bucket: { id: string; name: string; colorKey: string } | null;
@@ -113,7 +113,7 @@ export default function TaskDetailPage({
     !!task &&
     canEditTask(
       { id: user.id, role: user.role as "manager" | "staff" },
-      { createdById: task.createdBy.id, assignedToId: task.assignedTo?.id ?? null }
+      { createdById: task.createdBy?.id ?? null, assignedToId: task.assignedTo?.id ?? null }
     );
 
   if (isLoading) {
@@ -210,11 +210,13 @@ export default function TaskDetailPage({
 
         {/* Metadata row */}
         <div className="flex flex-wrap gap-x-5 gap-y-1.5">
-          <MetaItem
-            icon={User2}
-            label="Created by"
-            value={task.createdBy.name}
-          />
+          {task.createdBy && (
+            <MetaItem
+              icon={User2}
+              label="Created by"
+              value={task.createdBy.name}
+            />
+          )}
           {task.assignedTo && (
             <div className="flex items-center gap-1 text-sm text-muted-foreground">
               <User2 className="size-4 shrink-0" />

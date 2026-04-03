@@ -43,7 +43,7 @@ interface Task {
   updatedAt?: string;
   createdAt?: string;
   blockerReason?: string | null;
-  createdBy: { id: string; name: string; avatarColor: string };
+  createdBy: { id: string; name: string; avatarColor: string } | null;
   assignedTo?: { id: string; name: string; avatarColor: string } | null;
 }
 

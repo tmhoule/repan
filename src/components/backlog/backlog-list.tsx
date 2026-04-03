@@ -28,7 +28,7 @@ interface BacklogTask {
   effortEstimate: EffortEstimate;
   backlogPosition: number | null;
   dueDate?: string | null;
-  createdBy: { id: string; name: string; avatarColor: string };
+  createdBy: { id: string; name: string; avatarColor: string } | null;
   forecast?: ForecastResult;
   bucket: { id: string; name: string; colorKey: string } | null;
   triaged?: boolean;
@@ -115,9 +115,11 @@ function TaskRow({
             {task.title}
           </Link>
         </div>
-        <p className="text-xs text-muted-foreground/60 mt-0.5">
-          by {task.createdBy.name}
-        </p>
+        {task.createdBy && (
+          <p className="text-xs text-muted-foreground/60 mt-0.5">
+            by {task.createdBy.name}
+          </p>
+        )}
       </div>
 
       {/* Badges */}

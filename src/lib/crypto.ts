@@ -45,12 +45,18 @@ async function getSecretKey(): Promise<string> {
     console.warn("Could not fetch session secret from database:", error);
   }
 
-  // Last resort: generate random key (acceptable for dev, warning for production)
-  if (process.env.NODE_ENV === "production") {
-    console.error("WARNING: SESSION_SECRET not set in production and no database secret found! Using random key (sessions will not persist across restarts)");
-  }
-
+  // No secret configured — generate one and persist it to the database
   const randomKey = randomBytes(32).toString("hex");
+  try {
+    await prisma.systemConfig.upsert({
+      where: { id: "singleton" },
+      update: { sessionSecret: randomKey },
+      create: { id: "singleton", sessionSecret: randomKey },
+    });
+    console.log("Auto-generated and persisted session secret to database");
+  } catch (error) {
+    console.warn("Could not persist session secret to database — sessions will not survive restart:", error);
+  }
   secretKeyCache = randomKey;
   cacheTimestamp = now;
   return randomKey;
