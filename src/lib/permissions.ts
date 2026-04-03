@@ -1,5 +1,5 @@
 type UserContext = { id: string; role: "manager" | "staff"; teamRole?: "manager" | "member" };
-type TaskContext = { createdById: string; assignedToId: string | null };
+type TaskContext = { createdById: string | null; assignedToId: string | null };
 
 export function canEditTask(user: UserContext, task: TaskContext): boolean {
   if (user.teamRole === "manager" || user.role === "manager") return true;
