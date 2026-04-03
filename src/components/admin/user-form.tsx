@@ -65,6 +65,8 @@ export function UserForm({ open, onClose, onSave, initialData, currentUserIsSupe
   const [isSuperAdmin, setIsSuperAdmin] = useState(initialData?.isSuperAdmin ?? false);
   const [avatarColor, setAvatarColor] = useState(initialData?.avatarColor ?? AVATAR_COLORS[0].value);
   const [password, setPassword] = useState("");
+  const [isSsoUser, setIsSsoUser] = useState(false);
+  const [ssoUid, setSsoUid] = useState("");
   const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
   const [deactivating, setDeactivating] = useState(false);
@@ -94,6 +96,8 @@ export function UserForm({ open, onClose, onSave, initialData, currentUserIsSupe
     setIsSuperAdmin(initialData?.isSuperAdmin ?? false);
     setAvatarColor(initialData?.avatarColor ?? AVATAR_COLORS[0].value);
     setPassword("");
+    setIsSsoUser(initialData?.ssoUser ?? false);
+    setSsoUid("");
     if (!isEdit) setSelectedTeamIds(new Set());
     setError(null);
   }, [initialData, open, isEdit]);
@@ -110,6 +114,10 @@ export function UserForm({ open, onClose, onSave, initialData, currentUserIsSupe
   const handleSubmit = async () => {
     if (!name.trim()) {
       setError("Name is required.");
+      return;
+    }
+    if (!isEdit && isSsoUser && !ssoUid.trim()) {
+      setError("SSO UID is required for SSO users.");
       return;
     }
     if (!isEdit && selectedTeamIds.size === 0) {
@@ -130,7 +138,8 @@ export function UserForm({ open, onClose, onSave, initialData, currentUserIsSupe
           avatarColor,
           teamIds: Array.from(selectedTeamIds),
           ...(currentUserIsSuperAdmin ? { isSuperAdmin } : {}),
-          ...(password ? { password } : {}),
+          ...(password && !isSsoUser ? { password } : {}),
+          ...(!isEdit && isSsoUser && ssoUid.trim() ? { ssoUid: ssoUid.trim() } : {}),
         }),
       });
       if (!res.ok) {
@@ -220,8 +229,38 @@ export function UserForm({ open, onClose, onSave, initialData, currentUserIsSupe
             </label>
           )}
 
+          {/* SSO User toggle (create mode only) */}
+          {!isEdit && (
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isSsoUser}
+                onChange={(e) => setIsSsoUser(e.target.checked)}
+                className="size-4 rounded border-input accent-primary"
+              />
+              <span className="text-sm">SSO User</span>
+              <span className="text-xs text-muted-foreground">— pre-provision for SAML login</span>
+            </label>
+          )}
+
+          {/* SSO UID (create mode, SSO users only) */}
+          {!isEdit && isSsoUser && (
+            <div className="space-y-1.5">
+              <Label htmlFor="user-sso-uid">SSO UID</Label>
+              <Input
+                id="user-sso-uid"
+                value={ssoUid}
+                onChange={(e) => setSsoUid(e.target.value)}
+                placeholder="Unique identifier from your identity provider"
+              />
+              <p className="text-xs text-muted-foreground">
+                Must match the UID attribute sent by your IdP during SAML login.
+              </p>
+            </div>
+          )}
+
           {/* Password (hidden for SSO users) */}
-          {!initialData?.ssoUser && (
+          {!initialData?.ssoUser && !isSsoUser && (
             <div className="space-y-1.5">
               <Label htmlFor="user-password">{isEdit ? "Set Password" : "Password"}</Label>
               <Input

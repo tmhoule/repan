@@ -70,7 +70,16 @@ export async function POST(request: NextRequest) {
   try {
     const currentUser = await requireManager();
     const activeTeamId = await getActiveTeam();
-    const { name, role, avatarColor, teamIds, isSuperAdmin, password } = await request.json();
+    const { name, role, avatarColor, teamIds, isSuperAdmin, password, ssoUid } = await request.json();
+
+    // If ssoUid is provided, validate it's not already taken
+    if (ssoUid) {
+      const existing = await prisma.user.findUnique({ where: { ssoUid } });
+      if (existing) {
+        return NextResponse.json({ error: "An account with this SSO UID already exists." }, { status: 409 });
+      }
+    }
+
     const user = await prisma.user.create({
       data: {
         name,
@@ -78,7 +87,8 @@ export async function POST(request: NextRequest) {
         avatarColor,
         // Only super admins can create other super admins
         ...(isSuperAdmin && currentUser.isSuperAdmin ? { isSuperAdmin: true } : {}),
-        ...(password ? { passwordHash: await bcrypt.hash(password, 10) } : {}),
+        ...(password && !ssoUid ? { passwordHash: await bcrypt.hash(password, 10) } : {}),
+        ...(ssoUid ? { ssoUid, ssoUser: true } : {}),
       },
     });
 
