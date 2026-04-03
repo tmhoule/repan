@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { csrfFetch } from "@/lib/csrf-client";
 import useSWR from "swr";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -86,7 +87,7 @@ export function ManageBucketsDialog({ teamId, onMutate }: ManageBucketsDialogPro
   const handleSaveEdit = async (bucketId: string) => {
     if (!editName.trim()) return;
     try {
-      const res = await fetch(`/api/teams/${teamId}/buckets/${bucketId}`, {
+      const res = await csrfFetch(`/api/teams/${teamId}/buckets/${bucketId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: editName.trim(), colorKey: editColor }),
@@ -108,7 +109,7 @@ export function ManageBucketsDialog({ teamId, onMutate }: ManageBucketsDialogPro
     if (!newName.trim()) return;
     setIsAdding(true);
     try {
-      const res = await fetch(`/api/teams/${teamId}/buckets`, {
+      const res = await csrfFetch(`/api/teams/${teamId}/buckets`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newName.trim(), colorKey: newColor }),
@@ -134,7 +135,7 @@ export function ManageBucketsDialog({ teamId, onMutate }: ManageBucketsDialogPro
       return;
     }
     try {
-      const res = await fetch(`/api/teams/${teamId}/buckets/${bucket.id}`, {
+      const res = await csrfFetch(`/api/teams/${teamId}/buckets/${bucket.id}`, {
         method: "DELETE",
       });
       if (!res.ok) {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { csrfFetch } from "@/lib/csrf-client";
 import Link from "next/link";
 import useSWR from "swr";
 import { History, RotateCcw } from "lucide-react";
@@ -65,7 +66,7 @@ export default function HistoryPage() {
   const tasks = data?.tasks ?? [];
 
   const handleReopen = async (taskId: string) => {
-    await fetch(`/api/tasks/${taskId}`, {
+    await csrfFetch(`/api/tasks/${taskId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: "not_started" }),

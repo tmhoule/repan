@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { csrfFetch } from "@/lib/csrf-client";
 import Link from "next/link";
 import { useSWRConfig } from "swr";
 import { ArrowLeft } from "lucide-react";
@@ -34,7 +35,7 @@ export default function NewTodoPage() {
     setError("");
     setIsSubmitting(true);
     try {
-      const res = await fetch("/api/todos", {
+      const res = await csrfFetch("/api/todos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: title.trim(), description: description.trim() || null }),

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import { csrfFetch } from "@/lib/csrf-client";
 import Link from "next/link";
 import { Suspense } from "react";
 import useSWR from "swr";
@@ -18,7 +19,7 @@ function NewTaskForm() {
   const teamId = bucketsData?.teamId;
 
   const handleSubmit = async (data: TaskFormData) => {
-    const res = await fetch("/api/tasks", {
+    const res = await csrfFetch("/api/tasks", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),

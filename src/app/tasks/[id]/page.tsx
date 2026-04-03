@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useCallback, useRef, useState } from "react";
+import { csrfFetch } from "@/lib/csrf-client";
 import Link from "next/link";
 import useSWR from "swr";
 import { ArrowLeft, CalendarDays, User2, Clock, CheckCircle } from "lucide-react";
@@ -157,7 +158,7 @@ export default function TaskDetailPage({
   };
 
   const handleFormSubmit = async (data: TaskFormData) => {
-    await fetch(`/api/tasks/${id}`, {
+    await csrfFetch(`/api/tasks/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -193,7 +194,7 @@ export default function TaskDetailPage({
                 className="h-7 gap-1.5 text-xs shrink-0 text-green-700 border-green-200 hover:bg-green-50 hover:border-green-300 dark:text-green-400 dark:border-green-800 dark:hover:bg-green-950"
                 disabled={isCommenting}
                 onClick={async () => {
-                  await fetch(`/api/tasks/${id}`, {
+                  await csrfFetch(`/api/tasks/${id}`, {
                     method: "PATCH",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ status: "done" }),

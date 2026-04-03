@@ -1,4 +1,5 @@
 "use client";
+import { csrfFetch } from "@/lib/csrf-client";
 import useSWR from "swr";
 import { useRouter } from "next/navigation";
 import { Bell } from "lucide-react";
@@ -33,7 +34,7 @@ export function NotificationBell() {
 
   const handleNotificationClick = async (notification: Notification) => {
     if (!notification.isRead) {
-      await fetch("/api/notifications", {
+      await csrfFetch("/api/notifications", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ notificationIds: [notification.id] }),
@@ -50,7 +51,7 @@ export function NotificationBell() {
       .filter((n) => !n.isRead)
       .map((n) => n.id);
     if (unreadIds.length === 0) return;
-    await fetch("/api/notifications", {
+    await csrfFetch("/api/notifications", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ notificationIds: unreadIds }),

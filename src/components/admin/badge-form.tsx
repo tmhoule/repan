@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { csrfFetch } from "@/lib/csrf-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -239,7 +240,7 @@ export function BadgeForm({ open, onClose, onSave, initialData }: BadgeFormProps
     try {
       const url = isEdit ? `/api/awards/${initialData!.id}` : "/api/awards";
       const method = isEdit ? "PATCH" : "POST";
-      const res = await fetch(url, {
+      const res = await csrfFetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

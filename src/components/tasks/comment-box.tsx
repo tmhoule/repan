@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { csrfFetch } from "@/lib/csrf-client";
 import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,7 +28,7 @@ export function CommentBox({ taskId, onCommentPosted, onComposingChange }: Comme
     setError("");
 
     try {
-      const res = await fetch(`/api/tasks/${taskId}/comments`, {
+      const res = await csrfFetch(`/api/tasks/${taskId}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: trimmed }),

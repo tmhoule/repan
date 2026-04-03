@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { csrfFetch } from "@/lib/csrf-client";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 
@@ -40,7 +41,7 @@ export function ProgressSlider({
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(async () => {
         try {
-          await fetch(`/api/tasks/${taskId}`, {
+          await csrfFetch(`/api/tasks/${taskId}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ percentComplete: newValue }),

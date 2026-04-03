@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { csrfFetch } from "@/lib/csrf-client";
 import Link from "next/link";
 import { CheckCircle, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -185,7 +186,7 @@ export function BacklogList({ tasks, onMutate, groupByBucket }: BacklogListProps
     async (taskId: string) => {
       setClaimingId(taskId);
       try {
-        const res = await fetch("/api/backlog/claim", {
+        const res = await csrfFetch("/api/backlog/claim", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ taskId }),
