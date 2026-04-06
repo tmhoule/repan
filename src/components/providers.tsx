@@ -3,11 +3,16 @@ import { SWRConfig } from "swr";
 import { ReactNode, useEffect, useState } from "react";
 import { Toaster } from "sonner";
 
-const fetcher = (url: string) =>
-  fetch(url).then((res) => {
-    if (!res.ok) throw new Error(`API error: ${res.status}`);
-    return res.json();
-  });
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (res.status === 401 && typeof window !== "undefined") {
+    await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+    window.location.href = "/login";
+    throw new Error("Session expired");
+  }
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+};
 
 // Render Toaster only after mount to avoid hydration mismatch in Safari
 function ClientToaster() {

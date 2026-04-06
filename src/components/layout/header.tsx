@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Menu, X, LogOut, Users, KeyRound } from "lucide-react";
+import { Menu, X, LogOut, Users, KeyRound, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -169,18 +169,6 @@ export function Header() {
         {/* Right side */}
         <div className="flex items-center gap-2 ml-auto">
           {user && <GlobalSearch />}
-          {isManager && (
-            <Link
-              href="/admin"
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground ${
-                pathname === "/admin" || pathname.startsWith("/admin/")
-                  ? "bg-accent text-accent-foreground"
-                  : "text-muted-foreground"
-              }`}
-            >
-              Admin
-            </Link>
-          )}
           {user && <NotificationBell />}
 
           {user && (
@@ -231,6 +219,12 @@ export function Header() {
                   <DropdownMenuItem onClick={() => router.push("/team-select")}>
                     <Users className="mr-2 h-4 w-4" />
                     Switch Team
+                  </DropdownMenuItem>
+                )}
+                {isManager && (
+                  <DropdownMenuItem onClick={() => router.push("/admin")}>
+                    <Shield className="mr-2 h-4 w-4" />
+                    Admin
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem

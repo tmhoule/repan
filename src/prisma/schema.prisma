@@ -73,6 +73,7 @@ model User {
   isSuperAdmin  Boolean   @default(false) @map("is_super_admin")
   ssoUid        String?   @unique @map("sso_uid")
   ssoUser       Boolean   @default(false) @map("sso_user")
+  lastLoginAt   DateTime? @map("last_login_at")
 
   createdTasks    Task[]          @relation("CreatedTasks")
   assignedTasks   Task[]          @relation("AssignedTasks")

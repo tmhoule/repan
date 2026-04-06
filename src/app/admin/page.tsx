@@ -42,6 +42,7 @@ interface UserRow {
   isSuperAdmin: boolean;
   ssoUser?: boolean;
   createdAt: string;
+  lastLoginAt?: string | null;
   teams?: { id: string; name: string }[];
 }
 
@@ -593,7 +594,7 @@ export default function AdminPage() {
                         <TableHead className="text-zinc-400">Team</TableHead>
                         <TableHead className="text-zinc-400">Role</TableHead>
                         <TableHead className="text-zinc-400">Status</TableHead>
-                        <TableHead className="text-zinc-400">Created</TableHead>
+                        <TableHead className="text-zinc-400">Last Login</TableHead>
                         <TableHead className="text-zinc-400 text-right pr-4">
                           Actions
                         </TableHead>
@@ -619,6 +620,12 @@ export default function AdminPage() {
                                   You
                                 </Badge>
                               )}
+                              <Badge
+                                variant="outline"
+                                className={`text-xs ${u.ssoUser ? "text-blue-400 border-blue-800" : "text-zinc-500 border-zinc-700"}`}
+                              >
+                                {u.ssoUser ? "SSO" : "Local"}
+                              </Badge>
                             </div>
                           </TableCell>
                           <TableCell>
@@ -653,7 +660,7 @@ export default function AdminPage() {
                             </span>
                           </TableCell>
                           <TableCell className="text-zinc-400 text-xs">
-                            {formatDate(u.createdAt)}
+                            {u.lastLoginAt ? formatDate(u.lastLoginAt) : "Never"}
                           </TableCell>
                           <TableCell className="text-right pr-4">
                             <Button
@@ -1571,6 +1578,13 @@ export default function AdminPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <p className="text-center text-xs text-zinc-600 pt-8 pb-2">
+        v{process.env.NEXT_PUBLIC_APP_VERSION}
+        {process.env.NEXT_PUBLIC_BUILD_ID && (
+          <span className="ml-1.5 text-zinc-700">({process.env.NEXT_PUBLIC_BUILD_ID})</span>
+        )}
+      </p>
     </div>
   );
 }

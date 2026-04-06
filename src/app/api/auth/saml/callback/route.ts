@@ -45,8 +45,9 @@ export async function POST(request: NextRequest) {
     }
     // For existing users, don't overwrite name — it's user-editable after provisioning
 
-    // Set session
+    // Set session and record login time
     await setSession(user.id);
+    await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
 
     // Check team memberships for redirect
     const memberships = await prisma.teamMembership.findMany({

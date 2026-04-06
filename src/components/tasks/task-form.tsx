@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { csrfFetch } from "@/lib/csrf-client";
+import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -50,6 +51,7 @@ interface TaskFormProps {
   mode: "create" | "edit";
   initialData?: TaskFormInitialData;
   onSubmit?: (data: TaskFormData) => void | Promise<void>;
+  onDelete?: () => void | Promise<void>;
   teamId?: string;
 }
 
@@ -76,7 +78,7 @@ const EFFORT_LABELS: Record<string, string> = {
   large: "Large",
 };
 
-export function TaskForm({ mode, initialData, onSubmit, teamId }: TaskFormProps) {
+export function TaskForm({ mode, initialData, onSubmit, onDelete, teamId }: TaskFormProps) {
   const router = useRouter();
   const { user } = useUser();
   const isManager = user?.role === "manager";
@@ -96,6 +98,8 @@ export function TaskForm({ mode, initialData, onSubmit, teamId }: TaskFormProps)
   const [timeAllocation, setTimeAllocation] = useState<number>((initialData as any)?.timeAllocation ?? 0);
   const [bucketId, setBucketId] = useState<string | null>(initialData?.bucketId ?? null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const autoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -415,8 +419,8 @@ export function TaskForm({ mode, initialData, onSubmit, teamId }: TaskFormProps)
         </div>
       )}
 
-      {/* Submit (create mode) or auto-save indicator (edit mode) */}
-      <div className="flex items-center gap-3 pt-1">
+      {/* Submit (create mode) or auto-save indicator + delete (edit mode) */}
+      <div className="flex items-center justify-between pt-1">
         {mode === "create" ? (
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? "Creating…" : "Create Task"}
@@ -426,6 +430,42 @@ export function TaskForm({ mode, initialData, onSubmit, teamId }: TaskFormProps)
             {saveStatus === "saving" && "Saving…"}
             {saveStatus === "saved" && "✓ Saved"}
           </span>
+        )}
+
+        {mode === "edit" && onDelete && (
+          <div className="flex items-center gap-2">
+            {confirmDelete ? (
+              <>
+                <span className="text-xs text-muted-foreground">Delete this task?</span>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  disabled={isDeleting}
+                  onClick={async () => {
+                    setIsDeleting(true);
+                    try { await onDelete(); } finally { setIsDeleting(false); setConfirmDelete(false); }
+                  }}
+                >
+                  {isDeleting ? "Deleting…" : "Yes, delete"}
+                </Button>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmDelete(false)}>
+                  Cancel
+                </Button>
+              </>
+            ) : (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => setConfirmDelete(true)}
+                aria-label="Delete task"
+                className="text-muted-foreground hover:text-destructive"
+              >
+                <Trash2 className="size-4" />
+              </Button>
+            )}
+          </div>
         )}
       </div>
     </form>

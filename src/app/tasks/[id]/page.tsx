@@ -3,6 +3,7 @@
 import { use, useCallback, useRef, useState } from "react";
 import { csrfFetch } from "@/lib/csrf-client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { ArrowLeft, CalendarDays, User2, Clock, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -103,6 +104,7 @@ export default function TaskDetailPage({
 }) {
   const { id } = use(params);
   const { user } = useUser();
+  const router = useRouter();
   const { data: task, isLoading, error, mutate } = useSWR<Task>(`/api/tasks/${id}`);
   const refreshActivityRef = useRef<(() => void) | null>(null);
   const handleMutateReady = useCallback((fn: () => void) => { refreshActivityRef.current = fn; }, []);
@@ -164,6 +166,11 @@ export default function TaskDetailPage({
       body: JSON.stringify(data),
     });
     mutate();
+  };
+
+  const handleDelete = async () => {
+    await csrfFetch(`/api/tasks/${id}`, { method: "DELETE" });
+    router.push("/tasks");
   };
 
   return (
@@ -273,6 +280,7 @@ export default function TaskDetailPage({
                 mode="edit"
                 initialData={initialData}
                 onSubmit={handleFormSubmit}
+                onDelete={handleDelete}
                 teamId={task.teamId}
               />
             ) : (

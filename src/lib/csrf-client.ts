@@ -55,7 +55,14 @@ export async function csrfFetch(
   }
   
   const response = await fetch(url, options);
-  
+
+  // Stale session — clear cookies and redirect to login
+  if (response.status === 401 && typeof window !== 'undefined') {
+    await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+    window.location.href = '/login';
+    return response;
+  }
+
   // If we get a 403 CSRF error, clear the token and retry once
   if (response.status === 403) {
     const data = await response.clone().json().catch(() => ({}));

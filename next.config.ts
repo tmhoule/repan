@@ -1,5 +1,9 @@
 import type { NextConfig } from "next";
 import { execSync } from "child_process";
+import { readFileSync } from "fs";
+import { resolve } from "path";
+
+const { version } = JSON.parse(readFileSync(resolve(__dirname, "package.json"), "utf-8")) as { version: string };
 
 let buildId = "dev";
 try {
@@ -16,6 +20,7 @@ const nextConfig: NextConfig = {
   output: "standalone",
   env: {
     NEXT_PUBLIC_BUILD_ID: buildId,
+    NEXT_PUBLIC_APP_VERSION: version,
   },
   
   // Security headers

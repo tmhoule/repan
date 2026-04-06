@@ -21,7 +21,7 @@ export async function GET() {
     include: {
       memberships: {
         where: { user: { isActive: true } },
-        include: { user: { select: { id: true, name: true, avatarColor: true, passwordHash: true } } },
+        include: { user: { select: { id: true, name: true, avatarColor: true, passwordHash: true, ssoUser: true } } },
         orderBy: { user: { name: "asc" } },
       },
     },
@@ -48,6 +48,7 @@ export async function GET() {
         name: m.user.name,
         avatarColor: m.user.avatarColor,
         hasPassword: !!m.user.passwordHash,
+        ssoUser: m.user.ssoUser,
       })),
     })),
   });

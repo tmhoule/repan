@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-type User = { id: string; name: string; avatarColor: string; hasPassword: boolean };
+type User = { id: string; name: string; avatarColor: string; hasPassword: boolean; ssoUser: boolean };
 type Team = { id: string; name: string; members: User[] };
 
 function getInitials(name: string) {
@@ -91,6 +91,7 @@ export default function LoginPage() {
   };
 
   const handleAvatarClick = (user: User) => {
+    if (user.ssoUser) return; // SSO users must use the SSO button
     if (user.hasPassword) {
       setSelectedUser(user);
       setPassword("");
@@ -318,17 +319,20 @@ export default function LoginPage() {
                 {selectedTeam.members.map((user) => {
                   const isLoading = loggingIn === user.id;
                   const isDisabled = loggingIn !== null && !isLoading;
+                  const isSso = user.ssoUser;
                   return (
                     <button
                       key={user.id}
                       onClick={() => handleAvatarClick(user)}
-                      disabled={isDisabled || isLoading}
+                      disabled={isDisabled || isLoading || isSso}
+                      title={isSso ? "Use the SSO button to sign in" : undefined}
                       className={`flex flex-col items-center gap-3 p-8 rounded-xl border bg-card text-card-foreground shadow-sm transition-all duration-200
                         ${isLoading ? "opacity-80 scale-95" : ""}
-                        ${isDisabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer active:scale-95"}
+                        ${isDisabled ? "opacity-40 cursor-not-allowed" : ""}
+                        ${isSso ? "opacity-50 cursor-not-allowed" : "cursor-pointer active:scale-95"}
                       `}
                       onMouseEnter={(e) => {
-                        if (!isDisabled && !isLoading) {
+                        if (!isDisabled && !isLoading && !isSso) {
                           const el = e.currentTarget;
                           const color = user.avatarColor ?? "#8B5CF6";
                           el.style.borderColor = color + "80";
@@ -337,7 +341,7 @@ export default function LoginPage() {
                         }
                       }}
                       onMouseLeave={(e) => {
-                        if (!isDisabled && !isLoading) {
+                        if (!isDisabled && !isLoading && !isSso) {
                           const el = e.currentTarget;
                           el.style.borderColor = "";
                           el.style.boxShadow = "";
@@ -359,6 +363,9 @@ export default function LoginPage() {
                         )}
                       </div>
                       <span className="font-semibold text-sm text-center leading-tight">{user.name}</span>
+                      {isSso && (
+                        <span className="text-xs text-muted-foreground">SSO only</span>
+                      )}
                     </button>
                   );
                 })}

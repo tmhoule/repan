@@ -30,6 +30,11 @@ export async function POST(request: NextRequest) {
   });
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
+  // SSO-only users must authenticate via SAML, not the local login flow
+  if (user.ssoUser) {
+    return NextResponse.json({ error: "This account uses SSO. Please sign in with the SSO button." }, { status: 403 });
+  }
+
   // Verify password if user has one set
   if (user.passwordHash) {
     if (!password || !(await bcrypt.compare(password, user.passwordHash))) {
@@ -59,8 +64,9 @@ export async function POST(request: NextRequest) {
     response.headers.set(key, value);
   });
 
-  // Set signed session token
+  // Set signed session token and record login time
   await setSession(user.id);
+  await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
 
   // Auto-set team cookie if user belongs to exactly one team
   if (teams.length === 1) {
