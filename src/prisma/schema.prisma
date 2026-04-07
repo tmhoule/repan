@@ -290,10 +290,11 @@ model SamlConfig {
 }
 
 model SystemConfig {
-  id            String   @id @default("singleton")
-  sessionSecret String?  @map("session_secret")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  id                    String   @id @default("singleton")
+  sessionSecret         String?  @map("session_secret")
+  sessionTimeoutMinutes Int      @default(360) @map("session_timeout_minutes")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
 
   @@map("system_config")
 }
