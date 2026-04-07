@@ -2,6 +2,7 @@
 import { SWRConfig } from "swr";
 import { ReactNode, useEffect, useState } from "react";
 import { Toaster } from "sonner";
+import { SessionTimeoutMonitor } from "./session-timeout-monitor";
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
@@ -27,6 +28,7 @@ export function Providers({ children }: { children: ReactNode }) {
     <SWRConfig value={{ fetcher, revalidateOnFocus: true }}>
       {children}
       <ClientToaster />
+      <SessionTimeoutMonitor />
     </SWRConfig>
   );
 }
