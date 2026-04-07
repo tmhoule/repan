@@ -75,6 +75,8 @@ export async function clearSession() {
 export async function requireSession() {
   const user = await getSession();
   if (!user) throw new Error("Unauthorized");
+  // Refresh the session token timestamp on every authenticated request
+  await setSession(user.id);
   return user;
 }
 
