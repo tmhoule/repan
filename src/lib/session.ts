@@ -8,15 +8,45 @@ const TEAM_COOKIE = "repan_team";
 const SESSION_MAX_AGE = 30 * 24 * 60 * 60; // 30 days in seconds
 const SESSION_MAX_AGE_MS = SESSION_MAX_AGE * 1000; // Convert to milliseconds for crypto validation
 
+let sessionTimeoutCache: number | null = null;
+let sessionTimeoutCacheTime = 0;
+const TIMEOUT_CACHE_TTL = 60_000; // 1 minute
+
+export async function getSessionTimeout(): Promise<number> {
+  const now = Date.now();
+  if (sessionTimeoutCache !== null && now - sessionTimeoutCacheTime < TIMEOUT_CACHE_TTL) {
+    return sessionTimeoutCache;
+  }
+  try {
+    const config = await prisma.systemConfig.findUnique({
+      where: { id: "singleton" },
+      select: { sessionTimeoutMinutes: true },
+    });
+    sessionTimeoutCache = (config?.sessionTimeoutMinutes ?? 360) * 60 * 1000; // convert to ms
+    sessionTimeoutCacheTime = now;
+    return sessionTimeoutCache;
+  } catch {
+    return 360 * 60 * 1000; // fallback: 6 hours
+  }
+}
+
+export function clearSessionTimeoutCache(): void {
+  sessionTimeoutCache = null;
+  sessionTimeoutCacheTime = 0;
+}
+
 export async function getSession() {
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get(SESSION_COOKIE);
   if (!sessionCookie?.value) return null;
-  
-  // Verify the signed token and extract user ID
-  const userId = await verifySignedToken(sessionCookie.value, SESSION_MAX_AGE_MS);
+
+  // Get the configured idle timeout
+  const idleTimeoutMs = await getSessionTimeout();
+
+  // Verify the signed token — use idle timeout for expiry check
+  // The token timestamp represents last activity time (refreshed on each request)
+  const userId = await verifySignedToken(sessionCookie.value, idleTimeoutMs);
   if (!userId) {
-    // Invalid or expired token
     return null;
   }
 
