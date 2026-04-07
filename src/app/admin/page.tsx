@@ -234,6 +234,18 @@ export default function AdminPage() {
   const [secretSuccess, setSecretSuccess] = useState("");
   const [secretError, setSecretError] = useState("");
 
+  // Session timeout state
+  const {
+    data: sessionTimeoutData,
+    isLoading: sessionTimeoutLoading,
+    mutate: mutateSessionTimeout,
+  } = useSWR<{
+    timeoutMinutes: number;
+  }>(isSuperAdmin ? "/api/admin/session-timeout" : null);
+
+  const [timeoutMinutes, setTimeoutMinutes] = useState(360);
+  const [savingTimeout, setSavingTimeout] = useState(false);
+
   // Sync SSO form fields from loaded config
   useEffect(() => {
     if (ssoConfig?.configured) {
@@ -242,6 +254,12 @@ export default function AdminPage() {
       setSsoAttrDisplayName(ssoConfig.attrDisplayName ?? "displayName");
     }
   }, [ssoConfig]);
+
+  useEffect(() => {
+    if (sessionTimeoutData) {
+      setTimeoutMinutes(sessionTimeoutData.timeoutMinutes);
+    }
+  }, [sessionTimeoutData]);
 
   // Load team priority weights
   const { data: teamWeights, mutate: mutateWeights } = useSWR<{ weightHigh: number; weightMedium: number; weightLow: number; multiplierBlocked: number; multiplierStalled: number }>(
@@ -522,6 +540,26 @@ export default function AdminPage() {
       toast.error(message);
     } finally {
       setGeneratingSecret(false);
+    }
+  };
+
+  const handleSaveTimeout = async () => {
+    setSavingTimeout(true);
+    try {
+      const res = await csrfFetch("/api/admin/session-timeout", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ timeoutMinutes }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to update timeout");
+      mutateSessionTimeout();
+      toast.success("Session timeout updated");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to update timeout";
+      toast.error(message);
+    } finally {
+      setSavingTimeout(false);
     }
   };
 
@@ -1390,6 +1428,57 @@ export default function AdminPage() {
                             )}
                           </div>
                         )}
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Session Timeout */}
+                <div className="rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-zinc-800">
+                    <h2 className="text-sm font-semibold text-zinc-200">Session Timeout</h2>
+                    <p className="text-xs text-zinc-500 mt-0.5">Auto-logout users after a period of inactivity</p>
+                  </div>
+
+                  <div className="p-4 space-y-4">
+                    {sessionTimeoutLoading ? (
+                      <div className="h-10 rounded-lg bg-zinc-800/50 animate-pulse" />
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-3">
+                          <div className="flex-1">
+                            <label className="text-sm text-zinc-400 mb-1 block">Inactivity timeout</label>
+                            <div className="flex items-center gap-2">
+                              <Input
+                                type="number"
+                                min={15}
+                                max={43200}
+                                value={timeoutMinutes}
+                                onChange={(e) => setTimeoutMinutes(Number(e.target.value))}
+                                className="w-28"
+                              />
+                              <span className="text-sm text-zinc-500">minutes</span>
+                              <span className="text-xs text-zinc-600">
+                                ({timeoutMinutes >= 60
+                                  ? `${Math.floor(timeoutMinutes / 60)}h${timeoutMinutes % 60 > 0 ? ` ${timeoutMinutes % 60}m` : ""}`
+                                  : `${timeoutMinutes}m`})
+                              </span>
+                            </div>
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={handleSaveTimeout}
+                            disabled={savingTimeout || timeoutMinutes === sessionTimeoutData?.timeoutMinutes}
+                            className="shrink-0 self-end"
+                          >
+                            {savingTimeout ? "Saving..." : "Save"}
+                          </Button>
+                        </div>
+
+                        <p className="text-xs text-zinc-500 leading-relaxed">
+                          Users will be automatically logged out after this period of inactivity.
+                          Active users (making requests) will stay logged in. Minimum 15 minutes, default 360 minutes (6 hours).
+                        </p>
                       </>
                     )}
                   </div>
