@@ -4,6 +4,7 @@ import { getTeamRole } from "@/lib/team-auth";
 import { prisma } from "@/lib/db";
 import { getWeeklyThroughput, getBacklogHealth } from "@/lib/forecasting";
 import { getLastActivityMap, getRiskFlags } from "@/lib/risk-detection";
+import { computeUserSnapshot } from "@/lib/workload-snapshot";
 
 export async function GET() {
   try {
@@ -44,47 +45,34 @@ export async function GET() {
     prisma.task.count({ where: { assignedToId: null, archivedAt: null, teamId, createdAt: { lte: oneWeekAgo } } }),
   ]);
 
-  // 30-day historical tasks for rolling average (completed + currently active)
   const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000);
-  const historicalTasks = await prisma.task.findMany({
-    where: {
-      teamId,
-      archivedAt: null,
-      OR: [
-        { status: { not: "done" } },
-        { status: "done", completedAt: { gte: thirtyDaysAgo } },
-      ],
-    },
-    select: { assignedToId: true, priority: true, status: true, timeAllocation: true, createdAt: true, completedAt: true },
-  });
 
-  const workload = teamUsers.map((u) => {
+  const workload = await Promise.all(teamUsers.map(async (u) => {
     const userTasks = tasks.filter((t) => t.assignedTo?.id === u.id && t.status !== "boulder");
 
     const currentBoulder = tasks.filter(t => t.assignedTo?.id === u.id && t.status === "boulder").reduce((sum, t) => sum + (t.timeAllocation ?? 0), 0);
 
-    // 30-day rolling average: sample workload at each day over the last 30 days
-    // For each day, count tasks that were active on that day (created before, not completed before)
-    let totalDailyLoad = 0;
-    const userHistorical = historicalTasks.filter((t) => t.assignedToId === u.id);
-    for (let d = 0; d < 30; d++) {
-      const day = new Date(Date.now() - d * 86400000);
-      let dayLoad = 0;
-      for (const t of userHistorical) {
-        if (t.createdAt > day) continue;
-        if (t.status === "done" && t.completedAt && t.completedAt < day) continue;
-        if (t.status === "boulder") {
-          dayLoad += t.timeAllocation ?? 0;
-        } else {
-          let weight = t.priority === "high" ? team.weightHigh : t.priority === "medium" ? team.weightMedium : team.weightLow;
-          if (t.status === "blocked") weight = Math.round(weight * team.multiplierBlocked / 100);
-          else if (t.status === "stalled" || t.status === "paused") weight = Math.round(weight * team.multiplierStalled / 100);
-          dayLoad += weight;
-        }
-      }
-      totalDailyLoad += dayLoad;
+    // Use snapshots for 30-day average, with fallback for fresh deploys
+    const snapshotCount = await prisma.workloadSnapshot.count({
+      where: { userId: u.id, teamId, date: { gte: thirtyDaysAgo } },
+    });
+
+    let avg30d: number;
+    if (snapshotCount >= 7) {
+      const agg = await prisma.workloadSnapshot.aggregate({
+        where: { userId: u.id, teamId, date: { gte: thirtyDaysAgo } },
+        _avg: { workloadScore: true },
+      });
+      avg30d = Math.round(agg._avg.workloadScore ?? 0);
+    } else {
+      // Fallback: compute from current task state (same as before, less accurate)
+      const allUserTasks = tasks.filter((t) => t.assignedTo?.id === u.id);
+      const snapshot = computeUserSnapshot(
+        allUserTasks.map((t) => ({ status: t.status, priority: t.priority, timeAllocation: t.timeAllocation ?? 0 })),
+        team
+      );
+      avg30d = snapshot.workloadScore;
     }
-    const avg30d = Math.round(totalDailyLoad / 30);
 
     return {
       user: u, taskCount: userTasks.length,
@@ -94,7 +82,7 @@ export async function GET() {
       boulderAllocation: currentBoulder,
       avg30d,
     };
-  });
+  }));
 
   // Build at-risk list with risk detection
   const allTaskIds = tasks.map((t) => t.id);
