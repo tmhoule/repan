@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { createNotification } from "@/lib/notifications";
 import { getLastActivityMap, isStale, isBehindSchedule } from "@/lib/risk-detection";
+import { recordTeamSnapshots } from "@/lib/workload-snapshot";
 
 export async function POST(request: NextRequest) {
   const secret = request.headers.get("authorization")?.replace("Bearer ", "");
@@ -131,6 +132,14 @@ export async function POST(request: NextRequest) {
     }
     results.weeklyDigestsSent = digestsSent;
   }
+
+  // 6. Daily workload snapshots
+  const allTeams = await prisma.team.findMany({ select: { id: true } });
+  let snapshotsRecorded = 0;
+  for (const t of allTeams) {
+    snapshotsRecorded += await recordTeamSnapshots(t.id, now);
+  }
+  results.snapshotsRecorded = snapshotsRecorded;
 
   return NextResponse.json({ success: true, results });
 }
