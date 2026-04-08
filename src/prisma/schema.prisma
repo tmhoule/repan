@@ -82,7 +82,8 @@ model User {
   notifications   Notification[]
   pointsLedger    PointsLedger[]
   userAwards      UserAward[]
-  streaks         Streak[]
+  streaks            Streak[]
+  workloadSnapshots  WorkloadSnapshot[]
   teamMemberships TeamMembership[]
   todos           Todo[]
 
@@ -103,7 +104,8 @@ model Team {
   memberships TeamMembership[]
   tasks       Task[]
   buckets     Bucket[]
-  todos       Todo[]
+  todos              Todo[]
+  workloadSnapshots  WorkloadSnapshot[]
 
   @@map("teams")
 }
@@ -236,6 +238,27 @@ model PointsLedger {
 
   @@index([userId, actionType, timestamp])
   @@map("points_ledger")
+}
+
+model WorkloadSnapshot {
+  id                String   @id @default(uuid())
+  userId            String   @map("user_id")
+  teamId            String   @map("team_id")
+  date              DateTime
+  workloadScore     Int      @map("workload_score")
+  taskCount         Int      @map("task_count")
+  boulderAllocation Int      @map("boulder_allocation")
+  blockedCount      Int      @map("blocked_count")
+  highCount         Int      @map("high_count")
+  mediumCount       Int      @map("medium_count")
+  lowCount          Int      @map("low_count")
+
+  user              User     @relation(fields: [userId], references: [id])
+  team              Team     @relation(fields: [teamId], references: [id])
+
+  @@unique([userId, teamId, date])
+  @@index([teamId, date])
+  @@map("workload_snapshots")
 }
 
 model Award {
