@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface WorkloadUser {
@@ -96,7 +97,6 @@ function WorkloadRow({
   maxValue,
   tasks,
   boulders,
-  isNearTop,
   weights,
 }: {
   user: WorkloadUser["user"];
@@ -106,20 +106,53 @@ function WorkloadRow({
   maxValue: number;
   tasks: Array<{ title: string; priority: string }>;
   boulders: Array<{ title: string; timeAllocation: number }>;
-  isNearTop: boolean;
   weights: Record<string, number>;
 }) {
   const [hovered, setHovered] = useState(false);
+  const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number } | null>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
   const scale = (v: number) => `${(v / maxValue) * 100}%`;
 
   const diff = total - avg30d;
   const avgColor = diff > 20 ? "#f59e0b" : diff < -20 ? "#10B981" : "rgba(255,255,255,0.3)";
 
+  const updatePosition = useCallback(() => {
+    if (!rowRef.current) return;
+    const rect = rowRef.current.getBoundingClientRect();
+    // Start: position to the right of the name column, vertically centered on the row
+    let top = rect.top + rect.height / 2;
+    let left = rect.left + 64; // 64px = w-16 (name column width)
+
+    // Adjust after tooltip renders to keep it on-screen
+    if (tooltipRef.current) {
+      const tt = tooltipRef.current.getBoundingClientRect();
+      // Vertical: prefer centered, but clamp to viewport
+      top = top - tt.height / 2;
+      if (top < 8) top = 8;
+      if (top + tt.height > window.innerHeight - 8) top = window.innerHeight - 8 - tt.height;
+      // Horizontal: keep on-screen
+      if (left + tt.width > window.innerWidth - 8) left = rect.left - tt.width - 8;
+    }
+
+    setTooltipPos({ top, left });
+  }, []);
+
+  useEffect(() => {
+    if (hovered) updatePosition();
+  }, [hovered, updatePosition]);
+
+  // Reposition after first render so we have tooltip dimensions
+  useEffect(() => {
+    if (hovered && tooltipRef.current) updatePosition();
+  });
+
   return (
     <div
+      ref={rowRef}
       className="relative group"
       onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseLeave={() => { setHovered(false); setTooltipPos(null); }}
     >
       <div className="flex items-center gap-3">
         <span className="text-xs text-muted-foreground w-16 truncate shrink-0">
@@ -164,9 +197,13 @@ function WorkloadRow({
         </span>
       </div>
 
-      {/* Tooltip */}
-      {hovered && (
-        <div className={`absolute left-16 z-50 ${isNearTop ? "top-full mt-1" : "bottom-full mb-2"}`}>
+      {/* Tooltip — rendered via portal to escape overflow-hidden */}
+      {hovered && createPortal(
+        <div
+          ref={tooltipRef}
+          className="fixed z-50 pointer-events-none"
+          style={tooltipPos ? { top: tooltipPos.top, left: tooltipPos.left } : { visibility: "hidden" }}
+        >
           <WorkloadTooltip
             user={user.name.split(" ")[0]}
             tasks={tasks}
@@ -175,7 +212,8 @@ function WorkloadRow({
             avg30d={avg30d}
             weights={weights}
           />
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -227,8 +265,8 @@ export function WorkloadChart({ data, priorityWeights }: WorkloadChartProps) {
           </div>
         ) : (
           <div className="space-y-3">
-            {rows.map((row, i) => (
-              <WorkloadRow key={row.user.id} maxValue={maxValue} isNearTop={i < 2} weights={TIME_WEIGHTS} {...row} />
+            {rows.map((row) => (
+              <WorkloadRow key={row.user.id} maxValue={maxValue} weights={TIME_WEIGHTS} {...row} />
             ))}
 
             {/* Legend */}
