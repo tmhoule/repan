@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Repan Documentation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #1a1a2e;
+  --ink-light: #3d3d5c;
+  --ink-muted: #6b6b8a;
+  --paper: #faf9f7;
+  --paper-warm: #f5f3ef;
+  --paper-hover: #edeae4;
+  --accent: #c45d3e;
+  --accent-light: #e8a58c;
+  --accent-bg: #fdf0eb;
+  --teal: #2a7d6e;
+  --teal-bg: #e8f5f1;
+  --blue: #3b6b9e;
+  --blue-bg: #eaf1f8;
+  --amber: #b8860b;
+  --amber-bg: #fdf6e3;
+  --purple: #6b5b95;
+  --purple-bg: #f0edf5;
+  --border: #e0ddd6;
+  --border-light: #ece9e2;
+  --code-bg: #2d2b3d;
+  --code-fg: #e0def4;
+  --shadow-sm: 0 1px 3px rgba(26,26,46,0.06);
+  --shadow-md: 0 4px 16px rgba(26,26,46,0.08);
+  --radius: 8px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; font-size: 16px; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Layout ── */
+.layout { display: flex; min-height: 100vh; }
+.sidebar {
+  position: fixed; top: 0; left: 0; bottom: 0; width: 280px;
+  background: var(--paper-warm);
+  border-right: 1px solid var(--border);
+  overflow-y: auto; z-index: 50;
+  padding: 32px 0 40px;
+  transition: transform 0.3s ease;
+}
+.main {
+  margin-left: 280px; flex: 1;
+  padding: 48px 56px 80px;
+  max-width: 880px;
+}
+
+/* ── Sidebar ── */
+.sidebar-brand {
+  padding: 0 24px 28px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+}
+.sidebar-brand h1 {
+  font-family: 'Newsreader', serif;
+  font-size: 28px; font-weight: 600;
+  color: var(--ink); letter-spacing: -0.5px;
+}
+.sidebar-brand p {
+  font-size: 12px; color: var(--ink-muted);
+  margin-top: 4px; text-transform: uppercase;
+  letter-spacing: 1.5px; font-weight: 500;
+}
+.sidebar-group { margin-bottom: 8px; }
+.sidebar-group-label {
+  display: block; padding: 10px 24px 6px;
+  font-size: 10px; text-transform: uppercase;
+  letter-spacing: 2px; font-weight: 700;
+  color: var(--ink-muted);
+}
+.sidebar-link {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 24px; font-size: 14px; font-weight: 500;
+  color: var(--ink-light); text-decoration: none;
+  transition: all 0.15s; border-left: 3px solid transparent;
+}
+.sidebar-link:hover { background: var(--paper-hover); color: var(--ink); }
+.sidebar-link.active {
+  color: var(--accent); background: var(--accent-bg);
+  border-left-color: var(--accent); font-weight: 600;
+}
+.sidebar-link .icon {
+  width: 18px; height: 18px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+}
+.sidebar-badge {
+  margin-left: auto; font-size: 10px; font-weight: 700;
+  padding: 2px 7px; border-radius: 10px;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.badge-everyone { background: var(--teal-bg); color: var(--teal); }
+.badge-manager { background: var(--blue-bg); color: var(--blue); }
+.badge-admin { background: var(--purple-bg); color: var(--purple); }
+
+/* ── Mobile menu ── */
+.mobile-toggle {
+  display: none; position: fixed; top: 12px; left: 12px;
+  z-index: 60; width: 40px; height: 40px;
+  border-radius: 10px; border: 1px solid var(--border);
+  background: var(--paper); cursor: pointer;
+  font-size: 20px; color: var(--ink);
+  align-items: center; justify-content: center;
+}
+.mobile-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(26,26,46,0.3); z-index: 45;
+  backdrop-filter: blur(2px);
+}
+
+/* ── Content ── */
+.section { display: none; animation: fadeIn 0.3s ease; }
+.section.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+.section > h1 {
+  font-family: 'Newsreader', serif;
+  font-size: 36px; font-weight: 600;
+  color: var(--ink); margin-bottom: 8px;
+  letter-spacing: -0.5px; line-height: 1.2;
+}
+.section > .subtitle {
+  font-size: 16px; color: var(--ink-muted);
+  margin-bottom: 40px; line-height: 1.6;
+}
+h2 {
+  font-family: 'Newsreader', serif;
+  font-size: 24px; font-weight: 600;
+  color: var(--ink); margin: 48px 0 16px;
+  padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+  letter-spacing: -0.3px;
+}
+h3 {
+  font-size: 16px; font-weight: 700;
+  color: var(--ink); margin: 32px 0 12px;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+p { margin-bottom: 16px; color: var(--ink-light); }
+strong { color: var(--ink); font-weight: 600; }
+ul, ol { margin: 0 0 16px 24px; color: var(--ink-light); }
+li { margin-bottom: 6px; }
+li strong { color: var(--ink); }
+
+/* ── Tables ── */
+table {
+  width: 100%; border-collapse: collapse;
+  margin: 16px 0 24px; font-size: 14px;
+}
+th {
+  text-align: left; padding: 10px 14px;
+  background: var(--paper-warm); border: 1px solid var(--border);
+  font-weight: 600; font-size: 12px;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  color: var(--ink-muted);
+}
+td {
+  padding: 10px 14px; border: 1px solid var(--border-light);
+  color: var(--ink-light); vertical-align: top;
+}
+tr:hover td { background: var(--paper-warm); }
+
+/* ── Code blocks ── */
+code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; background: var(--paper-warm);
+  padding: 2px 6px; border-radius: 4px;
+  color: var(--accent);
+}
+pre {
+  background: var(--code-bg); color: var(--code-fg);
+  padding: 20px 24px; border-radius: var(--radius);
+  overflow-x: auto; margin: 16px 0 24px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; line-height: 1.6;
+  box-shadow: var(--shadow-md);
+}
+pre code { background: none; padding: 0; color: inherit; }
+
+/* ── Callout boxes ── */
+.callout {
+  padding: 16px 20px; border-radius: var(--radius);
+  margin: 20px 0; border-left: 4px solid;
+  font-size: 14px;
+}
+.callout-info { background: var(--blue-bg); border-color: var(--blue); }
+.callout-tip { background: var(--teal-bg); border-color: var(--teal); }
+.callout-warning { background: var(--amber-bg); border-color: var(--amber); }
+.callout-note { background: var(--purple-bg); border-color: var(--purple); }
+.callout strong { display: block; margin-bottom: 4px; }
+
+/* ── Status pills ── */
+.status-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 20px; }
+.status-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: 20px;
+  font-size: 13px; font-weight: 600;
+  border: 1px solid;
+}
+.status-gray { background: #f3f4f6; color: #4b5563; border-color: #d1d5db; }
+.status-blue { background: #dbeafe; color: #1d4ed8; border-color: #93c5fd; }
+.status-red { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
+.status-orange { background: #ffedd5; color: #c2410c; border-color: #fdba74; }
+.status-yellow { background: #fef9c3; color: #a16207; border-color: #fde047; }
+.status-green { background: #dcfce7; color: #15803d; border-color: #86efac; }
+.status-purple { background: #f3e8ff; color: #7e22ce; border-color: #c084fc; }
+
+/* ── Flow diagram ── */
+.flow {
+  display: flex; align-items: center; justify-content: center;
+  gap: 0; margin: 24px 0; flex-wrap: wrap;
+}
+.flow-step {
+  padding: 10px 20px; border-radius: 8px;
+  font-size: 13px; font-weight: 600;
+  white-space: nowrap;
+}
+.flow-arrow { font-size: 20px; color: var(--ink-muted); padding: 0 8px; }
+.flow-branch {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 10px; border-radius: 8px;
+  border: 1px dashed var(--border);
+}
+
+/* ── Concept cards ── */
+.concept-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px; margin: 20px 0;
+}
+.concept-card {
+  padding: 16px; border-radius: var(--radius);
+  border: 1px solid var(--border); background: white;
+  box-shadow: var(--shadow-sm);
+}
+.concept-card .label {
+  font-size: 11px; text-transform: uppercase;
+  letter-spacing: 1px; font-weight: 700;
+  margin-bottom: 6px;
+}
+.concept-card p { font-size: 13px; margin: 0; color: var(--ink-muted); }
+
+/* ── Color legend ── */
+.color-legend {
+  display: flex; gap: 16px; margin: 12px 0 20px;
+  flex-wrap: wrap; font-size: 13px;
+}
+.color-legend span { display: flex; align-items: center; gap: 6px; }
+.color-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.open { transform: translateX(0); }
+  .mobile-toggle { display: flex; }
+  .mobile-overlay.open { display: block; }
+  .main { margin-left: 0; padding: 72px 24px 60px; }
+}
+</style>
+</head>
+<body>
+
+<button class="mobile-toggle" onclick="toggleSidebar()" aria-label="Toggle menu">&#9776;</button>
+<div class="mobile-overlay" onclick="toggleSidebar()"></div>
+
+<div class="layout">
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <h1>Repan</h1>
+    <p>Documentation</p>
+  </div>
+
+  <div class="sidebar-group">
+    <span class="sidebar-group-label">Get Started</span>
+    <a class="sidebar-link active" href="#overview" onclick="show('overview')">
+      <span class="icon">&#9673;</span> Overview
+    </a>
+    <a class="sidebar-link" href="#getting-started" onclick="show('getting-started')">
+      <span class="icon">&#9654;</span> Getting Started
+      <span class="sidebar-badge badge-everyone">All</span>
+    </a>
+  </div>
+
+  <div class="sidebar-group">
+    <span class="sidebar-group-label">Core Features</span>
+    <a class="sidebar-link" href="#tasks" onclick="show('tasks')">
+      <span class="icon">&#9745;</span> Tasks &amp; Workflows
+      <span class="sidebar-badge badge-everyone">All</span>
+    </a>
+    <a class="sidebar-link" href="#backlog" onclick="show('backlog')">
+      <span class="icon">&#9744;</span> Backlog &amp; Planning
+      <span class="sidebar-badge badge-everyone">All</span>
+    </a>
+    <a class="sidebar-link" href="#teams" onclick="show('teams')">
+      <span class="icon">&#9775;</span> Teams &amp; Roles
+      <span class="sidebar-badge badge-everyone">All</span>
+    </a>
+    <a class="sidebar-link" href="#gamification" onclick="show('gamification')">
+      <span class="icon">&#9733;</span> Gamification
+      <span class="sidebar-badge badge-everyone">All</span>
+    </a>
+  </div>
+
+  <div class="sidebar-group">
+    <span class="sidebar-group-label">Manager Tools</span>
+    <a class="sidebar-link" href="#dashboard" onclick="show('dashboard')">
+      <span class="icon">&#9635;</span> Dashboard
+      <span class="sidebar-badge badge-manager">Mgr</span>
+    </a>
+    <a class="sidebar-link" href="#reports" onclick="show('reports')">
+      <span class="icon">&#9636;</span> Reports
+      <span class="sidebar-badge badge-manager">Mgr</span>
+    </a>
+    <a class="sidebar-link" href="#capacity" onclick="show('capacity')">
+      <span class="icon">&#9638;</span> Capacity Planning
+      <span class="sidebar-badge badge-manager">Mgr</span>
+    </a>
+  </div>
+
+  <div class="sidebar-group">
+    <span class="sidebar-group-label">Administration</span>
+    <a class="sidebar-link" href="#admin" onclick="show('admin')">
+      <span class="icon">&#9881;</span> Admin Guide
+      <span class="sidebar-badge badge-admin">Admin</span>
+    </a>
+  </div>
+</nav>
+
+<main class="main">
+
+<!-- ═══════════════ OVERVIEW ═══════════════ -->
+<div class="section active" id="overview">
+  <h1>Repan Documentation</h1>
+  <p class="subtitle">A team task management system built for managers who need visibility into workload, capacity, and delivery health.</p>
+
+  <h2>Key Concepts</h2>
+  <div class="concept-grid">
+    <div class="concept-card">
+      <div class="label" style="color:var(--accent)">Tasks</div>
+      <p>Trackable work items with priority, effort, due date, and progress</p>
+    </div>
+    <div class="concept-card">
+      <div class="label" style="color:var(--purple)">Boulders</div>
+      <p>Ongoing commitments tracked by time allocation (e.g., on-call at 20%)</p>
+    </div>
+    <div class="concept-card">
+      <div class="label" style="color:var(--teal)">Backlog</div>
+      <p>Queue of unassigned tasks for team members to claim</p>
+    </div>
+    <div class="concept-card">
+      <div class="label" style="color:var(--blue)">Buckets</div>
+      <p>Manager-defined categories for organizing work</p>
+    </div>
+    <div class="concept-card">
+      <div class="label" style="color:var(--amber)">Todos</div>
+      <p>Personal reminders with no tracking or deadlines</p>
+    </div>
+  </div>
+
+  <h2>Architecture</h2>
+  <p>Repan is a <strong>Next.js</strong> application backed by <strong>PostgreSQL</strong> via Prisma ORM. It runs in Docker with two containers: the app server and the database. A daily cron job handles notifications, archiving, and workload snapshots.</p>
+</div>
+
+<!-- ═══════════════ GETTING STARTED ═══════════════ -->
+<div class="section" id="getting-started">
+  <h1>Getting Started</h1>
+  <p class="subtitle">Install, configure, and start using Repan in minutes.</p>
+
+  <h2>Running with Docker</h2>
+  <pre><code>docker compose up -d --build</code></pre>
+  <p>This starts two containers:</p>
+  <ul>
+    <li><strong>db</strong> &mdash; PostgreSQL 16 on port 5432</li>
+    <li><strong>app</strong> &mdash; Repan on port 3000</li>
+  </ul>
+  <p>The app automatically waits for the database, runs migrations, and starts the server. Access it at <code>http://localhost:3000</code>.</p>
+
+  <h2>First-Time Setup</h2>
+  <p>On first launch, Repan shows a setup screen:</p>
+  <ol>
+    <li>Enter a display name and password (min 6 characters)</li>
+    <li>Click <strong>Create Account</strong></li>
+  </ol>
+  <div class="callout callout-tip">
+    <strong>What gets created:</strong>
+    Your super admin user, a "Default Team" with you as the manager, and the default achievement badges.
+  </div>
+
+  <h2>Production Deployment</h2>
+  <pre><code>docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d</code></pre>
+  <p>Set these environment variables:</p>
+  <table>
+    <tr><th>Variable</th><th>Purpose</th></tr>
+    <tr><td><code>SESSION_SECRET</code></td><td>Strong random string for signing session cookies</td></tr>
+    <tr><td><code>DISABLE_SECURE_COOKIES</code></td><td>Set to <code>"true"</code> only if not behind HTTPS</td></tr>
+    <tr><td><code>CRON_SECRET</code></td><td>Bearer token for the daily cron job</td></tr>
+  </table>
+  <p>The app listens on <code>127.0.0.1:3000</code>. Use a reverse proxy (nginx, Caddy) for HTTPS.</p>
+
+  <h2>Adding Team Members</h2>
+  <ol>
+    <li>Log in as a manager or super admin</li>
+    <li>Open the <strong>Admin</strong> panel (user menu, top right)</li>
+    <li>Click <strong>Create User</strong></li>
+    <li>Enter their name, set a password, assign to a team</li>
+    <li>They can now log in and start working</li>
+  </ol>
+
+  <h2>Daily Cron Job</h2>
+  <p>Set up an external scheduler to call this once daily:</p>
+  <pre><code>POST /api/cron
+Authorization: Bearer YOUR_CRON_SECRET</code></pre>
+  <p>The job archives old tasks, purges notifications, sends due-date reminders, weekly risk digests, and records workload snapshots.</p>
+</div>
+
+<!-- ═══════════════ TASKS ═══════════════ -->
+<div class="section" id="tasks">
+  <h1>Tasks &amp; Workflows</h1>
+  <p class="subtitle">Everything about creating, managing, and completing work in Repan.</p>
+
+  <h2>Task Types</h2>
+
+  <h3>Standard Tasks</h3>
+  <p>The core work item. Each task has:</p>
+  <ul>
+    <li><strong>Title</strong> (required) and optional <strong>Description</strong></li>
+    <li><strong>Priority</strong> &mdash; High, Medium, or Low</li>
+    <li><strong>Effort Estimate</strong> &mdash; Small, Medium, or Large</li>
+    <li><strong>Due Date</strong> &mdash; Optional deadline</li>
+    <li><strong>Progress</strong> &mdash; 0&ndash;100% slider</li>
+    <li><strong>Assignment</strong> &mdash; Who&rsquo;s responsible</li>
+    <li><strong>Bucket</strong> &mdash; Optional category</li>
+  </ul>
+
+  <h3>Boulders</h3>
+  <p>Ongoing operational commitments with no end date (e.g., on-call rotation, code review duty). Tracked by <strong>time allocation</strong> (0&ndash;100% of a person&rsquo;s time) instead of progress. They appear in a dedicated &ldquo;Boulders&rdquo; section and factor into workload calculations.</p>
+
+  <h3>Todos</h3>
+  <p>Personal quick reminders with no tracking, priority, or due date. Completing a todo awards 1 point.</p>
+
+  <h2>Task Statuses</h2>
+  <div class="status-row">
+    <span class="status-pill status-gray">Not Started</span>
+    <span class="status-pill status-blue">In Progress</span>
+    <span class="status-pill status-red">Blocked</span>
+    <span class="status-pill status-orange">Stalled</span>
+    <span class="status-pill status-yellow">Paused</span>
+    <span class="status-pill status-green">Done</span>
+    <span class="status-pill status-purple">Boulder</span>
+  </div>
+
+  <h2>Task Lifecycle</h2>
+  <div class="flow">
+    <span class="flow-step status-gray">Not Started</span>
+    <span class="flow-arrow">&rarr;</span>
+    <span class="flow-step status-blue">In Progress</span>
+    <span class="flow-arrow">&harr;</span>
+    <span class="flow-branch">
+      <span class="flow-step status-red" style="font-size:12px">Blocked</span>
+      <span class="flow-step status-orange" style="font-size:12px">Stalled</span>
+      <span class="flow-step status-yellow" style="font-size:12px">Paused</span>
+    </span>
+    <span class="flow-arrow">&rarr;</span>
+    <span class="flow-step status-green">Done</span>
+  </div>
+
+  <ul>
+    <li>Moving to <strong>In Progress</strong> records when work started (used for cycle time)</li>
+    <li>Moving to <strong>Blocked</strong> requires a reason and notifies the assignee</li>
+    <li>Resolving a block notifies the assignee and awards 5 points</li>
+    <li>Moving to <strong>Done</strong> awards points based on effort and checks on-time streaks</li>
+    <li>Completed tasks can be <strong>reopened</strong> from the History page</li>
+  </ul>
+
+  <h2>Tasks Page Layout</h2>
+  <ol>
+    <li><strong>Active Tasks</strong> &mdash; Your in-progress and not-started tasks</li>
+    <li><strong>To Dos</strong> &mdash; Personal reminders (collapsible)</li>
+    <li><strong>Stalled / Blocked / Paused</strong> &mdash; Tasks needing attention</li>
+    <li><strong>Boulders</strong> &mdash; Ongoing commitments</li>
+    <li><strong>Completed</strong> &mdash; Done tasks (collapsed by default)</li>
+    <li><strong>Backlog</strong> &mdash; Unassigned tasks available to claim</li>
+  </ol>
+
+  <h2>Task Cards</h2>
+  <p>Each card shows title, status and priority badges, staleness indicator, progress slider, due date, and quick actions: <strong>Flag</strong> (change status), <strong>Comment</strong> (inline), and <strong>Done</strong>.</p>
+
+  <h3>Flag Menu</h3>
+  <p>Quickly change a task&rsquo;s status:</p>
+  <ul>
+    <li>Mark Blocked / Stalled / Paused / In Progress</li>
+    <li>Reset to Not Started (unclaimed tasks only)</li>
+    <li>Move to Backlog</li>
+    <li>Delete Task (creator, assignee, or manager)</li>
+  </ul>
+
+  <h2>Creating Tasks</h2>
+  <p>Click <strong>Create Task</strong> and fill in title, description, bucket, priority, effort, and due date. Tasks are assigned to you by default. Managers can reassign to other team members.</p>
+
+  <h2>Editing &amp; Comments</h2>
+  <p>Click any task title to open the detail page. Changes <strong>auto-save</strong> with an 800ms debounce. The detail page shows the full activity log and comment thread. Comments award 1 point (max 5/day).</p>
+</div>
+
+<!-- ═══════════════ BACKLOG ═══════════════ -->
+<div class="section" id="backlog">
+  <h1>Backlog &amp; Planning</h1>
+  <p class="subtitle">Managing the queue of unassigned work and forecasting delivery.</p>
+
+  <h2>The Backlog</h2>
+  <p>The backlog is the queue of unassigned tasks at the bottom of the tasks page. Tasks enter the backlog when created without an assignee, moved there via the Flag menu, or when a deactivated user&rsquo;s tasks are returned.</p>
+
+  <h3>Backlog Health</h3>
+  <table>
+    <tr><th>Metric</th><th>What it shows</th></tr>
+    <tr><td><strong>Total Items</strong></td><td>Number of unassigned tasks</td></tr>
+    <tr><td><strong>Total Effort</strong></td><td>Sum of effort points (S=1, M=3, L=5)</td></tr>
+    <tr><td><strong>Estimated Weeks</strong></td><td>Time to clear at current throughput</td></tr>
+    <tr><td><strong>Trend</strong></td><td>Growing, shrinking, or stable vs last week</td></tr>
+  </table>
+
+  <h2>Claiming Tasks</h2>
+  <p>Click <strong>Claim</strong> on any backlog task to assign it to yourself. This awards 3 points and is atomic &mdash; if two people click simultaneously, only one succeeds.</p>
+
+  <h2>Backlog Ordering</h2>
+  <p>Tasks are sorted by urgency combining:</p>
+  <ul>
+    <li><strong>Priority weight</strong> &mdash; High-priority tasks float to the top</li>
+    <li><strong>Due date proximity</strong> &mdash; Approaching deadlines rank higher</li>
+    <li><strong>Effort modifier</strong> &mdash; Larger tasks with deadlines get a bump</li>
+    <li><strong>Age</strong> &mdash; Gradual urgency boost over time (+1/week, up to +10)</li>
+  </ul>
+
+  <h2>Buckets</h2>
+  <p>Manager-defined categories for organizing work. Each bucket has a name and color. Use the filter bar to view tasks by bucket or &ldquo;Uncategorized&rdquo;.</p>
+
+  <h2>Forecasting</h2>
+  <p>Each backlog item shows <strong>estimated weeks until someone starts working on it</strong>, calculated from weekly throughput and backlog position. Updates as throughput changes.</p>
+</div>
+
+<!-- ═══════════════ TEAMS ═══════════════ -->
+<div class="section" id="teams">
+  <h1>Teams &amp; Roles</h1>
+  <p class="subtitle">How access control, team structure, and multi-team support work.</p>
+
+  <h2>Roles</h2>
+  <table>
+    <tr><th>Role</th><th>Access</th></tr>
+    <tr><td><strong>Super Admin</strong></td><td>Admin panel, SSO config, session settings, all teams, can grant super admin</td></tr>
+    <tr><td><strong>Manager</strong></td><td>Dashboard, Reports, Capacity, Teams Overview, bucket management, task assignment, contribution table</td></tr>
+    <tr><td><strong>Staff</strong></td><td>Own tasks, backlog claiming, team profiles (read-only), History, Standup</td></tr>
+  </table>
+  <div class="callout callout-info">
+    <strong>Staff assignment:</strong>
+    Staff cannot change task assignment by default. Managers can enable this per team via &ldquo;Users can assign tasks to others&rdquo; in Admin settings.
+  </div>
+
+  <h2>Team Structure</h2>
+  <p>Users belong to teams via memberships. Each membership has a team-level role (<strong>Manager</strong> or <strong>Member</strong>). A user can be a manager on one team and a member on another.</p>
+
+  <h2>Multi-Team Support</h2>
+  <p>Users with multiple teams see a team switcher in the user menu. The active team scopes all data. After login, single-team users go directly to tasks; multi-team users see the team selection page.</p>
+
+  <h2>Teams Overview</h2>
+  <p>Managers see a health card per team at <code>/teams/overview</code>:</p>
+  <table>
+    <tr><th>Metric</th><th>What it shows</th></tr>
+    <tr><td><strong>Health Dot</strong></td><td>Green / Yellow / Red composite indicator</td></tr>
+    <tr><td><strong>WIP</strong></td><td>Tasks in progress</td></tr>
+    <tr><td><strong>At Risk</strong></td><td>Blocked + overdue count</td></tr>
+    <tr><td><strong>Backlog</strong></td><td>Unassigned items</td></tr>
+    <tr><td><strong>pts/wk</strong></td><td>Average throughput with sparkline</td></tr>
+  </table>
+  <p>Teams are sorted worst-first. Health: <strong style="color:#dc2626">Red</strong> = at-risk &gt; team size; <strong style="color:#d97706">Yellow</strong> = any at-risk tasks; <strong style="color:#15803d">Green</strong> = no issues.</p>
+
+  <h2>Standup Page</h2>
+  <p>Daily view showing each member&rsquo;s <strong>Yesterday</strong> (completed), <strong>Today</strong> (active), and <strong>Blocked</strong> (with reasons). Members with no tasks appear faded.</p>
+</div>
+
+<!-- ═══════════════ GAMIFICATION ═══════════════ -->
+<div class="section" id="gamification">
+  <h1>Gamification</h1>
+  <p class="subtitle">Points, streaks, and badges to encourage consistent engagement.</p>
+
+  <h2>Points</h2>
+  <table>
+    <tr><th>Action</th><th>Points</th><th>Limit</th></tr>
+    <tr><td>Complete small / medium / large task</td><td>10 / 15 / 25</td><td>&mdash;</td></tr>
+    <tr><td>Complete on time</td><td>5</td><td>&mdash;</td></tr>
+    <tr><td>Update progress</td><td>2</td><td>1 per task per day</td></tr>
+    <tr><td>Add a comment</td><td>1</td><td>5 pts per day total</td></tr>
+    <tr><td>Resolve a blocker</td><td>5</td><td>&mdash;</td></tr>
+    <tr><td>Claim backlog task</td><td>3</td><td>&mdash;</td></tr>
+    <tr><td>Streak milestone (3 / 5 / 10 / 30d)</td><td>5 / 10 / 20 / 50</td><td>&mdash;</td></tr>
+  </table>
+  <div class="callout callout-warning">
+    <strong>Anti-gaming:</strong>
+    Progress updates: max 1 award per task per day. Comments: max 5 points per day total.
+  </div>
+
+  <h2>Streaks</h2>
+  <ul>
+    <li><strong>Daily Check-in</strong> &mdash; Any action increments it; resets after a full day of inactivity</li>
+    <li><strong>Weekly Momentum</strong> &mdash; Complete a task each week; resets after a week with no completions</li>
+    <li><strong>On-Time Completion</strong> &mdash; Complete before due date; resets on a miss</li>
+  </ul>
+
+  <h2>Badges</h2>
+  <p>One-time achievements. The system ships with 15 default badges:</p>
+  <table>
+    <tr><th>Badge</th><th>How to earn</th></tr>
+    <tr><td>First Blood</td><td>Complete your first task</td></tr>
+    <tr><td>Backlog Buster</td><td>Claim and complete 5 backlog items</td></tr>
+    <tr><td>Unblocker</td><td>Resolve 3 blockers</td></tr>
+    <tr><td>Streak Master</td><td>10-day daily check-in streak</td></tr>
+    <tr><td>Deadline Crusher</td><td>5 on-time completions in a row</td></tr>
+    <tr><td>Centurion</td><td>Reach 100 total points</td></tr>
+    <tr><td>Heavy Lifter</td><td>Complete 3 large tasks</td></tr>
+    <tr><td>Rapid Fire</td><td>Complete 3 tasks in one day</td></tr>
+    <tr><td>Prolific</td><td>Complete 25 total tasks</td></tr>
+    <tr><td>Marathon Runner</td><td>30-day daily check-in streak</td></tr>
+  </table>
+  <p>Managers can create <strong>custom badges</strong> from the Admin panel with criteria types: count_action, streak_milestone, consecutive_action, single_day_count, total_points, and compound (AND/OR).</p>
+</div>
+
+<!-- ═══════════════ DASHBOARD ═══════════════ -->
+<div class="section" id="dashboard">
+  <h1>Dashboard</h1>
+  <p class="subtitle">The manager&rsquo;s primary view for team health at a glance.</p>
+
+  <h2>Team Summary Strip</h2>
+  <table>
+    <tr><th>Metric</th><th>What it shows</th></tr>
+    <tr><td><strong>In Progress</strong></td><td>Total WIP across the team (amber if &gt; 3&times; team size)</td></tr>
+    <tr><td><strong>At Risk</strong></td><td>Blocked, overdue, stale, or behind schedule tasks</td></tr>
+    <tr><td><strong>pts/wk avg</strong></td><td>8-week rolling throughput average</td></tr>
+    <tr><td><strong>Backlog</strong></td><td>Current size with trend (growing/shrinking/stable)</td></tr>
+  </table>
+
+  <h2>Staff Workload Chart</h2>
+  <p>Horizontal stacked bars per person:</p>
+  <div class="color-legend">
+    <span><span class="color-dot" style="background:#8B5CF6"></span> Boulder</span>
+    <span><span class="color-dot" style="background:#dc2626"></span> High</span>
+    <span><span class="color-dot" style="background:#f59e0b"></span> Medium</span>
+    <span><span class="color-dot" style="background:#166534"></span> Low</span>
+    <span><span class="color-dot" style="background:rgba(128,128,128,0.3);width:20px;border-radius:2px"></span> 30-day avg</span>
+  </div>
+  <p>Weights are configurable (default: high=60%, medium=35%, low=10%). The white line marks 100% capacity. Hover for task details and WIP count.</p>
+
+  <h2>Other Sections</h2>
+  <table>
+    <tr><th>Section</th><th>Purpose</th></tr>
+    <tr><td><strong>Backlog Health</strong></td><td>Items, effort points, estimated weeks to clear, trend</td></tr>
+    <tr><td><strong>Key Projects</strong></td><td>High-priority tasks: on track / behind / at risk / blocked</td></tr>
+    <tr><td><strong>At-Risk Tasks</strong></td><td>Prioritized list: blocked &gt; overdue &gt; behind &gt; stale &gt; unassigned</td></tr>
+    <tr><td><strong>Throughput Chart</strong></td><td>8-week line chart of effort points per week</td></tr>
+    <tr><td><strong>Recent Achievements</strong></td><td>Badges earned in the last 7 days</td></tr>
+    <tr><td><strong>Activity Feed</strong></td><td>Last 50 status changes, comments, assignments</td></tr>
+  </table>
+</div>
+
+<!-- ═══════════════ REPORTS ═══════════════ -->
+<div class="section" id="reports">
+  <h1>Reports</h1>
+  <p class="subtitle">Weekly and monthly performance metrics. Printable as PDF.</p>
+
+  <h2>Summary Cards</h2>
+  <table>
+    <tr><th>Card</th><th>Measures</th><th>Comparison</th></tr>
+    <tr><td><strong>Completed</strong></td><td>Tasks finished this period</td><td>vs previous period</td></tr>
+    <tr><td><strong>Created</strong></td><td>New tasks added</td><td>vs previous period</td></tr>
+    <tr><td><strong>Backlog Size</strong></td><td>Current unassigned items</td><td>&mdash;</td></tr>
+    <tr><td><strong>Backlog Delta</strong></td><td>Change since period start</td><td>Green (shrinking) / Red (growing)</td></tr>
+    <tr><td><strong>Missed Deadlines</strong></td><td>Completed after due date</td><td>vs previous period</td></tr>
+  </table>
+
+  <h2>Throughput Trend</h2>
+  <p>Line chart of effort points per week (8 weeks). Effort points: <strong>S=1, M=3, L=5</strong>. A dashed line shows the rolling average.</p>
+
+  <h2>Cycle Time</h2>
+  <p>Average days from <strong>started</strong> to <strong>completed</strong> by effort size. Expected ratios: medium &asymp; 3&times; small, large &asymp; 5&times; small.</p>
+
+  <h2>Estimation Accuracy</h2>
+  <p>Compares actual cycle time ratios to expected. If large tasks take 10&times; instead of 5&times;, the team is underestimating large work.</p>
+
+  <h2>Blocker Analysis</h2>
+  <table>
+    <tr><th>Metric</th><th>What it shows</th></tr>
+    <tr><td>Blockers Resolved</td><td>Count of resolved blocks</td></tr>
+    <tr><td>Avg Resolution Time</td><td>Average days blocked</td></tr>
+    <tr><td>Longest Blocker</td><td>Maximum days (amber highlight)</td></tr>
+    <tr><td>Currently Blocked</td><td>Tasks blocked right now (red)</td></tr>
+  </table>
+
+  <h2>Backlog Age</h2>
+  <p>How long items sit unassigned: average age, oldest item (red if &gt;30d, amber if &gt;14d), counts over 7 and 30 days.</p>
+
+  <h2>Contribution by Person</h2>
+  <p>Manager-only table: tasks completed, WIP count (amber if 5+), points earned, boulder %, and 8-week velocity sparkline.</p>
+  <div class="callout callout-note">
+    <strong>Credit goes to the assignee</strong>, not whoever clicked Done. If a manager completes someone else&rsquo;s task, the assignee gets credit.
+  </div>
+</div>
+
+<!-- ═══════════════ CAPACITY ═══════════════ -->
+<div class="section" id="capacity">
+  <h1>Capacity Planning</h1>
+  <p class="subtitle">Forward-looking view of who has room for more work.</p>
+
+  <h2>How Load is Calculated</h2>
+  <p>Each person&rsquo;s load is a weighted percentage where <strong>100% = fully utilized</strong>:</p>
+
+  <h3>1. Priority Weights</h3>
+  <table>
+    <tr><th>Priority</th><th>Default Weight</th></tr>
+    <tr><td>High</td><td>60%</td></tr>
+    <tr><td>Medium</td><td>35%</td></tr>
+    <tr><td>Low</td><td>10%</td></tr>
+  </table>
+
+  <h3>2. Status Multipliers</h3>
+  <table>
+    <tr><th>Status</th><th>Multiplier</th><th>Example</th></tr>
+    <tr><td>Active</td><td>100%</td><td>High-priority = 60%</td></tr>
+    <tr><td>Blocked</td><td>5%</td><td>High-priority blocked = 3%</td></tr>
+    <tr><td>Stalled / Paused</td><td>25%</td><td>High-priority stalled = 15%</td></tr>
+  </table>
+
+  <h3>3. Remaining Work</h3>
+  <p>A task at 80% complete contributes only 20% of its weighted value.</p>
+
+  <h3>4. Boulder Allocation</h3>
+  <p>Added directly &mdash; a 20% on-call boulder eats 20% capacity.</p>
+
+  <h3>5. Week Scoping</h3>
+  <p>Tasks split by due date: <strong>This Week</strong> (next 7 days) and <strong>Next Week</strong> (days 8&ndash;14). Undated tasks shown separately.</p>
+
+  <h2>Color Coding</h2>
+  <div class="color-legend">
+    <span><span class="color-dot" style="background:#10B981"></span> Green: &lt; 80% &mdash; has capacity</span>
+    <span><span class="color-dot" style="background:#F59E0B"></span> Amber: 80&ndash;100% &mdash; near capacity</span>
+    <span><span class="color-dot" style="background:#EF4444"></span> Red: &gt; 100% &mdash; overcommitted</span>
+  </div>
+
+  <h2>Tips</h2>
+  <div class="callout callout-tip">
+    <strong>Before assigning:</strong> Check who has green capacity. Boulders eat capacity &mdash; a 40% boulder leaves only 60% for task work. Undated tasks are hidden load not reflected in the percentages.
+  </div>
+</div>
+
+<!-- ═══════════════ ADMIN ═══════════════ -->
+<div class="section" id="admin">
+  <h1>Admin Guide</h1>
+  <p class="subtitle">User management, SSO, session settings, and team configuration.</p>
+
+  <h2>User Management</h2>
+  <h3>Creating Users</h3>
+  <ol>
+    <li>Click <strong>Create User</strong></li>
+    <li>Enter display name and password (or leave blank for SSO)</li>
+    <li>Choose team(s)</li>
+    <li>Optionally mark as SSO user</li>
+  </ol>
+
+  <h3>Deactivating Users</h3>
+  <p>When deactivated: login blocked, active tasks return to backlog, boulders archived, history preserved.</p>
+
+  <h2>Team Settings</h2>
+  <h3>Priority Weights</h3>
+  <p>Configure how priorities contribute to workload. Higher values = more load per task of that priority. Used in Dashboard, Capacity, and Reports.</p>
+
+  <h3>Status Multipliers</h3>
+  <p>Blocked (default 5%) and Stalled (default 25%) reduce a task&rsquo;s contribution to load since it can&rsquo;t be actively worked.</p>
+
+  <h3>Permissions</h3>
+  <p><strong>Users can assign tasks to others</strong> &mdash; Off by default. When enabled, any member can reassign tasks.</p>
+
+  <h2>Badge Management</h2>
+  <p>Create custom badges with criteria types: <code>count_action</code>, <code>streak_milestone</code>, <code>consecutive_action</code>, <code>single_day_count</code>, <code>total_points</code>, or <code>compound</code> (AND/OR).</p>
+
+  <h2>SSO / SAML</h2>
+  <ol>
+    <li>Go to <strong>SSO</strong> tab in Admin</li>
+    <li>Enter your App URL</li>
+    <li>Paste IdP metadata URL or enter details manually</li>
+    <li>Click <strong>Save &amp; Enable SSO</strong></li>
+  </ol>
+  <p>Configure your IdP with:</p>
+  <table>
+    <tr><th>Setting</th><th>Value</th></tr>
+    <tr><td>ACS URL</td><td><code>https://your-url/api/auth/saml/callback</code></td></tr>
+    <tr><td>SP Entity ID</td><td>Shown in SSO settings</td></tr>
+    <tr><td>NameID format</td><td>Persistent or email</td></tr>
+  </table>
+  <div class="callout callout-info">
+    <strong>JIT Provisioning:</strong>
+    First-time SSO users are auto-created as staff with no team. A manager must add them to a team.
+  </div>
+
+  <h2>Session Configuration</h2>
+  <p>Set idle timeout (15 min &ndash; 30 days, default 6 hours). Sessions refresh on activity. Client polls every 5 minutes to detect expiry.</p>
+
+  <h2>Daily Cron Job</h2>
+  <pre><code>POST /api/cron
+Authorization: Bearer YOUR_CRON_SECRET</code></pre>
+  <p>Performs: archive old tasks, purge notifications, due-date reminders, backlog alerts, weekly risk digests, workload snapshots.</p>
+</div>
+
+</main>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+  const section = document.getElementById(id);
+  if (section) section.classList.add('active');
+  const link = document.querySelector(`[href="#${id}"]`);
+  if (link) link.classList.add('active');
+  // Close mobile sidebar
+  document.getElementById('sidebar').classList.remove('open');
+  document.querySelector('.mobile-overlay').classList.remove('open');
+  // Scroll to top
+  window.scrollTo(0, 0);
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.querySelector('.mobile-overlay').classList.toggle('open');
+}
+
+// Handle direct hash navigation
+if (window.location.hash) {
+  const id = window.location.hash.slice(1);
+  show(id);
+}
+</script>
+</body>
+</html>
