@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
   tomorrowEnd.setHours(23, 59, 59, 999);
 
   const tasksDueTomorrow = await prisma.task.findMany({
-    where: { dueDate: { gte: tomorrowStart, lte: tomorrowEnd }, status: { notIn: ["done"] }, assignedToId: { not: null }, archivedAt: null },
+    where: { dueDate: { gte: tomorrowStart, lte: tomorrowEnd }, status: { notIn: ["done", "paused", "boulder"] }, assignedToId: { not: null }, archivedAt: null },
   });
 
   let dueDateNotifications = 0;

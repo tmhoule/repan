@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
-type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "paused" | "done";
+type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "paused" | "done" | "boulder";
 type TaskPriority = "high" | "medium" | "low";
 
 export interface TaskFiltersState {

@@ -43,12 +43,12 @@ function StatCard({ title, value, icon, sub, highlight, delta }: StatCardProps) 
       ? "text-emerald-500"
       : highlight === "negative"
         ? "text-red-500"
-        : "text-zinc-100";
+        : "text-foreground";
 
   return (
-    <Card className="bg-zinc-900 border-zinc-800">
+    <Card className="bg-card border-border">
       <CardHeader className="pb-2">
-        <CardTitle className="text-xs font-semibold text-zinc-400 tracking-wide uppercase flex items-center gap-2">
+        <CardTitle className="text-xs font-semibold text-muted-foreground tracking-wide uppercase flex items-center gap-2">
           {icon}
           {title}
         </CardTitle>
@@ -66,7 +66,7 @@ function StatCard({ title, value, icon, sub, highlight, delta }: StatCardProps) 
             {delta.value > 0 ? "+" : ""}{delta.value} vs last {delta.label}
           </p>
         )}
-        {sub && <p className="text-xs text-zinc-500 mt-1">{sub}</p>}
+        {sub && <p className="text-xs text-muted-foreground mt-1">{sub}</p>}
       </CardContent>
     </Card>
   );
@@ -106,7 +106,7 @@ export function ReportSummary({ data }: { data: ReportSummaryData }) {
       <StatCard
         title="Backlog Size"
         value={backlogSize}
-        icon={<Archive className="size-3.5 text-zinc-400" />}
+        icon={<Archive className="size-3.5 text-muted-foreground" />}
         sub="unassigned items"
       />
       <StatCard

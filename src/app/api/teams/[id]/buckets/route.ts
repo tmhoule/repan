@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { requireManager, handleApiError, requireTeam } from "@/lib/session";
+import { requireSession, requireManager, handleApiError, requireTeam } from "@/lib/session";
 import { isValidColorKey } from "@/lib/bucket-colors";
 
 export async function GET(
@@ -8,6 +8,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await requireSession();
     await requireTeam();
     const { id: teamId } = await params;
 

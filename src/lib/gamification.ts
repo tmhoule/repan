@@ -146,8 +146,13 @@ async function evaluateNewBadges(userId: string) {
     if (earnedIds.has(award.id)) continue;
     const criteria = { type: award.criteriaType, value: award.criteriaValue } as BadgeCriteria;
     if (evaluateCriteria(criteria, stats)) {
-      await prisma.userAward.create({ data: { userId, awardId: award.id } });
-      await createNotification(userId, "badge_earned", "Badge Earned!", `You earned the "${award.name}" badge!`);
+      try {
+        await prisma.userAward.create({ data: { userId, awardId: award.id } });
+        await createNotification(userId, "badge_earned", "Badge Earned!", `You earned the "${award.name}" badge!`);
+      } catch (e: any) {
+        // Ignore duplicate from concurrent award evaluation (unique constraint)
+        if (e?.code !== "P2002") throw e;
+      }
     }
   }
 }

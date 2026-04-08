@@ -21,16 +21,16 @@ export function EstimationAccuracyCard({ data }: { data: EstimationData | undefi
   ];
 
   return (
-    <Card className="bg-zinc-900 border-zinc-800">
+    <Card className="bg-card border-border">
       <CardHeader>
-        <CardTitle className="text-xs font-semibold text-zinc-400 tracking-wide uppercase flex items-center gap-2">
+        <CardTitle className="text-xs font-semibold text-muted-foreground tracking-wide uppercase flex items-center gap-2">
           <Target className="size-3.5" />
           Estimation Accuracy
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
-          <div className="grid grid-cols-4 gap-2 text-xs text-zinc-500 font-medium pb-1 border-b border-zinc-800">
+          <div className="grid grid-cols-4 gap-2 text-xs text-muted-foreground font-medium pb-1 border-b border-border">
             <span>Effort</span>
             <span>Avg Days</span>
             <span>Actual Ratio</span>
@@ -38,20 +38,20 @@ export function EstimationAccuracyCard({ data }: { data: EstimationData | undefi
           </div>
           {rows.map((row) => (
             <div key={row.label} className="grid grid-cols-4 gap-2 text-xs">
-              <span className="text-zinc-300 font-medium">{row.label}</span>
-              <span className="text-zinc-200 tabular-nums">
+              <span className="text-foreground font-medium">{row.label}</span>
+              <span className="text-foreground tabular-nums">
                 {row.avgDays !== null ? `${row.avgDays}d` : "\u2014"}
-                {row.count > 0 && <span className="text-zinc-500 ml-1">({row.count})</span>}
+                {row.count > 0 && <span className="text-muted-foreground ml-1">({row.count})</span>}
               </span>
-              <span className="text-zinc-200 tabular-nums">
+              <span className="text-foreground tabular-nums">
                 {row.ratioToSmall !== null ? `${row.ratioToSmall}x` : "\u2014"}
               </span>
-              <span className="text-zinc-500">{row.expected}</span>
+              <span className="text-muted-foreground">{row.expected}</span>
             </div>
           ))}
         </div>
         {data.small.count >= 3 && (
-          <p className="text-[11px] text-zinc-500 mt-3">
+          <p className="text-[11px] text-muted-foreground mt-3">
             If ratios diverge significantly from expected, effort estimates may need recalibration.
           </p>
         )}

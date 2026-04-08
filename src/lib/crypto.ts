@@ -108,7 +108,9 @@ export async function verifySignedToken(token: string, maxAgeMs?: number): Promi
     const expectedSignature = await sign(payload);
     
     // Use timing-safe comparison to prevent timing attacks
-    if (!timingSafeEqual(Buffer.from(providedSignature, "hex"), Buffer.from(expectedSignature, "hex"))) {
+    const providedBuf = Buffer.from(providedSignature, "hex");
+    const expectedBuf = Buffer.from(expectedSignature, "hex");
+    if (providedBuf.length !== expectedBuf.length || !timingSafeEqual(providedBuf, expectedBuf)) {
       return null;
     }
 

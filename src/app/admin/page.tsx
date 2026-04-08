@@ -186,6 +186,7 @@ export default function AdminPage() {
   const [weightLow, setWeightLow] = useState(10);
   const [multiplierBlocked, setMultiplierBlocked] = useState(5);
   const [multiplierStalled, setMultiplierStalled] = useState(25);
+  const [allowStaffAssign, setAllowStaffAssign] = useState(false);
   const [savingWeights, setSavingWeights] = useState(false);
 
   // SSO state
@@ -262,7 +263,7 @@ export default function AdminPage() {
   }, [sessionTimeoutData]);
 
   // Load team priority weights
-  const { data: teamWeights, mutate: mutateWeights } = useSWR<{ weightHigh: number; weightMedium: number; weightLow: number; multiplierBlocked: number; multiplierStalled: number }>(
+  const { data: teamWeights, mutate: mutateWeights } = useSWR<{ weightHigh: number; weightMedium: number; weightLow: number; multiplierBlocked: number; multiplierStalled: number; allowStaffAssign: boolean }>(
     activeTeamId ? `/api/teams/${activeTeamId}` : null
   );
 
@@ -273,6 +274,7 @@ export default function AdminPage() {
       setWeightLow(teamWeights.weightLow);
       setMultiplierBlocked(teamWeights.multiplierBlocked);
       setMultiplierStalled(teamWeights.multiplierStalled);
+      setAllowStaffAssign(teamWeights.allowStaffAssign);
     }
   }, [teamWeights]);
 
@@ -443,7 +445,7 @@ export default function AdminPage() {
       const res = await csrfFetch(`/api/teams/${activeTeamId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ weightHigh, weightMedium, weightLow, multiplierBlocked, multiplierStalled }),
+        body: JSON.stringify({ weightHigh, weightMedium, weightLow, multiplierBlocked, multiplierStalled, allowStaffAssign }),
       });
       if (!res.ok) {
         toast.error("Failed to save priority weights");
@@ -929,6 +931,22 @@ export default function AdminPage() {
                         />
                       </div>
                     </div>
+                  </div>
+
+                  <div className="border-t border-zinc-800 pt-4 mt-4">
+                    <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wide mb-3">Permissions</h3>
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={allowStaffAssign}
+                        onChange={(e) => setAllowStaffAssign(e.target.checked)}
+                        className="h-4 w-4 rounded border-zinc-600 bg-zinc-800 accent-violet-500"
+                      />
+                      <div>
+                        <span className="text-sm text-zinc-200">Users can assign tasks to others</span>
+                        <p className="text-xs text-zinc-500">When off, only managers can change task assignment.</p>
+                      </div>
+                    </label>
                   </div>
 
                   <div className="flex items-center justify-end pt-1">

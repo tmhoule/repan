@@ -17,9 +17,9 @@ export function BucketDistributionCard({ data }: { data: BucketItem[] | undefine
   const total = data.reduce((sum, d) => sum + d.count, 0);
 
   return (
-    <Card className="bg-zinc-900 border-zinc-800">
+    <Card className="bg-card border-border">
       <CardHeader>
-        <CardTitle className="text-xs font-semibold text-zinc-400 tracking-wide uppercase flex items-center gap-2">
+        <CardTitle className="text-xs font-semibold text-muted-foreground tracking-wide uppercase flex items-center gap-2">
           <BarChart3 className="size-3.5" />
           Work by Bucket
         </CardTitle>
@@ -32,19 +32,19 @@ export function BucketDistributionCard({ data }: { data: BucketItem[] | undefine
             return (
               <div key={item.name} className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="flex items-center gap-1.5 text-zinc-300">
+                  <span className="flex items-center gap-1.5 text-foreground">
                     <span
-                      className={`size-2 rounded-full shrink-0 ${color?.dotColor ?? "bg-zinc-500"}`}
+                      className={`size-2 rounded-full shrink-0 ${color?.dotColor ?? "bg-muted-foreground"}`}
                     />
                     {item.name}
                   </span>
-                  <span className="text-zinc-400 tabular-nums">
-                    {item.count} <span className="text-zinc-600">({pct}%)</span>
+                  <span className="text-muted-foreground tabular-nums">
+                    {item.count} <span className="text-muted-foreground/60">({pct}%)</span>
                   </span>
                 </div>
-                <div className="h-2 rounded-full bg-zinc-800 overflow-hidden">
+                <div className="h-2 rounded-full bg-muted overflow-hidden">
                   <div
-                    className={`h-full rounded-full ${color?.dotColor ?? "bg-zinc-500"}`}
+                    className={`h-full rounded-full ${color?.dotColor ?? "bg-muted-foreground"}`}
                     style={{ width: `${(item.count / maxCount) * 100}%` }}
                   />
                 </div>

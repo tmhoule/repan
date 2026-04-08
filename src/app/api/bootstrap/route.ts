@@ -56,11 +56,6 @@ export async function GET() {
 
 // POST: Create the first super admin + default team (only works if no super admin exists)
 export async function POST(request: NextRequest) {
-  const existing = await prisma.user.findFirst({ where: { isSuperAdmin: true } });
-  if (existing) {
-    return NextResponse.json({ error: "Super admin already exists" }, { status: 409 });
-  }
-
   const { name, password } = await request.json();
   if (!name?.trim()) {
     return NextResponse.json({ error: "Name is required" }, { status: 400 });
@@ -70,19 +65,38 @@ export async function POST(request: NextRequest) {
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
-  const user = await prisma.user.create({
-    data: { name: name.trim(), role: "manager", isSuperAdmin: true, avatarColor: "#8B5CF6", passwordHash },
-  });
 
-  // Find or create default team
-  let team = await prisma.team.findFirst({ where: { name: "Default Team" } });
-  if (!team) {
-    team = await prisma.team.create({ data: { name: "Default Team" } });
+  // Use a transaction to prevent race conditions on first-admin creation
+  let user;
+  let team;
+  try {
+    ({ user, team } = await prisma.$transaction(async (tx) => {
+      const existing = await tx.user.findFirst({ where: { isSuperAdmin: true } });
+      if (existing) {
+        throw new Error("SUPER_ADMIN_EXISTS");
+      }
+
+      const newUser = await tx.user.create({
+        data: { name: name.trim(), role: "manager", isSuperAdmin: true, avatarColor: "#8B5CF6", passwordHash },
+      });
+
+      let newTeam = await tx.team.findFirst({ where: { name: "Default Team" } });
+      if (!newTeam) {
+        newTeam = await tx.team.create({ data: { name: "Default Team" } });
+      }
+
+      await tx.teamMembership.create({
+        data: { userId: newUser.id, teamId: newTeam.id, role: "manager" },
+      });
+
+      return { user: newUser, team: newTeam };
+    }));
+  } catch (error: any) {
+    if (error?.message === "SUPER_ADMIN_EXISTS") {
+      return NextResponse.json({ error: "Super admin already exists" }, { status: 409 });
+    }
+    throw error;
   }
-
-  await prisma.teamMembership.create({
-    data: { userId: user.id, teamId: team.id, role: "manager" },
-  });
 
   const badgeCount = await prisma.award.count();
   if (badgeCount === 0) {

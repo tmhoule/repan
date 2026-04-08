@@ -11,10 +11,17 @@ function getWeekNumber(date: Date): number {
 
 function daysBetween(a: Date, b: Date): number { return Math.floor((startOfDay(b).getTime() - startOfDay(a).getTime()) / 86400000); }
 
+function startOfIsoWeek(date: Date): Date {
+  const d = new Date(date); d.setHours(0, 0, 0, 0);
+  const day = d.getDay();
+  const diff = (day === 0 ? -6 : 1) - day; // Monday = start of ISO week
+  d.setDate(d.getDate() + diff);
+  return d;
+}
+
 function weeksBetween(a: Date, b: Date): number {
-  const wA = getWeekNumber(a), wB = getWeekNumber(b);
-  if (a.getFullYear() === b.getFullYear()) return wB - wA;
-  return (b.getFullYear() - a.getFullYear()) * 52 + wB - wA;
+  const msPerWeek = 7 * 86400000;
+  return Math.round((startOfIsoWeek(b).getTime() - startOfIsoWeek(a).getTime()) / msPerWeek);
 }
 
 export function shouldIncrementStreak(type: string, last: Date, now: Date): boolean {

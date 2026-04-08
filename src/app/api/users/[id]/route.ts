@@ -72,9 +72,15 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     // Wrap everything in an interactive transaction to prevent race conditions
     const result = await prisma.$transaction(async (tx) => {
-      // Move all open (non-done) assigned tasks back to backlog
+      // Archive boulders — they're ongoing commitments that don't belong in the backlog
+      await tx.task.updateMany({
+        where: { assignedToId: id, status: "boulder", archivedAt: null },
+        data: { archivedAt: new Date(), assignedToId: null },
+      });
+
+      // Move remaining open (non-done, non-boulder) assigned tasks back to backlog
       const openTasks = await tx.task.findMany({
-        where: { assignedToId: id, status: { not: "done" }, archivedAt: null },
+        where: { assignedToId: id, status: { notIn: ["done", "boulder"] }, archivedAt: null },
         select: { id: true, teamId: true },
       });
 

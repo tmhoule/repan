@@ -184,27 +184,55 @@ export async function GET(request: NextRequest) {
     });
     const teamUsers = teamMemberships.map((m) => m.user).filter((u) => u.isActive);
 
-    perPerson = await Promise.all(teamUsers.map(async (u) => {
-      const [tasksDone, points] = await Promise.all([
-        prisma.task.count({ where: { assignedToId: u.id, status: "done", completedAt: { gte: since }, teamId } }),
-        prisma.pointsLedger.aggregate({ where: { userId: u.id, timestamp: { gte: since } }, _sum: { points: true } }),
-      ]);
+    // Batch-fetch all completed tasks in the last 8 weeks for sparkline data
+    const userIds = teamUsers.map((u) => u.id);
+    const sparklineStart = new Date(now.getTime() - 8 * 7 * 86400000);
+    const [perUserTasks, perUserPoints, sparklineTasks] = await Promise.all([
+      prisma.task.groupBy({
+        by: ["assignedToId"],
+        where: { assignedToId: { in: userIds }, status: "done", completedAt: { gte: since }, teamId },
+        _count: true,
+      }),
+      prisma.pointsLedger.groupBy({
+        by: ["userId"],
+        where: { userId: { in: userIds }, timestamp: { gte: since } },
+        _sum: { points: true },
+      }),
+      prisma.task.findMany({
+        where: { assignedToId: { in: userIds }, status: "done", completedAt: { gte: sparklineStart }, teamId },
+        select: { assignedToId: true, completedAt: true },
+      }),
+    ]);
+
+    const taskCountMap = new Map(perUserTasks.map((r) => [r.assignedToId, r._count]));
+    const pointsMap = new Map(perUserPoints.map((r) => [r.userId, r._sum.points || 0]));
+
+    // Build week boundaries once
+    const weekBounds: { start: Date; end: Date }[] = [];
+    for (let i = 7; i >= 0; i--) {
+      weekBounds.push({
+        start: new Date(now.getTime() - (i + 1) * 7 * 86400000),
+        end: new Date(now.getTime() - i * 7 * 86400000),
+      });
+    }
+
+    perPerson = teamUsers.map((u) => {
       const userBoulders = boulders.filter((b) => b.assignedToId === u.id);
       const boulderAllocation = userBoulders.reduce((sum, b) => sum + (b.timeAllocation ?? 0), 0);
 
-      // Weekly completion counts for sparkline (last 8 weeks)
-      const weekly: number[] = [];
-      for (let i = 7; i >= 0; i--) {
-        const weekStart = new Date(now.getTime() - (i + 1) * 7 * 86400000);
-        const weekEnd = new Date(now.getTime() - i * 7 * 86400000);
-        const count = await prisma.task.count({
-          where: { assignedToId: u.id, status: "done", completedAt: { gte: weekStart, lt: weekEnd }, teamId },
-        });
-        weekly.push(count);
-      }
+      const userSparkline = sparklineTasks.filter((t) => t.assignedToId === u.id);
+      const weekly = weekBounds.map(({ start, end }) =>
+        userSparkline.filter((t) => t.completedAt! >= start && t.completedAt! < end).length
+      );
 
-      return { user: u, tasksCompleted: tasksDone, pointsEarned: points._sum.points || 0, boulderAllocation, weekly };
-    }));
+      return {
+        user: u,
+        tasksCompleted: taskCountMap.get(u.id) ?? 0,
+        pointsEarned: pointsMap.get(u.id) ?? 0,
+        boulderAllocation,
+        weekly,
+      };
+    });
   }
 
   return NextResponse.json({ summary, perPerson, weeklyThroughput, cycleTime, estimationAccuracy, blockerStats, bucketData });

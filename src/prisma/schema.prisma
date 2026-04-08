@@ -98,6 +98,7 @@ model Team {
   weightLow          Int @default(10) @map("weight_low")
   multiplierBlocked  Int @default(5)  @map("multiplier_blocked")
   multiplierStalled  Int @default(25) @map("multiplier_stalled")
+  allowStaffAssign   Boolean @default(false) @map("allow_staff_assign")
 
   memberships TeamMembership[]
   tasks       Task[]
@@ -183,6 +184,8 @@ model Task {
   notifications   Notification[]
   pointsLedger    PointsLedger[]
 
+  @@index([teamId, archivedAt, status])
+  @@index([teamId, assignedToId, archivedAt])
   @@map("tasks")
 }
 
@@ -199,6 +202,7 @@ model TaskActivity {
   task      Task         @relation(fields: [taskId], references: [id])
   user      User         @relation(fields: [userId], references: [id])
 
+  @@index([taskId, timestamp])
   @@map("task_activities")
 }
 
@@ -215,6 +219,7 @@ model Notification {
   user      User             @relation(fields: [userId], references: [id])
   task      Task?            @relation(fields: [taskId], references: [id])
 
+  @@index([userId, taskId, type, createdAt])
   @@map("notifications")
 }
 
@@ -229,6 +234,7 @@ model PointsLedger {
   user       User     @relation(fields: [userId], references: [id])
   task       Task?    @relation(fields: [taskId], references: [id])
 
+  @@index([userId, actionType, timestamp])
   @@map("points_ledger")
 }
 

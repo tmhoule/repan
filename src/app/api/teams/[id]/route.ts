@@ -73,6 +73,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       if (!Number.isInteger(v) || v < 0 || v > 100) return NextResponse.json({ error: "multiplierStalled must be 0–100" }, { status: 400 });
       data.multiplierStalled = v;
     }
+    if (body.allowStaffAssign !== undefined) {
+      data.allowStaffAssign = Boolean(body.allowStaffAssign);
+    }
 
     if (Object.keys(data).length === 0) {
       return NextResponse.json({ error: "No fields to update" }, { status: 400 });

@@ -81,8 +81,8 @@ export async function requireSession() {
 
 export async function requireManager() {
   const user = await requireSession();
-  // Super admins always have manager access
-  if (user.isSuperAdmin) return user;
+  // Super admins and global managers always have manager access
+  if (user.isSuperAdmin || user.role === "manager") return user;
   // Check team membership role
   const teamId = await getActiveTeam();
   if (teamId) {

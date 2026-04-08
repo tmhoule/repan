@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { csrfFetch } from "@/lib/csrf-client";
+import { toast } from "sonner";
 import Link from "next/link";
 import useSWR from "swr";
 import { History, RotateCcw } from "lucide-react";
@@ -65,14 +66,23 @@ export default function HistoryPage() {
   );
   const tasks = data?.tasks ?? [];
 
-  const handleReopen = async (taskId: string) => {
-    await csrfFetch(`/api/tasks/${taskId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "not_started" }),
-    });
-    mutate();
-  };
+  const [reopening, setReopening] = useState<string | null>(null);
+  const handleReopen = useCallback(async (taskId: string) => {
+    setReopening(taskId);
+    try {
+      const res = await csrfFetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "not_started" }),
+      });
+      if (!res.ok) throw new Error("Failed to reopen");
+      mutate();
+    } catch {
+      toast.error("Failed to reopen task");
+    } finally {
+      setReopening(null);
+    }
+  }, [mutate]);
 
   const { data: bucketsData } = useSWR<{ buckets: Bucket[] }>("/api/buckets");
   const buckets = bucketsData?.buckets ?? [];
@@ -190,9 +200,10 @@ export default function HistoryPage() {
                     variant="outline"
                     className="h-7 gap-1.5 text-xs shrink-0"
                     onClick={() => handleReopen(task.id)}
+                    disabled={reopening === task.id}
                   >
-                    <RotateCcw className="size-3" />
-                    Reopen
+                    <RotateCcw className={`size-3 ${reopening === task.id ? "animate-spin" : ""}`} />
+                    {reopening === task.id ? "Reopening..." : "Reopen"}
                   </Button>
                 </div>
               </div>

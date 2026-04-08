@@ -40,6 +40,10 @@ export async function GET(request: NextRequest) {
       : { isActive: true };
 
     if (allTeams) {
+      // allTeams exposes team memberships — require authentication
+      if (!session) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
       const usersWithTeams = await prisma.user.findMany({
         where,
         select: {

@@ -205,15 +205,11 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
       }}
       onMouseEnter={(e) => {
         const el = e.currentTarget;
-        el.style.borderColor = `rgba(139,92,246,0.3)`;
-        el.style.borderLeftColor = statusBorderColor;
-        el.style.boxShadow = "0 4px 16px rgba(139,92,246,0.15)";
+        el.style.boxShadow = "0 0 0 1px rgba(139,92,246,0.3), 0 4px 16px rgba(139,92,246,0.15)";
         el.style.transform = "translateY(-1px)";
       }}
       onMouseLeave={(e) => {
         const el = e.currentTarget;
-        el.style.borderColor = "";
-        el.style.borderLeftColor = statusBorderColor;
         el.style.boxShadow = "";
         el.style.transform = "";
       }}
@@ -329,7 +325,7 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
                 <DropdownMenu>
                   <DropdownMenuTrigger className="inline-flex h-7 items-center gap-1 rounded-lg border border-input bg-transparent px-2 text-xs hover:bg-muted transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
                     Flag
-                    <ChevronDown className="size-3" />
+                    <ChevronDown className="size-3" aria-hidden="true" />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" side="bottom">
                     <DropdownMenuItem
@@ -467,6 +463,7 @@ function InlineComment({ taskId, onSubmit }: { taskId: string; onSubmit?: () => 
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="Comment... (⌘↵)"
+        aria-label="Add a comment"
         className="flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground/50 min-w-0"
         disabled={sending}
       />

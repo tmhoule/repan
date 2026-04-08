@@ -38,10 +38,10 @@ function getInitials(name: string): string {
 export function ContributionTable({ data, isManager }: ContributionTableProps) {
   if (!isManager) {
     return (
-      <Card className="bg-zinc-900 border-zinc-800">
+      <Card className="bg-card border-border">
         <CardContent className="flex items-center justify-center gap-3 py-10 text-center">
-          <Users className="size-5 text-zinc-500 shrink-0" />
-          <p className="text-sm text-zinc-400">
+          <Users className="size-5 text-muted-foreground shrink-0" />
+          <p className="text-sm text-muted-foreground">
             Team summary view — per-person details available to managers.
           </p>
         </CardContent>
@@ -54,32 +54,32 @@ export function ContributionTable({ data, isManager }: ContributionTableProps) {
   );
 
   return (
-    <Card className="bg-zinc-900 border-zinc-800">
+    <Card className="bg-card border-border">
       <CardHeader>
-        <CardTitle className="text-sm font-semibold text-zinc-100 tracking-wide uppercase">
+        <CardTitle className="text-sm font-semibold text-foreground tracking-wide uppercase">
           Contribution by Person
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
         {sorted.length === 0 ? (
-          <p className="text-sm text-zinc-500 text-center py-10">
+          <p className="text-sm text-muted-foreground text-center py-10">
             No data for this period.
           </p>
         ) : (
           <Table>
             <TableHeader>
-              <TableRow className="border-zinc-800 hover:bg-transparent">
-                <TableHead className="text-zinc-400 pl-4">Name</TableHead>
-                <TableHead className="text-zinc-400 text-right">
+              <TableRow className="border-border hover:bg-transparent">
+                <TableHead className="text-muted-foreground pl-4">Name</TableHead>
+                <TableHead className="text-muted-foreground text-right">
                   Tasks Completed
                 </TableHead>
-                <TableHead className="text-zinc-400 text-right">
+                <TableHead className="text-muted-foreground text-right">
                   Points Earned
                 </TableHead>
-                <TableHead className="text-zinc-400 text-right">
+                <TableHead className="text-muted-foreground text-right">
                   Boulder %
                 </TableHead>
-                <TableHead className="text-zinc-400 text-center pr-4">
+                <TableHead className="text-muted-foreground text-center pr-4">
                   Velocity (8w)
                 </TableHead>
               </TableRow>
@@ -88,24 +88,24 @@ export function ContributionTable({ data, isManager }: ContributionTableProps) {
               {sorted.map((row, i) => (
                 <TableRow
                   key={row.user.id}
-                  className="border-zinc-800 hover:bg-zinc-800/40"
+                  className="border-border hover:bg-muted/40"
                 >
                   <TableCell className="pl-4">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-zinc-600 tabular-nums w-4">
+                      <span className="text-xs text-muted-foreground/60 tabular-nums w-4">
                         {i + 1}
                       </span>
                       <Avatar className="size-6 shrink-0">
-                        <AvatarFallback className="text-[10px] font-bold text-white bg-zinc-700">
+                        <AvatarFallback className="text-[10px] font-bold text-white bg-muted-foreground">
                           {getInitials(row.user.name)}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="text-sm text-zinc-200 font-medium">
+                      <span className="text-sm text-foreground font-medium">
                         {row.user.name}
                       </span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-right tabular-nums text-zinc-200">
+                  <TableCell className="text-right tabular-nums text-foreground">
                     {row.tasksCompleted}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
@@ -113,14 +113,14 @@ export function ContributionTable({ data, isManager }: ContributionTableProps) {
                       <span className="text-amber-400 font-semibold">
                         {row.pointsEarned}
                       </span>
-                      <span className="text-zinc-600 text-xs">pts</span>
+                      <span className="text-muted-foreground/60 text-xs">pts</span>
                     </span>
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
                     {(row.boulderAllocation ?? 0) > 0 ? (
                       <span className="text-purple-400 font-semibold">{row.boulderAllocation}%</span>
                     ) : (
-                      <span className="text-zinc-600">—</span>
+                      <span className="text-muted-foreground/60">—</span>
                     )}
                   </TableCell>
                   <TableCell className="text-center pr-4">

@@ -12,7 +12,7 @@ import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { KeyProjects } from "@/components/dashboard/key-projects";
 import { RecentAchievements } from "@/components/dashboard/recent-achievements";
 
-type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "paused" | "done";
+type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "paused" | "done" | "boulder";
 type TaskPriority = "high" | "medium" | "low";
 
 interface DashboardData {

@@ -14,7 +14,7 @@ import { StatusBadge } from "@/components/tasks/status-badge";
 import { PriorityBadge } from "@/components/tasks/priority-badge";
 import { cn } from "@/lib/utils";
 
-type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "paused" | "done";
+type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "paused" | "done" | "boulder";
 type TaskPriority = "high" | "medium" | "low";
 
 interface Task {
@@ -153,7 +153,8 @@ export default function TeamMemberDetailPage({
   const dailyStreak = streaks.find((s) => s.streakType === "daily_checkin");
   const momentumStreak = streaks.find((s) => s.streakType === "weekly_momentum");
 
-  const activeTasks = tasks.filter((t) => t.status !== "done");
+  const activeTasks = tasks.filter((t) => t.status !== "done" && t.status !== "boulder");
+  const boulderTasks = tasks.filter((t) => t.status === "boulder");
   const doneTasks = tasks.filter((t) => t.status === "done");
 
   if (userLoading) {

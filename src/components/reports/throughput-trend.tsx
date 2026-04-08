@@ -40,9 +40,9 @@ const CustomTooltip = ({
   return (
     <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-md text-xs">
       <p className="text-muted-foreground mb-1">Week of {label}</p>
-      <p className="font-semibold text-zinc-100">
+      <p className="font-semibold text-foreground">
         {payload[0].value}{" "}
-        <span className="font-normal text-zinc-400">pts completed</span>
+        <span className="font-normal text-muted-foreground">pts completed</span>
       </p>
     </div>
   );
@@ -62,15 +62,15 @@ export function ThroughputTrend({ data, period }: ThroughputTrendProps) {
   const maxPoints = Math.max(...data.map((d) => d.points), 1);
 
   return (
-    <Card className="bg-zinc-900 border-zinc-800">
+    <Card className="bg-card border-border">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-semibold text-zinc-100 tracking-wide uppercase">
+          <CardTitle className="text-sm font-semibold text-foreground tracking-wide uppercase">
             Throughput Trend
           </CardTitle>
-          <span className="text-xs text-zinc-500">
+          <span className="text-xs text-muted-foreground">
             {period === "monthly" ? "Last 30 days" : "Last 7 days"} &middot; avg{" "}
-            <span className="text-zinc-300 font-semibold">{avg} pts/wk</span>
+            <span className="text-foreground font-semibold">{avg} pts/wk</span>
           </span>
         </div>
       </CardHeader>

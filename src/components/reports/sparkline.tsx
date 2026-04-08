@@ -9,7 +9,7 @@ interface SparklineProps {
 
 export function Sparkline({ data, width = 80, height = 24, color = "#8B5CF6" }: SparklineProps) {
   if (data.length === 0 || data.every((d) => d === 0)) {
-    return <div style={{ width, height }} className="flex items-center justify-center text-[10px] text-zinc-600">—</div>;
+    return <div style={{ width, height }} className="flex items-center justify-center text-[10px] text-muted-foreground/60">—</div>;
   }
 
   const max = Math.max(...data, 1);

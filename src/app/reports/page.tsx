@@ -58,7 +58,7 @@ interface ReportData {
 function SkeletonBlock({ className = "" }: { className?: string }) {
   return (
     <div
-      className={`rounded-xl border border-zinc-800 bg-zinc-900 animate-pulse ${className}`}
+      className={`rounded-xl border border-border bg-card animate-pulse ${className}`}
     />
   );
 }
@@ -97,25 +97,21 @@ export default function ReportsPage() {
           .print\\:grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
           .print\\:gap-3 { gap: 0.75rem; }
           [data-slot="card"] { background: white !important; border: 1px solid #e5e7eb !important; }
-          [data-slot="card-title"], .text-zinc-100 { color: #111827 !important; }
-          .text-zinc-400, .text-zinc-500 { color: #6b7280 !important; }
-          .text-zinc-200, .text-zinc-300 { color: #374151 !important; }
-          .bg-zinc-900, .bg-zinc-950 { background: white !important; }
-          .border-zinc-800 { border-color: #e5e7eb !important; }
+          [data-slot="card-title"] { color: #111827 !important; }
           [data-slot="tabs-list"] { display: none !important; }
           [data-slot="tabs-content"] { display: block !important; }
         }
       `}</style>
 
-      <div className="min-h-screen bg-zinc-950 px-4 py-6">
+      <div className="min-h-screen bg-background px-4 py-6">
         <div className="mx-auto max-w-7xl space-y-6">
           {/* Page header */}
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-zinc-100">
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">
                 Reports
               </h1>
-              <p className="text-sm text-zinc-500 mt-0.5">
+              <p className="text-sm text-muted-foreground mt-0.5">
                 Team performance metrics and contribution summary
               </p>
             </div>

@@ -43,10 +43,27 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    // Non-managers: check if they're allowed to change assignment
+    const isManager = user.role === "manager" || user.isSuperAdmin || teamRole === "manager";
+    if (!isManager && body.assignedToId !== undefined) {
+      const team = await prisma.team.findUnique({ where: { id: teamId }, select: { allowStaffAssign: true } });
+      if (!team?.allowStaffAssign) {
+        return NextResponse.json({ error: "You don't have permission to change task assignment" }, { status: 403 });
+      }
+    }
+
+    // Validate before any side effects (activity tracking, notifications)
+    const validationError = validateTaskFields(body);
+    if (validationError) return NextResponse.json({ error: validationError }, { status: 400 });
+    clampTaskFields(body);
+
     const activities: any[] = [];
     const track = (type: string, oldVal: any, newVal: any) => {
-      if (newVal !== undefined && String(oldVal) !== String(newVal)) {
-        activities.push({ taskId: id, userId: user.id, type, oldValue: String(oldVal), newValue: String(newVal) });
+      if (newVal === undefined) return;
+      const oldStr = oldVal == null ? "" : String(oldVal);
+      const newStr = newVal == null ? "" : String(newVal);
+      if (oldStr !== newStr) {
+        activities.push({ taskId: id, userId: user.id, type, oldValue: oldStr, newValue: newStr });
       }
     };
 
@@ -68,10 +85,6 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         await createNotification(task.assignedToId, "blocker_resolved", "Blocker resolved", `"${task.title}" is no longer blocked`, task.id);
       }
     }
-
-    const validationError = validateTaskFields(body);
-    if (validationError) return NextResponse.json({ error: validationError }, { status: 400 });
-    clampTaskFields(body);
 
     const updateData: any = {};
     if (body.title !== undefined) updateData.title = body.title;
@@ -171,7 +184,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     // Soft delete: archive the task instead of hard-deleting to preserve related records
-    await prisma.task.update({ where: { id }, data: { archivedAt: new Date(), status: "done" } });
+    await prisma.task.update({ where: { id }, data: { archivedAt: new Date() } });
     return NextResponse.json({ success: true });
   } catch (error) {
     return handleApiError(error);
