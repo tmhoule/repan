@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
-import Link from "next/link";
 import { useUser } from "@/components/user-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Layers, AlertTriangle, Inbox, Activity, Users } from "lucide-react";
@@ -55,8 +54,7 @@ function Stat({ icon, value, label, highlight }: { icon: React.ReactNode; value:
 
 function TeamCard({ team }: { team: TeamOverview }) {
   return (
-    <Link href={`/dashboard`}>
-      <Card className="bg-card border-border hover:border-primary/30 transition-colors cursor-pointer">
+      <Card className="bg-card border-border">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -78,7 +76,6 @@ function TeamCard({ team }: { team: TeamOverview }) {
           </div>
         </CardContent>
       </Card>
-    </Link>
   );
 }
 

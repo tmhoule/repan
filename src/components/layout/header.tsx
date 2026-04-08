@@ -38,9 +38,9 @@ const staffNavLinks = [
 
 const managerNavLinks = [
   { href: "/dashboard", label: "Dashboard" },
-  { href: "/teams/overview", label: "Teams" },
   { href: "/reports", label: "Reports" },
   { href: "/capacity", label: "Capacity" },
+  { href: "/teams/overview", label: "Teams" },
 ];
 
 export function Header() {
