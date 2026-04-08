@@ -19,7 +19,7 @@ import {
 import { useUser } from "@/components/user-context";
 import { BucketSelect } from "@/components/buckets/bucket-select";
 
-type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "done" | "boulder";
+type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "paused" | "done" | "boulder";
 type TaskPriority = "high" | "medium" | "low";
 type EffortEstimate = "small" | "medium" | "large";
 
@@ -62,6 +62,7 @@ const STATUS_LABELS: Record<string, string> = {
   in_progress: "In Progress",
   blocked: "Blocked",
   stalled: "Stalled",
+  paused: "Paused",
   done: "Done",
   boulder: "Boulder",
 };
@@ -370,6 +371,7 @@ export function TaskForm({ mode, initialData, onSubmit, onDelete, teamId }: Task
               <SelectItem value="in_progress">In Progress</SelectItem>
               <SelectItem value="blocked">Blocked</SelectItem>
               <SelectItem value="stalled">Stalled</SelectItem>
+              <SelectItem value="paused">Paused</SelectItem>
               <SelectItem value="done">Done</SelectItem>
               <SelectItem value="boulder">Boulder</SelectItem>
             </SelectContent>

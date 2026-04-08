@@ -17,7 +17,7 @@ export function calculateUrgencyScore(task: UrgencyInput, now: Date = new Date()
   let score = BASE_PRIORITY[task.priority] ?? 10;
 
   // Status modifier
-  if (task.status === "blocked" || task.status === "stalled") score += 5;
+  if (task.status === "blocked" || task.status === "stalled" || task.status === "paused") score += 5;
 
   // Due date modifier
   if (task.dueDate) {

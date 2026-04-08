@@ -5,7 +5,7 @@ import { AlertTriangle, Clock, Ban, Pause, TrendingDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/tasks/status-badge";
 
-type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "done";
+type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "paused" | "done";
 type TaskPriority = "high" | "medium" | "low";
 
 interface RiskFlag {

@@ -14,7 +14,7 @@ import { StatusBadge } from "@/components/tasks/status-badge";
 import { PriorityBadge } from "@/components/tasks/priority-badge";
 import { cn } from "@/lib/utils";
 
-type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "done";
+type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "paused" | "done";
 type TaskPriority = "high" | "medium" | "low";
 
 interface Task {

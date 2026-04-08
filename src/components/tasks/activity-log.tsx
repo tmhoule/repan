@@ -54,6 +54,7 @@ const STATUS_LABELS: Record<string, string> = {
   in_progress: "In Progress",
   blocked: "Blocked",
   stalled: "Stalled",
+  paused: "Paused",
   done: "Done",
 };
 

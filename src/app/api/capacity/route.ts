@@ -83,7 +83,7 @@ export async function GET() {
         return tasks.reduce((sum, t) => {
           let weight = t.priority === "high" ? team.weightHigh : t.priority === "medium" ? team.weightMedium : team.weightLow;
           if (t.status === "blocked") weight = Math.round(weight * team.multiplierBlocked / 100);
-          else if (t.status === "stalled") weight = Math.round(weight * team.multiplierStalled / 100);
+          else if (t.status === "stalled" || t.status === "paused") weight = Math.round(weight * team.multiplierStalled / 100);
           const remaining = 1 - (t.percentComplete ?? 0) / 100;
           return sum + Math.round(weight * remaining);
         }, 0);

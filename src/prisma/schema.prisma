@@ -21,6 +21,7 @@ enum TaskStatus {
   in_progress
   blocked
   stalled
+  paused
   done
   boulder
 }

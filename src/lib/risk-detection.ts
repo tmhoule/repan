@@ -45,7 +45,7 @@ export async function getLastActivityMap(taskIds: string[]): Promise<Map<string,
  * Detect if a task is stale (no activity for N days).
  */
 export function isStale(task: TaskForRisk, lastActivity: Date | undefined, now: Date): boolean {
-  if (task.status === "done" || task.status === "boulder") return false;
+  if (task.status === "done" || task.status === "boulder" || task.status === "paused") return false;
 
   const reference = lastActivity ?? task.createdAt;
   const daysSinceActivity = (now.getTime() - reference.getTime()) / 86400000;

@@ -5,8 +5,10 @@ export function canEditTask(user: UserContext, task: TaskContext): boolean {
   if (user.teamRole === "manager" || user.role === "manager") return true;
   return task.createdById === user.id || task.assignedToId === user.id;
 }
-export function canDeleteTask(user: UserContext): boolean {
-  return user.teamRole === "manager" || user.role === "manager";
+export function canDeleteTask(user: UserContext, task?: TaskContext): boolean {
+  if (user.teamRole === "manager" || user.role === "manager") return true;
+  if (task) return task.createdById === user.id || task.assignedToId === user.id;
+  return false;
 }
 export function canAccessAdmin(user: UserContext): boolean {
   return user.teamRole === "manager" || user.role === "manager";

@@ -78,7 +78,7 @@ export async function GET() {
         } else {
           let weight = t.priority === "high" ? team.weightHigh : t.priority === "medium" ? team.weightMedium : team.weightLow;
           if (t.status === "blocked") weight = Math.round(weight * team.multiplierBlocked / 100);
-          else if (t.status === "stalled") weight = Math.round(weight * team.multiplierStalled / 100);
+          else if (t.status === "stalled" || t.status === "paused") weight = Math.round(weight * team.multiplierStalled / 100);
           dayLoad += weight;
         }
       }

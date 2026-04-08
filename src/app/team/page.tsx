@@ -208,7 +208,7 @@ function TeamMemberSection({ user }: { user: UserSummary }) {
                     <circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted/50" />
                     <circle
                       cx="16" cy="16" r="13" fill="none" strokeWidth="2"
-                      stroke={task.status === "blocked" ? "#EF4444" : task.status === "stalled" ? "#F97316" : "#8B5CF6"}
+                      stroke={task.status === "blocked" ? "#EF4444" : task.status === "stalled" ? "#F97316" : task.status === "paused" ? "#EAB308" : "#8B5CF6"}
                       strokeDasharray={`${(task.percentComplete / 100) * 81.68} 81.68`}
                       strokeLinecap="round"
                     />
@@ -236,7 +236,7 @@ function TeamMemberSection({ user }: { user: UserSummary }) {
 
                 {/* Badges */}
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <StatusBadge status={task.status as "not_started" | "in_progress" | "blocked" | "stalled" | "done" | "boulder"} />
+                  <StatusBadge status={task.status as "not_started" | "in_progress" | "blocked" | "stalled" | "paused" | "done" | "boulder"} />
                   <PriorityBadge priority={task.priority as "high" | "medium" | "low"} />
                 </div>
               </div>

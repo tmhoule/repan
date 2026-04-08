@@ -167,7 +167,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     if (!task) return NextResponse.json({ error: "Not found" }, { status: 404 });
     if (task.teamId !== teamId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     const deleteTeamRole = await getTeamRole(user.id, teamId) ?? undefined;
-    if (!canDeleteTask({ id: user.id, role: user.role, teamRole: deleteTeamRole })) {
+    if (!canDeleteTask({ id: user.id, role: user.role, teamRole: deleteTeamRole }, { createdById: task.createdById, assignedToId: task.assignedToId })) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     // Soft delete: archive the task instead of hard-deleting to preserve related records

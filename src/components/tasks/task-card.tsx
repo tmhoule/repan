@@ -28,7 +28,7 @@ import { CelebrationBurst, useCelebration } from "@/components/gamification/cele
 import { PointsPopup } from "@/components/gamification/points-popup";
 import { cn } from "@/lib/utils";
 
-type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "done" | "boulder";
+type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "paused" | "done" | "boulder";
 type TaskPriority = "high" | "medium" | "low";
 
 interface Task {
@@ -54,6 +54,7 @@ const STATUS_BORDER_COLORS: Record<TaskStatus, string> = {
   in_progress: "#3B82F6",
   blocked: "#EF4444",
   stalled: "#F97316",
+  paused: "#EAB308",
   done: "#10B981",
   boulder: "#8B5CF6",
 };
@@ -178,6 +179,7 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
   }, [patchTask]);
 
   const isManager = user?.role === "manager";
+  const canDelete = isManager || currentTask.createdBy?.id === user?.id || currentTask.assignedTo?.id === user?.id;
   const dueDateInfo = formatDueDate(currentTask.dueDate);
   const isDone = currentTask.status === "done";
 
@@ -343,19 +345,27 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
                       Mark Stalled
                     </DropdownMenuItem>
                     <DropdownMenuItem
+                      onClick={() => handleStatusChange("paused")}
+                      className="text-yellow-600 dark:text-yellow-400"
+                    >
+                      Mark Paused
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
                       onClick={() => handleStatusChange("in_progress")}
                     >
                       Mark In Progress
                     </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => handleStatusChange("not_started")}
-                    >
-                      Reset to Not Started
-                    </DropdownMenuItem>
+                    {!currentTask.assignedTo && (
+                      <DropdownMenuItem
+                        onClick={() => handleStatusChange("not_started")}
+                      >
+                        Reset to Not Started
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem onClick={handleMoveToBacklog}>
                       Move to Backlog
                     </DropdownMenuItem>
-                    {isManager && (
+                    {canDelete && (
                       <DropdownMenuItem
                         onClick={handleDelete}
                         className="text-red-600 dark:text-red-400"
@@ -396,8 +406,8 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
           </div>
         )}
 
-        {/* Delete button for completed tasks (managers only) */}
-        {isDone && isManager && (
+        {/* Delete button for completed tasks */}
+        {isDone && canDelete && (
           <div className="pt-1">
             <Button
               size="sm"

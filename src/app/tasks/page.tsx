@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import useSWR, { useSWRConfig } from "swr";
-import { Plus, ClipboardList, Package, ChevronDown, ChevronRight, CheckCircle2 } from "lucide-react";
+import { Plus, ClipboardList, Package, ChevronDown, ChevronRight, CheckCircle2, AlertCircle } from "lucide-react";
 import { BucketFilterBar } from "@/components/buckets/bucket-filter-bar";
 import { Button } from "@/components/ui/button";
 import { TaskCard } from "@/components/tasks/task-card";
@@ -14,7 +14,7 @@ import { BacklogSummary } from "@/components/backlog/backlog-summary";
 import { BacklogList } from "@/components/backlog/backlog-list";
 import { Separator } from "@/components/ui/separator";
 
-type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "done" | "boulder";
+type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "paused" | "done" | "boulder";
 type TaskPriority = "high" | "medium" | "low";
 
 interface Task {
@@ -40,7 +40,8 @@ export default function MyTasksPage() {
 
   const tasks = data?.tasks ?? [];
   const boulderTasks = tasks.filter((t) => t.status === "boulder");
-  const activeTasks = tasks.filter((t) => t.status !== "done" && t.status !== "boulder");
+  const stalledOrBlockedTasks = tasks.filter((t) => t.status === "stalled" || t.status === "blocked" || t.status === "paused");
+  const activeTasks = tasks.filter((t) => t.status !== "done" && t.status !== "boulder" && t.status !== "stalled" && t.status !== "blocked" && t.status !== "paused");
   const completedTasks = tasks.filter((t) => t.status === "done");
   const totalBoulderAllocation = boulderTasks.reduce((sum, t) => sum + (t.timeAllocation ?? 0), 0);
   const [showCompleted, setShowCompleted] = useState(false);
@@ -55,7 +56,7 @@ export default function MyTasksPage() {
           <p className="text-sm text-muted-foreground mt-0.5">
             {isLoading
               ? "Loading..."
-              : `${activeTasks.length} active task${activeTasks.length !== 1 ? "s" : ""}${completedTasks.length > 0 ? ` · ${completedTasks.length} completed` : ""}`}
+              : `${activeTasks.length + stalledOrBlockedTasks.length} active task${activeTasks.length + stalledOrBlockedTasks.length !== 1 ? "s" : ""}${completedTasks.length > 0 ? ` · ${completedTasks.length} completed` : ""}`}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -93,7 +94,7 @@ export default function MyTasksPage() {
             />
           ))}
         </div>
-      ) : activeTasks.length === 0 && completedTasks.length === 0 && boulderTasks.length === 0 ? (
+      ) : activeTasks.length === 0 && stalledOrBlockedTasks.length === 0 && completedTasks.length === 0 && boulderTasks.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-border py-16 text-center">
           <ClipboardList className="size-12 text-muted-foreground/40" />
           <div className="space-y-1">
@@ -139,6 +140,21 @@ export default function MyTasksPage() {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Stalled / Blocked tasks */}
+          {stalledOrBlockedTasks.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                <AlertCircle className="size-4 text-orange-500" />
+                <span>{stalledOrBlockedTasks.length} stalled or blocked</span>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-1 md:grid-cols-2">
+                {stalledOrBlockedTasks.map((task) => (
+                  <TaskCard key={task.id} task={task} onUpdate={() => mutate()} />
+                ))}
+              </div>
             </div>
           )}
 

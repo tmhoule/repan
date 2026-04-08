@@ -25,7 +25,7 @@ import { ProgressSlider } from "@/components/tasks/progress-slider";
 import { useUser } from "@/components/user-context";
 import { canEditTask } from "@/lib/permissions";
 
-type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "done" | "boulder";
+type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "paused" | "done" | "boulder";
 type TaskPriority = "high" | "medium" | "low";
 type EffortEstimate = "small" | "medium" | "large";
 

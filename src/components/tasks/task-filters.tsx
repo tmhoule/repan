@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
-type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "done";
+type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "paused" | "done";
 type TaskPriority = "high" | "medium" | "low";
 
 export interface TaskFiltersState {
@@ -33,6 +33,7 @@ const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
   { value: "in_progress", label: "In Progress" },
   { value: "blocked", label: "Blocked" },
   { value: "stalled", label: "Stalled" },
+  { value: "paused", label: "Paused" },
   { value: "done", label: "Done" },
 ];
 

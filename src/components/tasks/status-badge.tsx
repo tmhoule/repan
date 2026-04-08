@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-type Status = "not_started" | "in_progress" | "blocked" | "stalled" | "done" | "boulder";
+type Status = "not_started" | "in_progress" | "blocked" | "stalled" | "paused" | "done" | "boulder";
 
 const statusConfig: Record<Status, { label: string; className: string }> = {
   not_started: {
@@ -21,6 +21,10 @@ const statusConfig: Record<Status, { label: string; className: string }> = {
   stalled: {
     label: "Stalled",
     className: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-950 dark:text-orange-400 dark:border-orange-800",
+  },
+  paused: {
+    label: "Paused",
+    className: "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-950 dark:text-yellow-400 dark:border-yellow-800",
   },
   done: {
     label: "Done",

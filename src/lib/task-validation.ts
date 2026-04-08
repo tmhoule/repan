@@ -1,4 +1,4 @@
-const VALID_STATUSES = new Set(["not_started", "in_progress", "blocked", "stalled", "done", "boulder"]);
+const VALID_STATUSES = new Set(["not_started", "in_progress", "blocked", "stalled", "paused", "done", "boulder"]);
 const VALID_PRIORITIES = new Set(["high", "medium", "low"]);
 const VALID_EFFORTS = new Set(["small", "medium", "large"]);
 
