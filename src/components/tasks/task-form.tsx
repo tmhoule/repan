@@ -93,7 +93,7 @@ export function TaskForm({ mode, initialData, onSubmit, onDelete, teamId }: Task
   const [dueDate, setDueDate] = useState(initialData?.dueDate ?? "");
   const [status, setStatus] = useState<TaskStatus>(initialData?.status ?? "not_started");
   const [assignedToId, setAssignedToId] = useState<string | null>(
-    initialData?.assignedToId !== undefined ? initialData.assignedToId ?? null : null
+    initialData?.assignedToId !== undefined ? initialData.assignedToId ?? null : (mode === "create" ? user?.id ?? null : null)
   );
   const [blockerReason, setBlockerReason] = useState(initialData?.blockerReason ?? "");
   const [timeAllocation, setTimeAllocation] = useState<number>((initialData as any)?.timeAllocation ?? 0);
