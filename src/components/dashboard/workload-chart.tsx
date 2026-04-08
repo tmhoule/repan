@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 interface WorkloadUser {
   user: { id: string; name: string; avatarColor: string };
   taskCount: number;
+  wipCount?: number;
   byPriority: { high: number; medium: number; low: number };
   tasks?: Array<{ title: string; priority: string }>;
   boulders?: Array<{ title: string; timeAllocation: number }>;
@@ -28,6 +29,7 @@ function WorkloadTooltip({
   boulders,
   total,
   avg30d,
+  wipCount,
   weights,
 }: {
   user: string;
@@ -35,15 +37,23 @@ function WorkloadTooltip({
   boulders: Array<{ title: string; timeAllocation: number }>;
   total: number;
   avg30d: number;
+  wipCount: number;
   weights: Record<string, number>;
 }) {
   return (
     <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-md text-xs max-w-[300px]">
       <div className="flex items-center justify-between mb-1.5">
         <p className="font-semibold">{user}</p>
-        <span className={`font-bold tabular-nums ${total > 100 ? "text-red-400" : "text-foreground"}`}>
-          {total}%
-        </span>
+        <div className="flex items-center gap-2">
+          {wipCount > 0 && (
+            <span className={`tabular-nums ${wipCount >= 5 ? "text-amber-400 font-bold" : "text-muted-foreground"}`}>
+              {wipCount} WIP
+            </span>
+          )}
+          <span className={`font-bold tabular-nums ${total > 100 ? "text-red-400" : "text-foreground"}`}>
+            {total}%
+          </span>
+        </div>
       </div>
 
       {tasks.length > 0 && (
@@ -94,6 +104,7 @@ function WorkloadRow({
   segments,
   total,
   avg30d,
+  wipCount,
   maxValue,
   tasks,
   boulders,
@@ -103,6 +114,7 @@ function WorkloadRow({
   segments: Array<{ color: string; value: number }>;
   total: number;
   avg30d: number;
+  wipCount: number;
   maxValue: number;
   tasks: Array<{ title: string; priority: string }>;
   boulders: Array<{ title: string; timeAllocation: number }>;
@@ -210,6 +222,7 @@ function WorkloadRow({
             boulders={boulders}
             total={total}
             avg30d={avg30d}
+            wipCount={wipCount}
             weights={weights}
           />
         </div>,
@@ -244,6 +257,7 @@ export function WorkloadChart({ data, priorityWeights }: WorkloadChartProps) {
       ],
       total,
       avg30d: d.avg30d ?? 0,
+      wipCount: d.wipCount ?? 0,
       tasks: d.tasks ?? [],
       boulders: d.boulders ?? [],
     };

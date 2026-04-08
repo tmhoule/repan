@@ -159,6 +159,22 @@ export async function GET(request: NextRequest) {
   });
   const prevMissedDeadlines = prevCompletedTasks.filter(t => t.dueDate && t.completedAt && t.completedAt > t.dueDate).length;
 
+  // Backlog age stats: how long items have been sitting unassigned
+  const backlogTasks = await prisma.task.findMany({
+    where: { assignedToId: null, archivedAt: null, teamId, status: { notIn: ["done", "boulder"] } },
+    select: { createdAt: true },
+  });
+  const backlogAgeDays = backlogTasks.map((t) => Math.floor((now.getTime() - t.createdAt.getTime()) / 86400000));
+  const backlogAgeStats = backlogAgeDays.length > 0
+    ? {
+        count: backlogAgeDays.length,
+        avgDays: Math.round((backlogAgeDays.reduce((s, d) => s + d, 0) / backlogAgeDays.length) * 10) / 10,
+        maxDays: Math.max(...backlogAgeDays),
+        over7: backlogAgeDays.filter((d) => d > 7).length,
+        over30: backlogAgeDays.filter((d) => d > 30).length,
+      }
+    : { count: 0, avgDays: null, maxDays: null, over7: 0, over30: 0 };
+
   const summary = { tasksCompleted: completed.length, tasksCreated: created, backlogSize: backlogCount, backlogDelta: backlogCount - previousBacklogCount, missedDeadlines, activeBoulderCount, totalBoulderAllocation, staleTasks, behindScheduleTasks, period, prevTasksCompleted: prevCompleted, prevTasksCreated: prevCreated, prevMissedDeadlines };
 
   // Build weekly throughput series (last 8 weeks)
@@ -187,6 +203,14 @@ export async function GET(request: NextRequest) {
     // Batch-fetch all completed tasks in the last 8 weeks for sparkline data
     const userIds = teamUsers.map((u) => u.id);
     const sparklineStart = new Date(now.getTime() - 8 * 7 * 86400000);
+    // Batch-fetch WIP counts for each user
+    const perUserWip = await prisma.task.groupBy({
+      by: ["assignedToId"],
+      where: { assignedToId: { in: userIds }, status: "in_progress", archivedAt: null, teamId },
+      _count: true,
+    });
+    const wipMap = new Map(perUserWip.map((r) => [r.assignedToId, r._count]));
+
     const [perUserTasks, perUserPoints, sparklineTasks] = await Promise.all([
       prisma.task.groupBy({
         by: ["assignedToId"],
@@ -229,13 +253,14 @@ export async function GET(request: NextRequest) {
         user: u,
         tasksCompleted: taskCountMap.get(u.id) ?? 0,
         pointsEarned: pointsMap.get(u.id) ?? 0,
+        wipCount: wipMap.get(u.id) ?? 0,
         boulderAllocation,
         weekly,
       };
     });
   }
 
-  return NextResponse.json({ summary, perPerson, weeklyThroughput, cycleTime, estimationAccuracy, blockerStats, bucketData });
+  return NextResponse.json({ summary, perPerson, weeklyThroughput, cycleTime, estimationAccuracy, blockerStats, bucketData, backlogAgeStats });
   } catch (error) {
     return handleApiError(error);
   }

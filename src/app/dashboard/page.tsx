@@ -11,6 +11,7 @@ import { ThroughputChart } from "@/components/dashboard/throughput-chart";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { KeyProjects } from "@/components/dashboard/key-projects";
 import { RecentAchievements } from "@/components/dashboard/recent-achievements";
+import { TeamSummary } from "@/components/dashboard/team-summary";
 
 type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "paused" | "done" | "boulder";
 type TaskPriority = "high" | "medium" | "low";
@@ -19,6 +20,7 @@ interface DashboardData {
   workload: Array<{
     user: { id: string; name: string; avatarColor: string };
     taskCount: number;
+    wipCount?: number;
     byPriority: { high: number; medium: number; low: number };
     boulders?: Array<{ title: string; timeAllocation: number }>;
   }>;
@@ -106,6 +108,18 @@ export default function DashboardPage() {
             Team overview &amp; health metrics
           </p>
         </div>
+
+        {/* Team summary strip */}
+        {!isLoading && data && (
+          <TeamSummary
+            totalWip={data.workload.reduce((sum, w) => sum + (w.wipCount ?? 0), 0)}
+            atRiskCount={data.atRisk.length}
+            avgThroughput={data.weeklyThroughput.length > 0 ? Math.round(data.weeklyThroughput.reduce((s, w) => s + w.points, 0) / data.weeklyThroughput.length) : 0}
+            backlogTrend={data.backlogHealth.trend}
+            backlogSize={data.backlogHealth.totalItems}
+            teamSize={data.workload.length}
+          />
+        )}
 
         {/* Top row: Workload (2/3) + Backlog Health (1/3) */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

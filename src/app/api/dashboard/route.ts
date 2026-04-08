@@ -74,8 +74,10 @@ export async function GET() {
       avg30d = snapshot.workloadScore;
     }
 
+    const wipCount = userTasks.filter(t => t.status === "in_progress").length;
+
     return {
-      user: u, taskCount: userTasks.length,
+      user: u, taskCount: userTasks.length, wipCount,
       byPriority: { high: userTasks.filter(t => t.priority === "high").length, medium: userTasks.filter(t => t.priority === "medium").length, low: userTasks.filter(t => t.priority === "low").length },
       tasks: userTasks.map(t => ({ title: t.title, priority: t.priority })),
       boulders: tasks.filter(t => t.assignedTo?.id === u.id && t.status === "boulder").map(t => ({ title: t.title, timeAllocation: t.timeAllocation ?? 0 })),

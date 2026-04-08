@@ -14,6 +14,7 @@ import { EstimationAccuracyCard } from "@/components/reports/estimation-accuracy
 import { BlockerStatsCard } from "@/components/reports/blocker-stats-card";
 import { BucketDistributionCard } from "@/components/reports/bucket-distribution-card";
 import { ContributionTable } from "@/components/reports/contribution-table";
+import { BacklogAgeCard } from "@/components/reports/backlog-age-card";
 
 interface ReportData {
   summary: {
@@ -53,6 +54,13 @@ interface ReportData {
     colorKey: string | null;
     count: number;
   }>;
+  backlogAgeStats?: {
+    count: number;
+    avgDays: number | null;
+    maxDays: number | null;
+    over7: number;
+    over30: number;
+  };
 }
 
 function SkeletonBlock({ className = "" }: { className?: string }) {
@@ -156,6 +164,7 @@ export default function ReportsPage() {
                   <EstimationAccuracyCard data={weeklyData.estimationAccuracy} />
                   <BlockerStatsCard data={weeklyData.blockerStats} />
                   <BucketDistributionCard data={weeklyData.bucketData} />
+                  <BacklogAgeCard data={weeklyData.backlogAgeStats} />
                   <ContributionTable
                     data={weeklyData.perPerson}
                     isManager={isManager}
@@ -187,6 +196,7 @@ export default function ReportsPage() {
                   <EstimationAccuracyCard data={monthlyData.estimationAccuracy} />
                   <BlockerStatsCard data={monthlyData.blockerStats} />
                   <BucketDistributionCard data={monthlyData.bucketData} />
+                  <BacklogAgeCard data={monthlyData.backlogAgeStats} />
                   <ContributionTable
                     data={monthlyData.perPerson}
                     isManager={isManager}

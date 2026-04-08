@@ -17,6 +17,7 @@ interface PersonRow {
   user: { id: string; name: string };
   tasksCompleted: number;
   pointsEarned: number;
+  wipCount?: number;
   boulderAllocation?: number;
   weekly?: number[];
 }
@@ -74,6 +75,9 @@ export function ContributionTable({ data, isManager }: ContributionTableProps) {
                   Tasks Completed
                 </TableHead>
                 <TableHead className="text-muted-foreground text-right">
+                  WIP
+                </TableHead>
+                <TableHead className="text-muted-foreground text-right">
                   Points Earned
                 </TableHead>
                 <TableHead className="text-muted-foreground text-right">
@@ -107,6 +111,11 @@ export function ContributionTable({ data, isManager }: ContributionTableProps) {
                   </TableCell>
                   <TableCell className="text-right tabular-nums text-foreground">
                     {row.tasksCompleted}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    <span className={`font-semibold ${(row.wipCount ?? 0) >= 5 ? "text-amber-400" : "text-foreground"}`}>
+                      {row.wipCount ?? 0}
+                    </span>
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
                     <span className="inline-flex items-center gap-1">
