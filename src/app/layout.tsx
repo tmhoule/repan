@@ -29,7 +29,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  let initialUser: { id: string; name: string; role: string; avatarColor: string; isSuperAdmin: boolean; ssoUser: boolean; teamCount: number } | null = null;
+  let initialUser: { id: string; name: string; role: string; avatarColor: string; isSuperAdmin: boolean; ssoUser: boolean; teamCount: number; teamRole: string | null } | null = null;
   let initialTeam: { id: string; name: string } | null = null;
 
   try {
@@ -38,6 +38,7 @@ export default async function RootLayout({
     let effectiveRole = session?.role ?? "staff";
     if (session?.isSuperAdmin) effectiveRole = "manager";
 
+    let membershipRole: string | null = null;
     if (session && teamId) {
       const [team, membership] = await Promise.all([
         prisma.team.findUnique({ where: { id: teamId }, select: { id: true, name: true } }),
@@ -47,7 +48,8 @@ export default async function RootLayout({
         }),
       ]);
       initialTeam = team ?? null;
-      if (membership?.role === "manager") effectiveRole = "manager";
+      membershipRole = membership?.role ?? null;
+      if (membership?.role === "manager" || membership?.role === "supervisor") effectiveRole = "manager";
     }
 
     const teamCount = session
@@ -63,6 +65,7 @@ export default async function RootLayout({
           isSuperAdmin: session.isSuperAdmin,
           ssoUser: session.ssoUser,
           teamCount,
+          teamRole: membershipRole,
         }
       : null;
   } catch {

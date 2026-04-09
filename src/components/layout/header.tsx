@@ -222,7 +222,7 @@ export function Header() {
                     Switch Team
                   </DropdownMenuItem>
                 )}
-                {isManager && (
+                {isManager && user?.teamRole !== "supervisor" && (
                   <DropdownMenuItem onClick={() => router.push("/admin")}>
                     <Shield className="mr-2 h-4 w-4" />
                     Admin
