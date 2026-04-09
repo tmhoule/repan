@@ -15,7 +15,7 @@ export async function GET() {
 
     // Get team members
     const memberships = await prisma.teamMembership.findMany({
-      where: { teamId },
+      where: { teamId, role: { not: "supervisor" } },
       include: { user: { select: { id: true, name: true, avatarColor: true, isActive: true } } },
     });
     const users = memberships.map((m) => m.user).filter((u) => u.isActive);

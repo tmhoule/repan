@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     // If there's an active team and user is logged in, filter by team members
     if (teamId && session && !allTeams) {
       const memberships = await prisma.teamMembership.findMany({
-        where: { teamId },
+        where: { teamId, role: { not: "supervisor" } },
         include: {
           user: {
             select: { id: true, name: true, role: true, avatarColor: true, isActive: true, isSuperAdmin: true, ssoUser: true, createdAt: true, lastLoginAt: true },

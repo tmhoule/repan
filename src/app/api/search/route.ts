@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
 
     // Search users by name (same team)
     const teamMemberIds = (await prisma.teamMembership.findMany({
-      where: { teamId },
+      where: { teamId, role: { not: "supervisor" } },
       select: { userId: true },
     })).map((m) => m.userId);
 

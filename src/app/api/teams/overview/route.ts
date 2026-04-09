@@ -33,7 +33,7 @@ export async function GET() {
       });
 
       const memberCount = await prisma.teamMembership.count({
-        where: { teamId, user: { isActive: true } },
+        where: { teamId, role: { not: "supervisor" }, user: { isActive: true } },
       });
 
       const [tasks, completedRecent] = await Promise.all([
