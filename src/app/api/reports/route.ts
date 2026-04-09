@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireSession, handleApiError, requireTeam } from "@/lib/session";
 import { getTeamRole } from "@/lib/team-auth";
-import { getLastActivityMap, isStale, isBehindSchedule } from "@/lib/risk-detection";
+import { getLastActivityMap, isStale, isBehindSchedule, getTeamCycleTimes } from "@/lib/risk-detection";
 
 export async function GET(request: NextRequest) {
   try {
@@ -43,12 +43,13 @@ export async function GET(request: NextRequest) {
   });
   const activeTaskIds = activeTasks.map((t) => t.id);
   const activityMap = await getLastActivityMap(activeTaskIds);
+  const cycleTimes = await getTeamCycleTimes(teamId);
 
   let staleTasks = 0;
   let behindScheduleTasks = 0;
   for (const t of activeTasks) {
     if (isStale(t, activityMap.get(t.id), now)) staleTasks++;
-    if (isBehindSchedule(t, now)) behindScheduleTasks++;
+    if (isBehindSchedule(t, now, cycleTimes)) behindScheduleTasks++;
   }
 
   // Blocker duration: compute from activity log

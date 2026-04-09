@@ -3,7 +3,7 @@ import { requireSession, handleApiError, requireTeam } from "@/lib/session";
 import { getTeamRole } from "@/lib/team-auth";
 import { prisma } from "@/lib/db";
 import { getWeeklyThroughput, getBacklogHealth } from "@/lib/forecasting";
-import { getLastActivityMap, getRiskFlags } from "@/lib/risk-detection";
+import { getLastActivityMap, getRiskFlags, getTeamCycleTimes } from "@/lib/risk-detection";
 import { computeUserSnapshot } from "@/lib/workload-snapshot";
 
 export async function GET() {
@@ -89,23 +89,11 @@ export async function GET() {
   // Build at-risk list with risk detection
   const allTaskIds = tasks.map((t) => t.id);
   const lastActivityMap = await getLastActivityMap(allTaskIds);
+  const cycleTimes = await getTeamCycleTimes(teamId);
 
-  // Also fetch unassigned backlog tasks with due dates for risk detection
-  const oneWeekFromNow = new Date(now.getTime() + 7 * 86400000);
-  const backlogAtRisk = await prisma.task.findMany({
-    where: { assignedToId: null, archivedAt: null, teamId, status: { not: "done" }, dueDate: { lte: oneWeekFromNow } },
-    include: { assignedTo: { select: { id: true, name: true } } },
-  });
-
-  const backlogIds = backlogAtRisk.map((t) => t.id);
-  const backlogActivityMap = await getLastActivityMap(backlogIds);
-
-  const allCandidates = [...tasks, ...backlogAtRisk];
-  const combinedActivityMap = new Map([...lastActivityMap, ...backlogActivityMap]);
-
-  const atRisk = allCandidates
+  const atRisk = tasks
     .map((t) => {
-      const flags = getRiskFlags(t, combinedActivityMap.get(t.id), now);
+      const flags = getRiskFlags(t, lastActivityMap.get(t.id), now, cycleTimes);
       if (flags.length === 0) return null;
       return {
         id: t.id,
@@ -136,7 +124,7 @@ export async function GET() {
   const keyProjects = tasks
     .filter((t) => t.priority === "high" && t.status !== "boulder")
     .map((t) => {
-      const flags = getRiskFlags(t, lastActivityMap.get(t.id), now);
+      const flags = getRiskFlags(t, lastActivityMap.get(t.id), now, cycleTimes);
       const riskTypes = new Set(flags.map((f) => f.riskType));
 
       let tracking: "on_track" | "behind" | "at_risk" | "blocked" = "on_track";
