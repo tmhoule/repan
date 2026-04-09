@@ -1,4 +1,4 @@
-type UserContext = { id: string; role: "manager" | "staff"; teamRole?: "manager" | "member" };
+type UserContext = { id: string; role: "manager" | "staff"; teamRole?: "manager" | "member" | "supervisor" };
 type TaskContext = { createdById: string | null; assignedToId: string | null };
 
 export function canEditTask(user: UserContext, task: TaskContext): boolean {
@@ -17,5 +17,5 @@ export function canReorderBacklog(user: UserContext): boolean {
   return user.teamRole === "manager" || user.role === "manager";
 }
 export function canViewFullReports(user: UserContext): boolean {
-  return user.teamRole === "manager" || user.role === "manager";
+  return user.teamRole === "manager" || user.teamRole === "supervisor" || user.role === "manager";
 }

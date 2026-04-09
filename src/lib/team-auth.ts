@@ -1,6 +1,6 @@
 import { prisma } from "./db";
 
-export async function getTeamRole(userId: string, teamId: string): Promise<"manager" | "member" | null> {
+export async function getTeamRole(userId: string, teamId: string): Promise<"manager" | "member" | "supervisor" | null> {
   const membership = await prisma.teamMembership.findUnique({
     where: { userId_teamId: { userId, teamId } },
   });

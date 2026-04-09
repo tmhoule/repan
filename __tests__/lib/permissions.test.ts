@@ -20,3 +20,23 @@ describe("role-based", () => {
   it("manager reports", () => { expect(canViewFullReports(manager)).toBe(true); });
   it("staff no reports", () => { expect(canViewFullReports(staff)).toBe(false); });
 });
+
+describe("supervisor role", () => {
+  const supervisor = { id: "sv1", role: "staff" as const, teamRole: "supervisor" as const };
+
+  it("supervisor can view full reports", () => {
+    expect(canViewFullReports(supervisor)).toBe(true);
+  });
+  it("supervisor cannot access admin", () => {
+    expect(canAccessAdmin(supervisor)).toBe(false);
+  });
+  it("supervisor cannot edit tasks", () => {
+    expect(canEditTask(supervisor, { createdById: "x", assignedToId: "x" })).toBe(false);
+  });
+  it("supervisor cannot delete tasks", () => {
+    expect(canDeleteTask(supervisor, { createdById: "x", assignedToId: "x" })).toBe(false);
+  });
+  it("supervisor cannot reorder backlog", () => {
+    expect(canReorderBacklog(supervisor)).toBe(false);
+  });
+});
