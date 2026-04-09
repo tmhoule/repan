@@ -13,7 +13,7 @@ export async function GET() {
       teamIds.push(...teams.map((t) => t.id));
     } else {
       const memberships = await prisma.teamMembership.findMany({
-        where: { userId: user.id, role: "manager" },
+        where: { userId: user.id, role: { in: ["manager", "supervisor"] } },
         select: { teamId: true },
       });
       teamIds.push(...memberships.map((m) => m.teamId));
