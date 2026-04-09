@@ -7,6 +7,15 @@ export interface RiskFlag {
   label: string;
 }
 
+export interface CycleTimes {
+  small: number;
+  medium: number;
+  large: number;
+}
+
+const DEFAULT_CYCLE_TIMES: CycleTimes = { small: 3, medium: 7, large: 14 };
+const MIN_SAMPLE_SIZE = 2;
+
 const STALE_THRESHOLD_IN_PROGRESS = 3; // days
 const STALE_THRESHOLD_NOT_STARTED = 5; // days (only if has due date)
 
@@ -118,4 +127,35 @@ export function getRiskFlags(task: TaskForRisk, lastActivity: Date | undefined, 
   }
 
   return flags;
+}
+
+/**
+ * Compute team-average cycle times (in days) per effort size from completed tasks.
+ * Falls back to defaults when fewer than MIN_SAMPLE_SIZE completions exist for a size.
+ */
+export async function getTeamCycleTimes(teamId: string): Promise<CycleTimes> {
+  const completed = await prisma.task.findMany({
+    where: { teamId, status: "done", startedAt: { not: null }, completedAt: { not: null } },
+    select: { effortEstimate: true, startedAt: true, completedAt: true },
+  });
+
+  const totals: Record<string, { sum: number; count: number }> = {
+    small: { sum: 0, count: 0 },
+    medium: { sum: 0, count: 0 },
+    large: { sum: 0, count: 0 },
+  };
+
+  for (const t of completed) {
+    const days = (t.completedAt!.getTime() - t.startedAt!.getTime()) / 86400000;
+    if (totals[t.effortEstimate]) {
+      totals[t.effortEstimate].sum += days;
+      totals[t.effortEstimate].count++;
+    }
+  }
+
+  return {
+    small: totals.small.count >= MIN_SAMPLE_SIZE ? Math.round(totals.small.sum / totals.small.count) : DEFAULT_CYCLE_TIMES.small,
+    medium: totals.medium.count >= MIN_SAMPLE_SIZE ? Math.round(totals.medium.sum / totals.medium.count) : DEFAULT_CYCLE_TIMES.medium,
+    large: totals.large.count >= MIN_SAMPLE_SIZE ? Math.round(totals.large.sum / totals.large.count) : DEFAULT_CYCLE_TIMES.large,
+  };
 }
