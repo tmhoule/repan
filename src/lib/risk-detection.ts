@@ -154,15 +154,15 @@ export async function getTeamCycleTimes(teamId: string): Promise<CycleTimes> {
 
   for (const t of completed) {
     const days = (t.completedAt!.getTime() - t.startedAt!.getTime()) / 86400000;
-    if (totals[t.effortEstimate]) {
+    if (days > 0 && totals[t.effortEstimate]) {
       totals[t.effortEstimate].sum += days;
       totals[t.effortEstimate].count++;
     }
   }
 
   return {
-    small: totals.small.count >= MIN_SAMPLE_SIZE ? Math.round(totals.small.sum / totals.small.count) : DEFAULT_CYCLE_TIMES.small,
-    medium: totals.medium.count >= MIN_SAMPLE_SIZE ? Math.round(totals.medium.sum / totals.medium.count) : DEFAULT_CYCLE_TIMES.medium,
-    large: totals.large.count >= MIN_SAMPLE_SIZE ? Math.round(totals.large.sum / totals.large.count) : DEFAULT_CYCLE_TIMES.large,
+    small: totals.small.count >= MIN_SAMPLE_SIZE ? Math.max(1, Math.round(totals.small.sum / totals.small.count)) : DEFAULT_CYCLE_TIMES.small,
+    medium: totals.medium.count >= MIN_SAMPLE_SIZE ? Math.max(1, Math.round(totals.medium.sum / totals.medium.count)) : DEFAULT_CYCLE_TIMES.medium,
+    large: totals.large.count >= MIN_SAMPLE_SIZE ? Math.max(1, Math.round(totals.large.sum / totals.large.count)) : DEFAULT_CYCLE_TIMES.large,
   };
 }
