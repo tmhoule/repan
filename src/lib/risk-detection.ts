@@ -26,6 +26,7 @@ interface TaskForRisk {
   dueDate: Date | null;
   createdAt: Date;
   assignedToId: string | null;
+  effortEstimate: string;
 }
 
 /**
@@ -75,7 +76,7 @@ export function isStale(task: TaskForRisk, lastActivity: Date | undefined, now: 
  * Detect if a task is behind schedule based on expected vs actual progress.
  * Uses team cycle times to skip tasks with plenty of runway relative to their effort.
  */
-export function isBehindSchedule(task: TaskForRisk & { effortEstimate: string }, now: Date, cycleTimes?: CycleTimes): boolean {
+export function isBehindSchedule(task: TaskForRisk, now: Date, cycleTimes?: CycleTimes): boolean {
   if (!task.dueDate || task.status === "done" || task.status === "boulder") return false;
   if (!task.assignedToId) return false;
 
@@ -106,7 +107,7 @@ export function getDaysSinceActivity(task: TaskForRisk, lastActivity: Date | und
 /**
  * Compute all risk flags for a task.
  */
-export function getRiskFlags(task: TaskForRisk, lastActivity: Date | undefined, now: Date): RiskFlag[] {
+export function getRiskFlags(task: TaskForRisk, lastActivity: Date | undefined, now: Date, cycleTimes?: CycleTimes): RiskFlag[] {
   const flags: RiskFlag[] = [];
 
   if (task.status === "blocked") {
@@ -124,7 +125,7 @@ export function getRiskFlags(task: TaskForRisk, lastActivity: Date | undefined, 
       flags.push({ riskType: "unassigned_approaching", label: "Unassigned & due soon" });
     }
   }
-  if (isBehindSchedule(task as TaskForRisk & { effortEstimate: string }, now)) {
+  if (isBehindSchedule(task, now, cycleTimes)) {
     flags.push({ riskType: "behind_schedule", label: "Behind schedule" });
   }
   if (isStale(task, lastActivity, now)) {

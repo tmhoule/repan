@@ -140,3 +140,43 @@ describe("isBehindSchedule with cycle times", () => {
     expect(isBehindSchedule(task, now, cycleTimes)).toBe(true);
   });
 });
+
+describe("getRiskFlags with cycle times", () => {
+  const cycleTimes: CycleTimes = { small: 3, medium: 7, large: 14 };
+
+  it("does not flag behind_schedule when runway exceeds cycle time threshold", () => {
+    const now = new Date("2026-01-15");
+    const task = {
+      id: "t1",
+      status: "in_progress",
+      percentComplete: 0,
+      dueDate: new Date("2026-03-15"), // 59 days runway
+      createdAt: new Date("2026-01-01"),
+      assignedToId: "u1",
+      effortEstimate: "small",
+    };
+
+    const flags = getRiskFlags(task, now, now, cycleTimes);
+    const riskTypes = flags.map((f) => f.riskType);
+
+    expect(riskTypes).not.toContain("behind_schedule");
+  });
+
+  it("still flags behind_schedule when runway is tight", () => {
+    const now = new Date("2026-01-13");
+    const task = {
+      id: "t1",
+      status: "in_progress",
+      percentComplete: 0,
+      dueDate: new Date("2026-01-15"), // 2 days runway
+      createdAt: new Date("2026-01-01"),
+      assignedToId: "u1",
+      effortEstimate: "small",
+    };
+
+    const flags = getRiskFlags(task, now, now, cycleTimes);
+    const riskTypes = flags.map((f) => f.riskType);
+
+    expect(riskTypes).toContain("behind_schedule");
+  });
+});
