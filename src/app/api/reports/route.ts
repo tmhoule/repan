@@ -191,7 +191,7 @@ export async function GET(request: NextRequest) {
 
   // Per-person breakdown: visible to team managers and super_admins
   const teamRole = await getTeamRole(user.id, teamId);
-  const canViewFull = user.isSuperAdmin || teamRole === "manager";
+  const canViewFull = user.isSuperAdmin || teamRole === "manager" || teamRole === "supervisor";
 
   let perPerson = null;
   if (canViewFull) {

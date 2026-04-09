@@ -18,7 +18,7 @@ export async function GET() {
 
   // Check team manager or super_admin access
   const teamRole = await getTeamRole(user.id, teamId);
-  if (!user.isSuperAdmin && teamRole !== "manager") {
+  if (!user.isSuperAdmin && teamRole !== "manager" && teamRole !== "supervisor") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
