@@ -73,11 +73,18 @@ export function isStale(task: TaskForRisk, lastActivity: Date | undefined, now: 
 
 /**
  * Detect if a task is behind schedule based on expected vs actual progress.
- * Only applies to tasks with a due date that haven't been completed.
+ * Uses team cycle times to skip tasks with plenty of runway relative to their effort.
  */
-export function isBehindSchedule(task: TaskForRisk, now: Date): boolean {
+export function isBehindSchedule(task: TaskForRisk & { effortEstimate: string }, now: Date, cycleTimes?: CycleTimes): boolean {
   if (!task.dueDate || task.status === "done" || task.status === "boulder") return false;
-  if (!task.assignedToId) return false; // backlog tasks handled separately
+  if (!task.assignedToId) return false;
+
+  // Cycle-time grace check: if plenty of runway remains, not behind
+  if (cycleTimes) {
+    const runway = (task.dueDate.getTime() - now.getTime()) / 86400000;
+    const expectedDuration = cycleTimes[task.effortEstimate as keyof CycleTimes] ?? 7;
+    if (runway > expectedDuration * 1.5) return false;
+  }
 
   const totalDuration = task.dueDate.getTime() - task.createdAt.getTime();
   if (totalDuration <= 0) return false;
@@ -85,7 +92,6 @@ export function isBehindSchedule(task: TaskForRisk, now: Date): boolean {
   const elapsed = now.getTime() - task.createdAt.getTime();
   const expectedProgress = Math.min(100, (elapsed / totalDuration) * 100);
 
-  // Behind if actual progress is more than 25 points below expected
   return task.percentComplete < expectedProgress - 25;
 }
 
@@ -118,7 +124,7 @@ export function getRiskFlags(task: TaskForRisk, lastActivity: Date | undefined, 
       flags.push({ riskType: "unassigned_approaching", label: "Unassigned & due soon" });
     }
   }
-  if (isBehindSchedule(task, now)) {
+  if (isBehindSchedule(task as TaskForRisk & { effortEstimate: string }, now)) {
     flags.push({ riskType: "behind_schedule", label: "Behind schedule" });
   }
   if (isStale(task, lastActivity, now)) {
