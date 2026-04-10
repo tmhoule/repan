@@ -7,7 +7,11 @@ describe("canEditTask", () => {
   it("manager can edit any", () => { expect(canEditTask(manager, { createdById: "x", assignedToId: "x" })).toBe(true); });
   it("staff assigned", () => { expect(canEditTask(staff, { createdById: "x", assignedToId: "s1" })).toBe(true); });
   it("staff created", () => { expect(canEditTask(staff, { createdById: "s1", assignedToId: "x" })).toBe(true); });
-  it("staff neither", () => { expect(canEditTask(staff, { createdById: "x", assignedToId: "x" })).toBe(false); });
+  it("staff neither (no team role)", () => { expect(canEditTask(staff, { createdById: "x", assignedToId: "x" })).toBe(false); });
+  it("team member can edit any team task", () => {
+    const teamMember = { id: "tm1", role: "staff" as const, teamRole: "member" as const };
+    expect(canEditTask(teamMember, { createdById: "x", assignedToId: "y" })).toBe(true);
+  });
 });
 
 describe("role-based", () => {

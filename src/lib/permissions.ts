@@ -3,7 +3,10 @@ type TaskContext = { createdById: string | null; assignedToId: string | null };
 
 export function canEditTask(user: UserContext, task: TaskContext): boolean {
   if (user.teamRole === "manager" || user.role === "manager") return true;
-  return task.createdById === user.id || task.assignedToId === user.id;
+  if (task.createdById === user.id || task.assignedToId === user.id) return true;
+  // Any team member can edit team tasks; changes are tracked in TaskActivity.
+  // Supervisors remain read-only.
+  return user.teamRole === "member";
 }
 export function canDeleteTask(user: UserContext, task?: TaskContext): boolean {
   if (user.teamRole === "manager" || user.role === "manager") return true;
