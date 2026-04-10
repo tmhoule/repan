@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { csrfFetch } from "@/lib/csrf-client";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import useSWR from "swr";
 import { UserPlus, PlusCircle, Pencil, Archive, ArchiveRestore, Users, Trash2, Plus, Palette, Key } from "lucide-react";
 import { TeamIcon } from "@/lib/team-icons";
@@ -662,9 +663,12 @@ export default function AdminPage() {
                                 className="size-6 rounded-full shrink-0"
                                 style={{ backgroundColor: u.avatarColor }}
                               />
-                              <span className="text-sm text-zinc-200 font-medium">
+                              <Link
+                                href={`/profile/${u.id}`}
+                                className="text-sm text-zinc-200 font-medium hover:text-primary hover:underline transition-colors"
+                              >
                                 {u.name}
-                              </span>
+                              </Link>
                               {u.id === user?.id && (
                                 <Badge variant="secondary" className="text-xs">
                                   You

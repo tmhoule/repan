@@ -129,7 +129,7 @@ function TeamMemberSection({ user }: { user: UserSummary }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <Link
-              href={`/profile/${user.id}`}
+              href={`/team/${user.id}`}
               className="font-semibold text-sm hover:text-primary hover:underline transition-colors"
             >
               {user.name}
