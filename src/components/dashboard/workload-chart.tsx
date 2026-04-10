@@ -23,6 +23,14 @@ interface WorkloadChartProps {
 const PRIORITY_COLORS: Record<string, string> = { high: "#dc2626", medium: "#f59e0b", low: "#166534" };
 const PRIORITY_ORDER = ["high", "medium", "low"] as const;
 
+// 30-day average bar colors — shared between the bar and its legend so they
+// stay in sync. The bar picks one of these based on deviation from avg30d.
+const AVG_COLORS = {
+  below: "#10B981", // currently ≥ 20% below their rolling average
+  neutral: "rgba(255,255,255,0.3)", // within ±20% of average
+  above: "#f59e0b", // currently ≥ 20% above their rolling average
+} as const;
+
 function WorkloadTooltip({
   user,
   tasks,
@@ -127,7 +135,7 @@ function WorkloadRow({
   const scale = (v: number) => `${(v / maxValue) * 100}%`;
 
   const diff = total - avg30d;
-  const avgColor = diff > 20 ? "#f59e0b" : diff < -20 ? "#10B981" : "rgba(255,255,255,0.3)";
+  const avgColor = diff > 20 ? AVG_COLORS.above : diff < -20 ? AVG_COLORS.below : AVG_COLORS.neutral;
 
   const updatePosition = useCallback(() => {
     if (!rowRef.current) return;
@@ -292,8 +300,16 @@ export function WorkloadChart({ data, priorityWeights }: WorkloadChartProps) {
                 </span>
               ))}
               <span className="flex items-center gap-1.5">
-                <span className="inline-block w-4 h-1 rounded-full" style={{ backgroundColor: "rgba(255,255,255,0.3)" }} />
+                <span className="inline-block w-4 h-1 rounded-full" style={{ backgroundColor: AVG_COLORS.below }} />
+                Below avg
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-4 h-1 rounded-full" style={{ backgroundColor: AVG_COLORS.neutral }} />
                 30d avg
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-4 h-1 rounded-full" style={{ backgroundColor: AVG_COLORS.above }} />
+                Above avg
               </span>
             </div>
           </div>
