@@ -20,7 +20,7 @@ A row of key metrics with period-over-period comparison:
 
 Additional cards appear conditionally:
 - **Stale Tasks** — Count of tasks with no activity in 3+ days (only if > 0)
-- **Behind Schedule** — Tasks where progress is significantly below expected pace (only if > 0)
+- **Behind Schedule** — Tasks where progress is significantly below expected pace, using the team's historical cycle time for each task's effort size (only if > 0)
 - **Boulders** — Active boulder count and total time allocation percentage (only if boulders exist)
 
 ## Throughput Trend
@@ -42,6 +42,8 @@ Average days from **started** (first moved to in-progress) to **completed**, bro
 | Large | ~5x small |
 
 Each row shows a horizontal bar proportional to the average, the day count, and the number of tasks in the sample. This helps the team understand how long work actually takes by size.
+
+These averages also drive the **Behind Schedule** risk detection on the Dashboard and reports. A task isn't flagged as behind until its remaining runway is within 1.5× the team's average cycle time for its effort size — so a small task with a distant due date won't produce a false positive just because it hasn't started yet.
 
 ## Estimation Accuracy
 

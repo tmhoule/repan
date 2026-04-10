@@ -63,9 +63,20 @@ A prioritized list of tasks needing attention, sorted by severity:
 
 1. **Blocked** — Waiting on something (highest severity)
 2. **Overdue** — Past due date
-3. **Behind Schedule** — Progress significantly below expected pace
+3. **Behind Schedule** — Progress significantly below expected pace, using the team's historical cycle time for the task's effort size (see below)
 4. **Stale** — No activity for 3+ days (in-progress) or 5+ days (not started with due date)
 5. **Unassigned & Due Soon** — Backlog items with due dates within 7 days
+
+### How "Behind Schedule" Works
+
+A task is only flagged as behind schedule when **both** of the following are true:
+
+- The remaining runway to its due date is within **1.5× the team's average cycle time** for that effort size, and
+- Actual progress is more than 25 percentage points below the expected linear progress
+
+The team's average cycle time is computed dynamically from completed tasks, grouped by effort size (small, medium, large). This means a "small" task due in two months won't get flagged as behind schedule just because it hasn't started — there's still plenty of runway relative to how long small tasks typically take on this team. Once the due date gets close enough that the runway is only 1.5× the typical cycle time, the linear progress check kicks in.
+
+Fallback defaults (used until the team has at least 2 completed tasks of a given size) are small = 3 days, medium = 7 days, large = 14 days.
 
 Each task shows its risk flags, assignee, due date, and progress. Click to navigate to the task detail page.
 

@@ -567,7 +567,26 @@ Authorization: Bearer YOUR_CRON_SECRET</code></pre>
   </div>
 
   <h2>Team Structure</h2>
-  <p>Users belong to teams via memberships. Each membership has a team-level role (<strong>Manager</strong> or <strong>Member</strong>). A user can be a manager on one team and a member on another.</p>
+  <p>Users belong to teams via memberships. Each membership has a team-level role (<strong>Manager</strong>, <strong>Member</strong>, or <strong>Supervisor</strong>). A user can be a manager on one team and a member on another.</p>
+
+  <h2>Supervisor Role</h2>
+  <p>The <strong>supervisor</strong> team role grants read-only access to everything a manager can view &mdash; Dashboard, Reports (including Contribution by Person), Capacity, Standup, and Teams Overview &mdash; without making the supervisor part of the team&rsquo;s workload or reporting pool.</p>
+  <table>
+    <tr><th>Can</th><th>Cannot</th></tr>
+    <tr>
+      <td>View Dashboard, Reports, Capacity, Standup, Teams Overview</td>
+      <td>Create, edit, assign, or delete tasks</td>
+    </tr>
+    <tr>
+      <td>Appear on the Admin &rarr; Users page (so managers can manage them)</td>
+      <td>Appear in workload, per-person reports, capacity, standup, task assignment, or search</td>
+    </tr>
+    <tr>
+      <td>&nbsp;</td>
+      <td>Manage team members, buckets, or settings; access the Admin panel</td>
+    </tr>
+  </table>
+  <p>Use this role for line managers, directors, or coaches who need visibility into a team&rsquo;s health without being counted as someone who picks up tasks.</p>
 
   <h2>Multi-Team Support</h2>
   <p>Users with multiple teams see a team switcher in the user menu. The active team scopes all data. After login, single-team users go directly to tasks; multi-team users see the team selection page.</p>
@@ -664,7 +683,7 @@ Authorization: Bearer YOUR_CRON_SECRET</code></pre>
     <tr><th>Section</th><th>Purpose</th></tr>
     <tr><td><strong>Backlog Health</strong></td><td>Items, effort points, estimated weeks to clear, trend</td></tr>
     <tr><td><strong>Key Projects</strong></td><td>High-priority tasks: on track / behind / at risk / blocked</td></tr>
-    <tr><td><strong>At-Risk Tasks</strong></td><td>Prioritized list: blocked &gt; overdue &gt; behind &gt; stale &gt; unassigned</td></tr>
+    <tr><td><strong>At-Risk Tasks</strong></td><td>Prioritized list: blocked &gt; overdue &gt; behind &gt; stale &gt; unassigned. &ldquo;Behind schedule&rdquo; uses the team&rsquo;s historical cycle time for each effort size &mdash; small tasks with distant due dates aren&rsquo;t false-flagged.</td></tr>
     <tr><td><strong>Throughput Chart</strong></td><td>8-week line chart of effort points per week</td></tr>
     <tr><td><strong>Recent Achievements</strong></td><td>Badges earned in the last 7 days</td></tr>
     <tr><td><strong>Activity Feed</strong></td><td>Last 50 status changes, comments, assignments</td></tr>
@@ -691,6 +710,7 @@ Authorization: Bearer YOUR_CRON_SECRET</code></pre>
 
   <h2>Cycle Time</h2>
   <p>Average days from <strong>started</strong> to <strong>completed</strong> by effort size. Expected ratios: medium &asymp; 3&times; small, large &asymp; 5&times; small.</p>
+  <p>These averages also drive the <strong>Behind Schedule</strong> risk flag: a task isn&rsquo;t flagged until its remaining runway is within 1.5&times; the team&rsquo;s average cycle time for its effort size. Fallback defaults (small = 3d, medium = 7d, large = 14d) apply until the team has enough completed tasks in each bucket.</p>
 
   <h2>Estimation Accuracy</h2>
   <p>Compares actual cycle time ratios to expected. If large tasks take 10&times; instead of 5&times;, the team is underestimating large work.</p>

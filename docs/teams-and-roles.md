@@ -42,8 +42,24 @@ Every user belongs to one or more teams via memberships. Each membership has a t
 
 - **Manager** — Can edit team settings, manage buckets, and view full reports for that team
 - **Member** — Standard team member
+- **Supervisor** — Read-only oversight role (see below)
 
 A user can be a manager on one team and a member on another.
+
+## Supervisor Role
+
+The **supervisor** team role grants read-only access to everything a manager can view — Dashboard, Reports (including the Contribution by Person table), Capacity, Standup, and Teams Overview — without making the supervisor part of the team's workload or reporting pool.
+
+Supervisors:
+
+- **Can view** Dashboard, Reports, Capacity, Standup, and Teams Overview for their team
+- **Do not appear** in workload charts, per-person reports, capacity planning, standup, task assignment dropdowns, search results, or the team members list
+- **Cannot** create, edit, assign, or delete tasks
+- **Cannot** manage team members, buckets, or team settings
+- **Cannot** access the Admin panel (the admin link is hidden from their user menu)
+- **Do appear** on the Admin → Users page, so super admins and managers can still manage them
+
+This role is for people who need visibility into a team's health — line managers, directors, coaches — without being counted as someone who picks up tasks.
 
 ## Multi-Team Support
 
