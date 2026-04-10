@@ -5,7 +5,6 @@ import useSWR from "swr";
 import { Users, Clock, AlertTriangle } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { StreakFlame } from "@/components/gamification/streak-flame";
 import { StatusBadge } from "@/components/tasks/status-badge";
 import { PriorityBadge } from "@/components/tasks/priority-badge";
@@ -135,12 +134,6 @@ function TeamMemberSection({ user }: { user: UserSummary }) {
             >
               {user.name}
             </Link>
-            <Badge
-              variant={user.role === "manager" ? "default" : "secondary"}
-              className="text-[10px]"
-            >
-              {user.role}
-            </Badge>
             {totalRisks > 0 && (
               <span
                 className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${

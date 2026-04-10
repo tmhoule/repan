@@ -7,13 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -37,7 +30,6 @@ const AVATAR_COLORS = [
 interface UserFormData {
   id?: string;
   name: string;
-  role: "manager" | "staff";
   avatarColor: string;
   isActive?: boolean;
   isSuperAdmin?: boolean;
@@ -61,7 +53,6 @@ export function UserForm({ open, onClose, onSave, initialData, currentUserIsSupe
   const isEdit = !!initialData?.id;
 
   const [name, setName] = useState(initialData?.name ?? "");
-  const [role, setRole] = useState<"manager" | "staff">(initialData?.role ?? "staff");
   const [isSuperAdmin, setIsSuperAdmin] = useState(initialData?.isSuperAdmin ?? false);
   const [avatarColor, setAvatarColor] = useState(initialData?.avatarColor ?? AVATAR_COLORS[0].value);
   const [password, setPassword] = useState("");
@@ -92,7 +83,6 @@ export function UserForm({ open, onClose, onSave, initialData, currentUserIsSupe
   // Reset form when initialData changes
   useEffect(() => {
     setName(initialData?.name ?? "");
-    setRole(initialData?.role ?? "staff");
     setIsSuperAdmin(initialData?.isSuperAdmin ?? false);
     setAvatarColor(initialData?.avatarColor ?? AVATAR_COLORS[0].value);
     setPassword("");
@@ -134,7 +124,6 @@ export function UserForm({ open, onClose, onSave, initialData, currentUserIsSupe
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: name.trim(),
-          role,
           avatarColor,
           teamIds: Array.from(selectedTeamIds),
           ...(currentUserIsSuperAdmin ? { isSuperAdmin } : {}),
@@ -199,20 +188,6 @@ export function UserForm({ open, onClose, onSave, initialData, currentUserIsSupe
               placeholder="Full name"
               autoFocus
             />
-          </div>
-
-          {/* Role */}
-          <div className="space-y-1.5">
-            <Label>Role</Label>
-            <Select value={role} onValueChange={(v) => setRole(v as "manager" | "staff")}>
-              <SelectTrigger className="w-full">
-                <SelectValue>{role === "manager" ? "Manager" : "Staff"}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="staff">Staff</SelectItem>
-                <SelectItem value="manager">Manager</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
 
           {/* Super Admin (only visible to super admins) */}

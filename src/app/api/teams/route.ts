@@ -39,7 +39,13 @@ export async function POST(request: NextRequest) {
     const { name } = await request.json();
     if (!name?.trim()) return NextResponse.json({ error: "Team name is required" }, { status: 400 });
 
-    const team = await prisma.team.create({ data: { name: name.trim() } });
+    const team = await prisma.$transaction(async (tx) => {
+      const newTeam = await tx.team.create({ data: { name: name.trim() } });
+      await tx.teamMembership.create({
+        data: { userId: user.id, teamId: newTeam.id, role: "manager" },
+      });
+      return newTeam;
+    });
     return NextResponse.json(team, { status: 201 });
   } catch (error) {
     return handleApiError(error);

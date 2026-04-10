@@ -187,9 +187,6 @@ export default function ProfilePage({
             <div className="flex-1 min-w-0 space-y-2">
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-2xl font-bold tracking-tight">{user.name}</h1>
-                <Badge variant={user.role === "manager" ? "default" : "secondary"}>
-                  {user.role}
-                </Badge>
               </div>
 
               <div className="flex items-center gap-3 flex-wrap">

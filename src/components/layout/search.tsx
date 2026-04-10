@@ -151,7 +151,6 @@ export function GlobalSearch() {
                     {u.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
                   </span>
                   <span className="text-sm truncate">{u.name}</span>
-                  <span className="text-[10px] text-muted-foreground ml-auto">{u.role}</span>
                 </Link>
               ))}
             </div>

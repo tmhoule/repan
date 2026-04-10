@@ -643,7 +643,6 @@ export default function AdminPage() {
                       <TableRow className="border-zinc-800 hover:bg-transparent">
                         <TableHead className="text-zinc-400 pl-4">Name</TableHead>
                         <TableHead className="text-zinc-400">Team</TableHead>
-                        <TableHead className="text-zinc-400">Role</TableHead>
                         <TableHead className="text-zinc-400">Status</TableHead>
                         <TableHead className="text-zinc-400">Last Login</TableHead>
                         <TableHead className="text-zinc-400 text-right pr-4">
@@ -690,14 +689,6 @@ export default function AdminPage() {
                                 </span>
                               ))}
                             </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant={u.role === "manager" ? "default" : "secondary"}
-                              className="text-xs"
-                            >
-                              {u.role}
-                            </Badge>
                           </TableCell>
                           <TableCell>
                             <span
@@ -1169,8 +1160,7 @@ export default function AdminPage() {
                                 className="rounded-md border border-zinc-700 bg-zinc-800 text-zinc-100 px-2 py-1 text-xs"
                                 value={m.role}
                                 onChange={(e) => handleChangeMemberRole(m.userId, e.target.value as "manager" | "member" | "supervisor")}
-                                disabled={m.userId === user?.id}
-                                title={m.userId === user?.id ? "You can't change your own role" : "Change team role"}
+                                title="Change team role"
                               >
                                 <option value="member">Member</option>
                                 <option value="manager">Manager</option>

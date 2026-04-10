@@ -6,7 +6,6 @@ import useSWR from "swr";
 import { ArrowLeft, Star, ClipboardList, Clock, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { StreakFlame } from "@/components/gamification/streak-flame";
@@ -211,11 +210,6 @@ export default function TeamMemberDetailPage({
             <div className="flex-1 min-w-0 space-y-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-xl font-bold tracking-tight">{user.name}</h1>
-                <Badge
-                  variant={user.role === "manager" ? "default" : "secondary"}
-                >
-                  {user.role}
-                </Badge>
               </div>
 
               <div className="flex items-center gap-3 flex-wrap text-sm">
