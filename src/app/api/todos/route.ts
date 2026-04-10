@@ -1,14 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireSession, handleApiError, requireTeam } from "@/lib/session";
+import { getTeamRole } from "@/lib/team-auth";
 import { awardAction } from "@/lib/gamification";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const user = await requireSession();
     const teamId = await requireTeam();
+    const requestedUserId = request.nextUrl.searchParams.get("userId");
+
+    let targetUserId = user.id;
+    if (requestedUserId && requestedUserId !== user.id) {
+      const viewerRole = await getTeamRole(user.id, teamId);
+      if (!user.isSuperAdmin && viewerRole !== "manager") {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+      targetUserId = requestedUserId;
+    }
+
     const todos = await prisma.todo.findMany({
-      where: { userId: user.id, teamId },
+      where: { userId: targetUserId, teamId },
       orderBy: { createdAt: "desc" },
       select: { id: true, title: true, description: true, createdAt: true },
     });
