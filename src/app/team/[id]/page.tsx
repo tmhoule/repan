@@ -1,16 +1,16 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
 import useSWR from "swr";
-import { ArrowLeft, Star, ClipboardList, Clock, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Star, ClipboardList, Clock, AlertTriangle, ChevronDown, ChevronRight, CheckCircle2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { StreakFlame } from "@/components/gamification/streak-flame";
 import { StatusBadge } from "@/components/tasks/status-badge";
 import { PriorityBadge } from "@/components/tasks/priority-badge";
+import { useUser } from "@/components/user-context";
 import { cn } from "@/lib/utils";
 
 type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "paused" | "done" | "boulder";
@@ -22,6 +22,7 @@ interface Task {
   status: TaskStatus;
   priority: TaskPriority;
   percentComplete: number;
+  timeAllocation?: number;
   dueDate: string | null;
   blockerReason?: string | null;
   createdBy: { id: string; name: string; avatarColor: string };
@@ -32,6 +33,13 @@ interface Streak {
   streakType: string;
   currentCount: number;
   longestCount: number;
+}
+
+interface Todo {
+  id: string;
+  title: string;
+  description: string | null;
+  createdAt: string;
 }
 
 interface UserDetail {
@@ -138,6 +146,9 @@ export default function TeamMemberDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const { user: viewer } = useUser();
+
+  const canViewTodos = !!viewer && (viewer.isSuperAdmin || viewer.teamRole === "manager");
 
   const { data: user, isLoading: userLoading } = useSWR<UserDetail>(
     `/api/users/${id}`
@@ -145,16 +156,37 @@ export default function TeamMemberDetailPage({
   const { data: tasksData, isLoading: tasksLoading } = useSWR<{ tasks: Task[] }>(
     `/api/tasks?assignedTo=${id}`
   );
+  const { data: todosData } = useSWR<{ todos: Todo[] }>(
+    canViewTodos ? `/api/todos?userId=${id}` : null
+  );
 
   const tasks = tasksData?.tasks ?? [];
+  const todos = todosData?.todos ?? [];
   const streaks = user?.streaks ?? [];
 
   const dailyStreak = streaks.find((s) => s.streakType === "daily_checkin");
   const momentumStreak = streaks.find((s) => s.streakType === "weekly_momentum");
 
-  const activeTasks = tasks.filter((t) => t.status !== "done" && t.status !== "boulder");
   const boulderTasks = tasks.filter((t) => t.status === "boulder");
-  const doneTasks = tasks.filter((t) => t.status === "done");
+  const stalledOrBlockedTasks = tasks.filter(
+    (t) => t.status === "stalled" || t.status === "blocked" || t.status === "paused"
+  );
+  const activeTasks = tasks.filter(
+    (t) =>
+      t.status !== "done" &&
+      t.status !== "boulder" &&
+      t.status !== "stalled" &&
+      t.status !== "blocked" &&
+      t.status !== "paused"
+  );
+  const completedTasks = tasks.filter((t) => t.status === "done");
+  const totalBoulderAllocation = boulderTasks.reduce(
+    (sum, t) => sum + (t.timeAllocation ?? 0),
+    0
+  );
+
+  const [showCompleted, setShowCompleted] = useState(false);
+  const [showTodos, setShowTodos] = useState(true);
 
   if (userLoading) {
     return (
@@ -246,61 +278,119 @@ export default function TeamMemberDetailPage({
       </Card>
 
       {/* Tasks */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Tasks</h2>
-          <span className="text-sm text-muted-foreground tabular-nums">
-            {tasksLoading ? "..." : `${tasks.length} total`}
-          </span>
+      {tasksLoading ? (
+        <div className="grid gap-3 sm:grid-cols-1 md:grid-cols-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-40 rounded-xl bg-muted/50 animate-pulse" />
+          ))}
         </div>
+      ) : tasks.length === 0 && todos.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-border py-16 text-center">
+          <ClipboardList className="size-12 text-muted-foreground/40" />
+          <div className="space-y-1">
+            <p className="font-medium text-muted-foreground">No tasks yet</p>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {/* Active tasks */}
+          {activeTasks.length > 0 && (
+            <div className="grid gap-3 sm:grid-cols-1 md:grid-cols-2">
+              {activeTasks.map((task) => (
+                <ReadOnlyTaskCard key={task.id} task={task} />
+              ))}
+            </div>
+          )}
 
-        {tasksLoading ? (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-36 rounded-xl bg-muted/50 animate-pulse" />
-            ))}
-          </div>
-        ) : tasks.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border py-12 text-center">
-            <ClipboardList className="size-10 text-muted-foreground/40" />
-            <p className="text-sm text-muted-foreground font-medium">
-              No tasks assigned
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {activeTasks.length > 0 && (
-              <div className="space-y-3">
-                <p className="text-sm font-medium text-muted-foreground">
-                  Active ({activeTasks.length})
-                </p>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {activeTasks.map((task) => (
+          {/* To Dos (manager-gated) */}
+          {canViewTodos && todos.length > 0 && (
+            <div>
+              <button
+                onClick={() => setShowTodos((v) => !v)}
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
+              >
+                {showTodos ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+                <span>{todos.length} to do{todos.length !== 1 ? "s" : ""}</span>
+              </button>
+              {showTodos && (
+                <div className="space-y-1.5 mt-1">
+                  {todos.map((todo) => (
+                    <div
+                      key={todo.id}
+                      className="rounded-lg border border-border bg-card px-3 py-2"
+                    >
+                      <p className="text-sm font-medium line-clamp-1">{todo.title}</p>
+                      {todo.description && (
+                        <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+                          {todo.description}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Stalled / Blocked tasks */}
+          {stalledOrBlockedTasks.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                <AlertCircle className="size-4 text-orange-500" />
+                <span>{stalledOrBlockedTasks.length} stalled or blocked</span>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-1 md:grid-cols-2">
+                {stalledOrBlockedTasks.map((task) => (
+                  <ReadOnlyTaskCard key={task.id} task={task} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Boulders section */}
+          {boulderTasks.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-base font-semibold text-purple-700 dark:text-purple-400">Boulders</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">Ongoing operational efforts</p>
+                </div>
+                <span className="text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950 border border-purple-200 dark:border-purple-800 rounded-full px-2.5 py-1">
+                  {totalBoulderAllocation}% of time allocated
+                </span>
+              </div>
+              <div className="rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50/40 dark:bg-purple-950/20 p-3">
+                <div className="grid gap-3 sm:grid-cols-1 md:grid-cols-2">
+                  {boulderTasks.map((task) => (
                     <ReadOnlyTaskCard key={task.id} task={task} />
                   ))}
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-            {activeTasks.length > 0 && doneTasks.length > 0 && (
-              <Separator />
-            )}
-
-            {doneTasks.length > 0 && (
-              <div className="space-y-3">
-                <p className="text-sm font-medium text-muted-foreground">
-                  Completed ({doneTasks.length})
-                </p>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {doneTasks.map((task) => (
+          {/* Completed tasks — collapsed section */}
+          {completedTasks.length > 0 && (
+            <div>
+              <button
+                onClick={() => setShowCompleted((v) => !v)}
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
+              >
+                {showCompleted ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+                <CheckCircle2 className="size-4 text-green-500" />
+                <span>{completedTasks.length} completed task{completedTasks.length !== 1 ? "s" : ""}</span>
+              </button>
+              {showCompleted && (
+                <div className="grid gap-3 sm:grid-cols-1 md:grid-cols-2 mt-2">
+                  {completedTasks.map((task) => (
                     <ReadOnlyTaskCard key={task.id} task={task} />
                   ))}
                 </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
