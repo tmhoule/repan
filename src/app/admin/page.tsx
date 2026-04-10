@@ -160,7 +160,7 @@ export default function AdminPage() {
 
   const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [addMemberUserId, setAddMemberUserId] = useState("");
-  const [addMemberRole, setAddMemberRole] = useState<"manager" | "member">("member");
+  const [addMemberRole, setAddMemberRole] = useState<"manager" | "member" | "supervisor">("member");
   const [addingMember, setAddingMember] = useState(false);
 
   // Buckets state
@@ -353,6 +353,17 @@ export default function AdminPage() {
     mutateTeamMembers();
     mutateTeams();
     mutateUsers();
+  };
+
+  const handleChangeMemberRole = async (userId: string, role: "manager" | "member" | "supervisor") => {
+    if (!managingTeam) return;
+    await csrfFetch(`/api/teams/${managingTeam.id}/members`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, role }),
+    });
+    mutateTeamMembers();
+    mutateTeams();
   };
 
   const handleAddMember = async () => {
@@ -1154,12 +1165,17 @@ export default function AdminPage() {
                               </div>
                             </TableCell>
                             <TableCell>
-                              <Badge
-                                variant={m.role === "manager" ? "default" : "secondary"}
-                                className="text-xs"
+                              <select
+                                className="rounded-md border border-zinc-700 bg-zinc-800 text-zinc-100 px-2 py-1 text-xs"
+                                value={m.role}
+                                onChange={(e) => handleChangeMemberRole(m.userId, e.target.value as "manager" | "member" | "supervisor")}
+                                disabled={m.userId === user?.id}
+                                title={m.userId === user?.id ? "You can't change your own role" : "Change team role"}
                               >
-                                {m.role}
-                              </Badge>
+                                <option value="member">Member</option>
+                                <option value="manager">Manager</option>
+                                <option value="supervisor">Supervisor</option>
+                              </select>
                             </TableCell>
                             <TableCell className="text-right pr-4">
                               <Button
@@ -1670,10 +1686,11 @@ export default function AdminPage() {
               <select
                 className="w-full rounded-md border border-zinc-700 bg-zinc-800 text-zinc-100 px-3 py-2 text-sm"
                 value={addMemberRole}
-                onChange={(e) => setAddMemberRole(e.target.value as "manager" | "member")}
+                onChange={(e) => setAddMemberRole(e.target.value as "manager" | "member" | "supervisor")}
               >
                 <option value="member">Member</option>
                 <option value="manager">Manager</option>
+                <option value="supervisor">Supervisor (read-only)</option>
               </select>
             </div>
           </div>

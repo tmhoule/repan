@@ -14,7 +14,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const memberships = await prisma.teamMembership.findMany({
-      where: { teamId: id, role: { not: "supervisor" } },
+      where: { teamId: id },
       include: { user: { select: { id: true, name: true, avatarColor: true, role: true, isActive: true } } },
       orderBy: { user: { name: "asc" } },
     });
