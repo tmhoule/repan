@@ -2,16 +2,14 @@
 
 import { use, useState } from "react";
 import Link from "next/link";
-import useSWR from "swr";
-import { ArrowLeft, Star, ClipboardList, Clock, AlertTriangle, ChevronDown, ChevronRight, CheckCircle2, AlertCircle } from "lucide-react";
+import useSWR, { useSWRConfig } from "swr";
+import { ArrowLeft, Star, ClipboardList, ChevronDown, ChevronRight, CheckCircle2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { StreakFlame } from "@/components/gamification/streak-flame";
-import { StatusBadge } from "@/components/tasks/status-badge";
-import { PriorityBadge } from "@/components/tasks/priority-badge";
+import { TaskCard } from "@/components/tasks/task-card";
 import { useUser } from "@/components/user-context";
-import { cn } from "@/lib/utils";
 
 type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "paused" | "done" | "boulder";
 type TaskPriority = "high" | "medium" | "low";
@@ -21,11 +19,14 @@ interface Task {
   title: string;
   status: TaskStatus;
   priority: TaskPriority;
+  effortEstimate: "small" | "medium" | "large";
   percentComplete: number;
-  timeAllocation?: number;
+  timeAllocation: number;
   dueDate: string | null;
+  updatedAt?: string;
+  createdAt?: string;
   blockerReason?: string | null;
-  createdBy: { id: string; name: string; avatarColor: string };
+  createdBy: { id: string; name: string; avatarColor: string } | null;
   assignedTo?: { id: string; name: string; avatarColor: string } | null;
 }
 
@@ -61,84 +62,6 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
-function formatDueDate(
-  dateStr: string | null
-): { label: string; className: string } | null {
-  if (!dateStr) return null;
-  // Parse as local date to avoid UTC→local timezone shift (off-by-one day)
-  const [y, m, d] = dateStr.split("T")[0].split("-").map(Number);
-  const due = new Date(y, m - 1, d);
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  const diffDays = (due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
-  const formatted = due.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-  });
-  if (diffDays < 0)
-    return { label: `Overdue · ${formatted}`, className: "text-red-600 dark:text-red-400" };
-  if (diffDays <= 2)
-    return { label: `Due ${formatted}`, className: "text-amber-600 dark:text-amber-400" };
-  return { label: `Due ${formatted}`, className: "text-muted-foreground" };
-}
-
-function ReadOnlyTaskCard({ task }: { task: Task }) {
-  const dueDateInfo = formatDueDate(task.dueDate);
-  const isDone = task.status === "done";
-
-  return (
-    <Card className={cn("transition-opacity", isDone && "opacity-60")}>
-      <CardHeader className="pb-2">
-        <div className="flex items-start gap-2 min-w-0">
-          <div className="flex-1 min-w-0">
-            <Link
-              href={`/tasks/${task.id}`}
-              className="font-medium text-sm hover:text-primary hover:underline line-clamp-2 transition-colors"
-            >
-              {task.title}
-            </Link>
-          </div>
-          <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
-            <StatusBadge status={task.status} />
-            <PriorityBadge priority={task.priority} />
-          </div>
-        </div>
-      </CardHeader>
-
-      <CardContent className="space-y-3">
-        {dueDateInfo && (
-          <div className={cn("flex items-center gap-1 text-xs", dueDateInfo.className)}>
-            <Clock className="size-3" />
-            <span>{dueDateInfo.label}</span>
-          </div>
-        )}
-
-        <div className="space-y-1">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>Progress</span>
-            <span className="tabular-nums">{task.percentComplete}%</span>
-          </div>
-          <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-            <div
-              className={cn(
-                "h-full rounded-full transition-all duration-300",
-                isDone ? "bg-green-500" : "bg-primary"
-              )}
-              style={{ width: `${task.percentComplete}%` }}
-            />
-          </div>
-        </div>
-
-        {task.status === "blocked" && task.blockerReason && (
-          <div className="flex items-start gap-1.5 rounded-md bg-red-50 dark:bg-red-950/30 px-2 py-1.5 text-xs text-red-700 dark:text-red-400">
-            <AlertTriangle className="size-3 mt-0.5 shrink-0" />
-            <span>{task.blockerReason}</span>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
 
 export default function TeamMemberDetailPage({
   params,
@@ -147,6 +70,7 @@ export default function TeamMemberDetailPage({
 }) {
   const { id } = use(params);
   const { user: viewer } = useUser();
+  const { mutate: swrMutate } = useSWRConfig();
 
   const canViewTodos = !!viewer && (viewer.isSuperAdmin || viewer.teamRole === "manager");
 
@@ -184,6 +108,10 @@ export default function TeamMemberDetailPage({
     (sum, t) => sum + (t.timeAllocation ?? 0),
     0
   );
+
+  const handleTaskUpdate = () => {
+    swrMutate(`/api/tasks?assignedTo=${id}`);
+  };
 
   const [showCompleted, setShowCompleted] = useState(false);
   const [showTodos, setShowTodos] = useState(true);
@@ -297,7 +225,7 @@ export default function TeamMemberDetailPage({
           {activeTasks.length > 0 && (
             <div className="grid gap-3 sm:grid-cols-1 md:grid-cols-2">
               {activeTasks.map((task) => (
-                <ReadOnlyTaskCard key={task.id} task={task} />
+                <TaskCard key={task.id} task={task} onUpdate={handleTaskUpdate} />
               ))}
             </div>
           )}
@@ -341,7 +269,7 @@ export default function TeamMemberDetailPage({
               </div>
               <div className="grid gap-3 sm:grid-cols-1 md:grid-cols-2">
                 {stalledOrBlockedTasks.map((task) => (
-                  <ReadOnlyTaskCard key={task.id} task={task} />
+                  <TaskCard key={task.id} task={task} onUpdate={handleTaskUpdate} />
                 ))}
               </div>
             </div>
@@ -362,7 +290,7 @@ export default function TeamMemberDetailPage({
               <div className="rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50/40 dark:bg-purple-950/20 p-3">
                 <div className="grid gap-3 sm:grid-cols-1 md:grid-cols-2">
                   {boulderTasks.map((task) => (
-                    <ReadOnlyTaskCard key={task.id} task={task} />
+                    <TaskCard key={task.id} task={task} onUpdate={handleTaskUpdate} />
                   ))}
                 </div>
               </div>
@@ -383,7 +311,7 @@ export default function TeamMemberDetailPage({
               {showCompleted && (
                 <div className="grid gap-3 sm:grid-cols-1 md:grid-cols-2 mt-2">
                   {completedTasks.map((task) => (
-                    <ReadOnlyTaskCard key={task.id} task={task} />
+                    <TaskCard key={task.id} task={task} onUpdate={handleTaskUpdate} />
                   ))}
                 </div>
               )}
