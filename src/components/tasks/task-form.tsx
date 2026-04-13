@@ -106,7 +106,12 @@ export function TaskForm({ mode, initialData, onSubmit, onDelete, teamId }: Task
   const autoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isInitialMount = useRef(true);
 
-  const { data: usersData } = useSWR<User[]>(isManager ? "/api/users" : null);
+  const { data: teamData } = useSWR<{ allowStaffAssign: boolean }>(
+    teamId ? `/api/teams/${teamId}` : null
+  );
+  const canAssign = isManager || (teamData?.allowStaffAssign ?? false);
+
+  const { data: usersData } = useSWR<User[]>(canAssign ? "/api/users" : null);
   const users = usersData ?? [];
 
   // Sync status changes for blockerReason visibility
@@ -394,8 +399,8 @@ export function TaskForm({ mode, initialData, onSubmit, onDelete, teamId }: Task
         </div>
       )}
 
-      {/* Assigned To — managers only */}
-      {isManager && (
+      {/* Assigned To — managers, or any member when team allows it */}
+      {canAssign && (
         <div className="space-y-1.5">
           <Label htmlFor="task-assignee">Assigned To</Label>
           <Select
