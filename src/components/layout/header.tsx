@@ -27,6 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { GlobalSearch } from "@/components/layout/search";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { useUser } from "@/components/user-context";
 
 const staffNavLinks = [
@@ -171,6 +172,7 @@ export function Header() {
         <div className="flex items-center gap-2 ml-auto">
           {user && <GlobalSearch />}
           {user && <NotificationBell />}
+          <ThemeToggle />
 
           {user && (
             <DropdownMenu>

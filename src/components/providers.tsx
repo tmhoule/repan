@@ -1,6 +1,7 @@
 "use client";
 import { SWRConfig } from "swr";
 import { ReactNode, useEffect, useState } from "react";
+import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
 import { SessionTimeoutMonitor } from "./session-timeout-monitor";
 
@@ -25,10 +26,12 @@ function ClientToaster() {
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
-    <SWRConfig value={{ fetcher, revalidateOnFocus: true }}>
-      {children}
-      <ClientToaster />
-      <SessionTimeoutMonitor />
-    </SWRConfig>
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+      <SWRConfig value={{ fetcher, revalidateOnFocus: true }}>
+        {children}
+        <ClientToaster />
+        <SessionTimeoutMonitor />
+      </SWRConfig>
+    </ThemeProvider>
   );
 }
