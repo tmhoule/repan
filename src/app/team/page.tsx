@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import useSWR from "swr";
-import { Users, Clock, AlertTriangle } from "lucide-react";
+import { Users, Clock, AlertTriangle, Plus } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { StreakFlame } from "@/components/gamification/streak-flame";
 import { StatusBadge } from "@/components/tasks/status-badge";
 import { PriorityBadge } from "@/components/tasks/priority-badge";
@@ -302,13 +303,35 @@ export default function TeamPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Team</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          {isLoading
-            ? "Loading..."
-            : `${(users ?? []).length} member${(users ?? []).length !== 1 ? "s" : ""}`}
-        </p>
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Team</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {isLoading
+              ? "Loading..."
+              : `${(users ?? []).length} member${(users ?? []).length !== 1 ? "s" : ""}`}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link href="/todos/new" title="Quick personal reminder — no tracking or due dates">
+            <Button variant="outline" className="gap-2">
+              <Plus className="size-4" />
+              Create To Do
+            </Button>
+          </Link>
+          <Link href="/tasks/new?type=boulder" title="Ongoing effort with no end date — tracked by time allocation">
+            <Button variant="outline" className="gap-2 border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-400 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-950">
+              <Plus className="size-4" />
+              Create Boulder
+            </Button>
+          </Link>
+          <Link href="/tasks/new" title="Trackable work item with priority, effort, and due date">
+            <Button className="gap-2">
+              <Plus className="size-4" />
+              Create Task
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {isLoading ? (
