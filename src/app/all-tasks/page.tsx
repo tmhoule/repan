@@ -1,12 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import useSWR from "swr";
-import { ClipboardList } from "lucide-react";
+import { ClipboardList, ArrowUp, ArrowDown } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/tasks/status-badge";
 import { PriorityBadge } from "@/components/tasks/priority-badge";
 import { BucketBadge } from "@/components/buckets/bucket-badge";
+import type { SortKey, SortDir } from "@/lib/all-tasks-query";
 
 type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "paused";
 
@@ -33,8 +35,41 @@ function formatDueDate(dateStr: string | null): { label: string; className: stri
   return { label: `Due ${formatted}`, className: "text-muted-foreground" };
 }
 
+function SortHeader({
+  label,
+  column,
+  sort,
+  dir,
+  onChange,
+}: {
+  label: string;
+  column: SortKey;
+  sort: SortKey;
+  dir: SortDir;
+  onChange: (sort: SortKey, dir: SortDir) => void;
+}) {
+  const active = sort === column;
+  const next: SortDir = active && dir === "asc" ? "desc" : "asc";
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(column, next)}
+      className="inline-flex items-center gap-1 font-medium text-xs text-muted-foreground hover:text-foreground transition-colors"
+    >
+      {label}
+      {active && (dir === "asc" ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />)}
+    </button>
+  );
+}
+
 export default function AllTasksPage() {
-  const { data, isLoading } = useSWR<{ tasks: Row[] }>("/api/tasks/all");
+  const [sort, setSort] = useState<SortKey>("dueDate");
+  const [dir, setDir] = useState<SortDir>("asc");
+
+  const params = new URLSearchParams();
+  params.set("sort", sort);
+  params.set("dir", dir);
+  const { data, isLoading } = useSWR<{ tasks: Row[] }>(`/api/tasks/all?${params.toString()}`);
   const tasks = data?.tasks ?? [];
 
   return (
@@ -62,13 +97,13 @@ export default function AllTasksPage() {
           ) : (
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-card border-b">
-                <tr className="text-left text-xs text-muted-foreground">
-                  <th className="px-3 py-2 font-medium">Title</th>
-                  <th className="px-3 py-2 font-medium">Owner</th>
-                  <th className="px-3 py-2 font-medium">Due</th>
-                  <th className="px-3 py-2 font-medium">Priority</th>
-                  <th className="px-3 py-2 font-medium">Status</th>
-                  <th className="px-3 py-2 font-medium">Bucket</th>
+                <tr className="text-left">
+                  <th className="px-3 py-2"><SortHeader label="Title" column="title" sort={sort} dir={dir} onChange={(s, d) => { setSort(s); setDir(d); }} /></th>
+                  <th className="px-3 py-2"><SortHeader label="Owner" column="owner" sort={sort} dir={dir} onChange={(s, d) => { setSort(s); setDir(d); }} /></th>
+                  <th className="px-3 py-2"><SortHeader label="Due" column="dueDate" sort={sort} dir={dir} onChange={(s, d) => { setSort(s); setDir(d); }} /></th>
+                  <th className="px-3 py-2"><SortHeader label="Priority" column="priority" sort={sort} dir={dir} onChange={(s, d) => { setSort(s); setDir(d); }} /></th>
+                  <th className="px-3 py-2 text-xs font-medium text-muted-foreground">Status</th>
+                  <th className="px-3 py-2 text-xs font-medium text-muted-foreground">Bucket</th>
                 </tr>
               </thead>
               <tbody>
