@@ -123,7 +123,7 @@ describe("sortTasks — dueDate", () => {
     expect(ids.slice(2)).toEqual(["A", "B"]);
   });
   it("accepts ISO strings as well as Date objects", () => {
-    const X = t("X", { dueDate: "2026-04-30" as any });
+    const X = t("X", { dueDate: "2026-04-30" });
     const ids = sortTasks([A, X, B], "dueDate", "asc").map(x => x.id);
     expect(ids).toEqual(["X", "B", "A"]);
   });
