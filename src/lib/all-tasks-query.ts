@@ -64,6 +64,48 @@ export function parseParams(searchParams: URLSearchParams): ParsedParams {
   return { where, sort, dir };
 }
 
-export function sortTasks<T extends SortableTask>(_tasks: T[], _sort: SortKey, _dir: SortDir): T[] {
-  throw new Error("not implemented");
+const PRIORITY_RANK: Record<"high" | "medium" | "low", number> = {
+  high: 0,
+  medium: 1,
+  low: 2,
+};
+
+function dueDateMs(d: Date | string | null): number | null {
+  if (d === null) return null;
+  return d instanceof Date ? d.getTime() : new Date(d).getTime();
+}
+
+export function sortTasks<T extends SortableTask>(tasks: T[], sort: SortKey, dir: SortDir): T[] {
+  const out = [...tasks];
+  const flip = dir === "desc" ? -1 : 1;
+
+  out.sort((a, b) => {
+    switch (sort) {
+      case "title":
+        return a.title.localeCompare(b.title, undefined, { sensitivity: "base" }) * flip;
+
+      case "priority":
+        return (PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority]) * flip;
+
+      case "dueDate": {
+        const aMs = dueDateMs(a.dueDate);
+        const bMs = dueDateMs(b.dueDate);
+        if (aMs === null && bMs === null) return 0;
+        if (aMs === null) return dir === "asc" ? 1 : -1;
+        if (bMs === null) return dir === "asc" ? -1 : 1;
+        return (aMs - bMs) * flip;
+      }
+
+      case "owner": {
+        const aName = a.assignedTo?.name ?? null;
+        const bName = b.assignedTo?.name ?? null;
+        if (aName === null && bName === null) return 0;
+        if (aName === null) return 1;
+        if (bName === null) return -1;
+        return aName.localeCompare(bName, undefined, { sensitivity: "base" }) * flip;
+      }
+    }
+  });
+
+  return out;
 }
