@@ -177,12 +177,15 @@ export default function TaskDetailPage({
     <div className="mx-auto max-w-5xl px-4 py-6 space-y-6">
       {/* Back button + header */}
       <div className="space-y-3">
-        <Link href="/tasks">
-          <Button variant="ghost" size="sm" className="gap-1.5 -ml-2 text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="size-4" />
-            Back to tasks
-          </Button>
-        </Link>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => router.back()}
+          className="gap-1.5 -ml-2 text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="size-4" />
+          Back to tasks
+        </Button>
 
         <div className="flex items-start gap-3 flex-wrap">
           <div className="flex-1 min-w-0">
