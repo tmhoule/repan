@@ -33,6 +33,7 @@ import { useUser } from "@/components/user-context";
 const staffNavLinks = [
   { href: "/tasks", label: "My Tasks" },
   { href: "/team", label: "Team" },
+  { href: "/all-tasks", label: "All Tasks" },
   { href: "/history", label: "History" },
   { href: "/standup", label: "Standup" },
 ];
