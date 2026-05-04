@@ -5,12 +5,25 @@ import Link from "next/link";
 import useSWR from "swr";
 import { ClipboardList, ArrowUp, ArrowDown } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import { StatusBadge } from "@/components/tasks/status-badge";
 import { PriorityBadge } from "@/components/tasks/priority-badge";
 import { BucketBadge } from "@/components/buckets/bucket-badge";
+import { cn } from "@/lib/utils";
 import type { SortKey, SortDir } from "@/lib/all-tasks-query";
 
 type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "paused";
+
+const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
+  { value: "not_started", label: "Not Started" },
+  { value: "in_progress", label: "In Progress" },
+  { value: "blocked", label: "Blocked" },
+  { value: "stalled", label: "Stalled" },
+  { value: "paused", label: "Paused" },
+];
+
+interface TeamMember { id: string; name: string }
+interface Bucket { id: string; name: string; colorKey: string }
 
 interface Row {
   id: string;
@@ -65,10 +78,24 @@ function SortHeader({
 export default function AllTasksPage() {
   const [sort, setSort] = useState<SortKey>("dueDate");
   const [dir, setDir] = useState<SortDir>("asc");
+  const [statuses, setStatuses] = useState<TaskStatus[]>([]); // empty = no filter sent (server returns all five)
+  const [assignedTo, setAssignedTo] = useState(""); // "" | "unassigned" | <userId>
+  const [bucketId, setBucketId] = useState("");     // "" | "uncategorized" | <bucketId>
+
+  const { data: usersData } = useSWR<TeamMember[]>("/api/users");
+  const users = usersData ?? [];
+  const { data: bucketsData } = useSWR<{ buckets: Bucket[] }>("/api/buckets");
+  const buckets = bucketsData?.buckets ?? [];
+
+  const toggleStatus = (s: TaskStatus) =>
+    setStatuses((cur) => (cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s]));
 
   const params = new URLSearchParams();
   params.set("sort", sort);
   params.set("dir", dir);
+  statuses.forEach((s) => params.append("status", s));
+  if (assignedTo) params.set("assignedTo", assignedTo);
+  if (bucketId) params.set("bucketId", bucketId);
   const { data, isLoading } = useSWR<{ tasks: Row[] }>(`/api/tasks/all?${params.toString()}`);
   const tasks = data?.tasks ?? [];
 
@@ -80,6 +107,67 @@ export default function AllTasksPage() {
           {isLoading ? "Loading..." : `${tasks.length} task${tasks.length !== 1 ? "s" : ""}`}
         </p>
       </div>
+
+      <Card>
+        <CardContent className="pt-4 space-y-3">
+          {/* Status chips */}
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Status</Label>
+            <div className="flex flex-wrap gap-1.5">
+              {STATUS_OPTIONS.map((opt) => {
+                const active = statuses.includes(opt.value);
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => toggleStatus(opt.value)}
+                    className={cn(
+                      "px-3 py-1 rounded-full text-xs font-medium border transition-colors",
+                      active
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-card text-muted-foreground border-border hover:text-foreground"
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Person + bucket dropdowns */}
+          <div className="flex items-end gap-4 flex-wrap">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Person</Label>
+              <select
+                value={assignedTo}
+                onChange={(e) => setAssignedTo(e.target.value)}
+                className="h-8 rounded-md border border-input bg-transparent px-2 text-sm w-44"
+              >
+                <option value="">All</option>
+                <option value="unassigned">Unassigned</option>
+                {users.map((u) => (
+                  <option key={u.id} value={u.id}>{u.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Bucket</Label>
+              <select
+                value={bucketId}
+                onChange={(e) => setBucketId(e.target.value)}
+                className="h-8 rounded-md border border-input bg-transparent px-2 text-sm w-44"
+              >
+                <option value="">All</option>
+                <option value="uncategorized">Uncategorized</option>
+                {buckets.map((b) => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardContent className="p-0 overflow-x-auto">
