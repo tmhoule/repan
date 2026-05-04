@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import useSWR from "swr";
+import { useSWRConfig } from "swr";
 import { ClipboardList, ArrowUp, ArrowDown } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -11,8 +12,25 @@ import { PriorityBadge } from "@/components/tasks/priority-badge";
 import { BucketBadge } from "@/components/buckets/bucket-badge";
 import { cn } from "@/lib/utils";
 import type { SortKey, SortDir } from "@/lib/all-tasks-query";
+import { csrfFetch } from "@/lib/csrf-client";
+import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 
 type TaskStatus = "not_started" | "in_progress" | "blocked" | "stalled" | "paused";
+
+const POPUP_STATUSES: { value: TaskStatus | "done"; label: string }[] = [
+  { value: "not_started", label: "Not Started" },
+  { value: "in_progress", label: "In Progress" },
+  { value: "blocked", label: "Blocked" },
+  { value: "stalled", label: "Stalled" },
+  { value: "paused", label: "Paused" },
+  { value: "done", label: "Done" },
+];
 
 const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
   { value: "not_started", label: "Not Started" },
@@ -96,8 +114,33 @@ export default function AllTasksPage() {
   statuses.forEach((s) => params.append("status", s));
   if (assignedTo) params.set("assignedTo", assignedTo);
   if (bucketId) params.set("bucketId", bucketId);
-  const { data, isLoading } = useSWR<{ tasks: Row[] }>(`/api/tasks/all?${params.toString()}`);
+  const swrKey = `/api/tasks/all?${params.toString()}`;
+  const { data, isLoading } = useSWR<{ tasks: Row[] }>(swrKey);
   const tasks = data?.tasks ?? [];
+
+  const { mutate } = useSWRConfig();
+
+  const handleStatusChange = async (taskId: string, status: TaskStatus | "done") => {
+    try {
+      const res = await csrfFetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (res.status === 403) {
+        toast.error("You don't have permission to change this task.");
+        return;
+      }
+      if (!res.ok) {
+        toast.error("Failed to update status.");
+        return;
+      }
+      mutate(swrKey);
+      mutate("/api/tasks"); // keep My Tasks in sync if it's mounted
+    } catch {
+      toast.error("Failed to update status.");
+    }
+  };
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 space-y-6">
@@ -223,7 +266,27 @@ export default function AllTasksPage() {
                         {due?.label ?? "—"}
                       </td>
                       <td className="px-3 py-2"><PriorityBadge priority={task.priority} /></td>
-                      <td className="px-3 py-2"><StatusBadge status={task.status} /></td>
+                      <td className="px-3 py-2">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger
+                            className="outline-none focus-visible:ring-2 focus-visible:ring-ring/50 rounded-md"
+                            aria-label="Change status"
+                          >
+                            <StatusBadge status={task.status} />
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start">
+                            {POPUP_STATUSES.map((opt) => (
+                              <DropdownMenuItem
+                                key={opt.value}
+                                onClick={() => handleStatusChange(task.id, opt.value)}
+                                disabled={opt.value === task.status}
+                              >
+                                {opt.label}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
                       <td className="px-3 py-2">
                         {task.bucket ? <BucketBadge name={task.bucket.name} colorKey={task.bucket.colorKey} /> : null}
                       </td>
