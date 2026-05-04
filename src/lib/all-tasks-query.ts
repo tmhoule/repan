@@ -38,8 +38,30 @@ export type SortableTask = {
   assignedTo: { name: string } | null;
 };
 
-export function parseParams(_searchParams: URLSearchParams): ParsedParams {
-  throw new Error("not implemented");
+export function parseParams(searchParams: URLSearchParams): ParsedParams {
+  const requestedStatuses = searchParams.getAll("status")
+    .filter((s): s is ActiveTaskStatus => (ACTIVE_STATUSES as readonly string[]).includes(s));
+  const status = { in: requestedStatuses.length > 0 ? requestedStatuses : [...ACTIVE_STATUSES] };
+
+  const where: AllTasksWhere = { status };
+
+  const assignedTo = searchParams.get("assignedTo");
+  if (assignedTo === "unassigned") where.assignedToId = null;
+  else if (assignedTo) where.assignedToId = assignedTo;
+
+  const bucketId = searchParams.get("bucketId");
+  if (bucketId === "uncategorized") where.bucketId = null;
+  else if (bucketId) where.bucketId = bucketId;
+
+  const rawSort = searchParams.get("sort");
+  const sort: SortKey = (SORT_KEYS as readonly string[]).includes(rawSort ?? "")
+    ? (rawSort as SortKey) : "dueDate";
+
+  const rawDir = searchParams.get("dir");
+  const dir: SortDir = (SORT_DIRS as readonly string[]).includes(rawDir ?? "")
+    ? (rawDir as SortDir) : "asc";
+
+  return { where, sort, dir };
 }
 
 export function sortTasks<T extends SortableTask>(_tasks: T[], _sort: SortKey, _dir: SortDir): T[] {
