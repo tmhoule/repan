@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import useSWR from "swr";
-import { useSWRConfig } from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import { ClipboardList, ArrowUp, ArrowDown } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -48,7 +47,10 @@ interface Row {
   title: string;
   status: TaskStatus;
   priority: "high" | "medium" | "low";
+  effortEstimate: "small" | "medium" | "large";
+  percentComplete: number;
   dueDate: string | null;
+  updatedAt: string;
   assignedTo: { id: string; name: string; avatarColor: string } | null;
   bucket: { id: string; name: string; colorKey: string } | null;
 }
@@ -212,20 +214,22 @@ export default function AllTasksPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="p-0 overflow-x-auto">
-          {isLoading ? (
-            <div className="p-3 space-y-2">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="h-12 rounded-md bg-muted/50 animate-pulse" />
-              ))}
-            </div>
-          ) : tasks.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-              <ClipboardList className="size-12 text-muted-foreground/40" />
-              <p className="text-muted-foreground">No tasks match your filters.</p>
-            </div>
-          ) : (
+      {isLoading ? (
+        <Card>
+          <CardContent className="p-3 space-y-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="h-12 rounded-md bg-muted/50 animate-pulse" />
+            ))}
+          </CardContent>
+        </Card>
+      ) : tasks.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border py-16 text-center">
+          <ClipboardList className="size-12 text-muted-foreground/40" />
+          <p className="text-muted-foreground">No tasks match your filters.</p>
+        </div>
+      ) : (
+        <Card>
+          <CardContent className="p-0 overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-card border-b">
                 <tr className="text-left">
@@ -295,9 +299,9 @@ export default function AllTasksPage() {
                 })}
               </tbody>
             </table>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
